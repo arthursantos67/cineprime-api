@@ -36,7 +36,7 @@ export const reservationApi = {
 
 async function getSeatMap(sessionId: string) {
   const response = await apiRequest<unknown>(buildSessionSeatMapPath(sessionId), {
-    auth: "none",
+    auth: "optional",
     method: "GET",
   });
 

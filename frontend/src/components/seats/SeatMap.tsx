@@ -1,11 +1,18 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 
-import { getApiErrorUserMessage } from "@/api/client";
+import { ApiError, getApiErrorUserMessage } from "@/api/client";
 import { reservationApi } from "@/api/reservation";
+import { useGuardedAction } from "@/components/auth/useGuardedAction";
 import { StateMessage } from "@/components/ui/StateMessage";
-import type { SessionSeatMapItem } from "@/types/reservation";
+import { useReservation } from "@/contexts/ReservationContext";
+import type {
+  ReservedSeat,
+  SessionSeatMapItem,
+  TemporaryReservationResponse,
+} from "@/types/reservation";
 
 type SeatMapLoadState =
   | { status: "error"; errorMessage?: string }
@@ -28,7 +35,18 @@ type SeatMapProps = {
 };
 
 type SeatMapViewProps = {
+  sessionId: string;
   seats: SessionSeatMapItem[];
+};
+
+type SeatMapLayoutProps = {
+  countdownLabel: string | null;
+  errorMessage?: string | null;
+  onSeatToggle?: (seat: SessionSeatMapItem) => void;
+  pendingSeatIds?: ReadonlySet<string>;
+  reservedSeats?: ReservedSeat[];
+  seats: SessionSeatMapItem[];
+  selectedSeatIds?: ReadonlySet<string>;
 };
 
 const seatStateLabels: Record<SeatVisualState, string> = {
@@ -44,6 +62,8 @@ const seatStateMarkers: Record<SeatVisualState, string> = {
   reserved: "R",
   selected: "S",
 };
+
+const SESSION_BASE_PRICE_PLACEHOLDER = 0;
 
 export function SeatMap({ sessionId }: SeatMapProps) {
   const [state, setState] = useState<SeatMapLoadState>({ status: "loading" });
@@ -100,32 +120,173 @@ export function SeatMap({ sessionId }: SeatMapProps) {
     );
   }
 
-  return <SeatMapView seats={state.seats} />;
+  return <SeatMapView seats={state.seats} sessionId={sessionId.trim()} />;
 }
 
-export function SeatMapView({ seats }: SeatMapViewProps) {
-  const rows = useMemo(() => groupSeatMapRows(seats), [seats]);
-  const [selectedSeatIds, setSelectedSeatIds] = useState<Set<string>>(
+export function SeatMapView({ seats, sessionId }: SeatMapViewProps) {
+  const guardAction = useGuardedAction();
+  const reservation = useReservation();
+  const [currentSeats, setCurrentSeats] = useState(seats);
+  const [pendingSeatIds, setPendingSeatIds] = useState<Set<string>>(
     () => new Set()
+  );
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    setCurrentSeats(seats);
+  }, [seats]);
+
+  const reservedSeatsForSession = useMemo(() => {
+    if (reservation.sessionId !== sessionId) {
+      return [];
+    }
+
+    return reservation.reservedSeats;
+  }, [reservation.reservedSeats, reservation.sessionId, sessionId]);
+
+  const selectedSeatIds = useMemo(
+    () =>
+      new Set([
+        ...reservedSeatsForSession.map((seat) => seat.sessionSeatId),
+        ...currentSeats
+          .filter(
+            (seat) =>
+              seat.status === "RESERVED" &&
+              seat.reserved_by_current_user === true
+          )
+          .map((seat) => seat.session_seat_id),
+      ]),
+    [currentSeats, reservedSeatsForSession]
   );
 
   function toggleSeat(seat: SessionSeatMapItem) {
-    if (seat.status !== "AVAILABLE") {
+    if (pendingSeatIds.has(seat.session_seat_id)) {
       return;
     }
 
-    setSelectedSeatIds((currentSelection) => {
-      const nextSelection = new Set(currentSelection);
+    const visualState = getSeatVisualState(seat, selectedSeatIds);
 
-      if (nextSelection.has(seat.session_seat_id)) {
-        nextSelection.delete(seat.session_seat_id);
-      } else {
-        nextSelection.add(seat.session_seat_id);
-      }
+    if (visualState === "selected") {
+      guardAction(() => {
+        void releaseSeat(seat);
+      });
+      return;
+    }
 
-      return nextSelection;
+    if (visualState !== "available") {
+      return;
+    }
+
+    guardAction(() => {
+      void reserveSeat(seat);
     });
   }
+
+  async function reserveSeat(seat: SessionSeatMapItem) {
+    setErrorMessage(null);
+    setPendingSeatIds((current) => addToSet(current, seat.session_seat_id));
+    setCurrentSeats((current) =>
+      markSeatsAsReservedBySeatIds(current, [seat.seat_id])
+    );
+
+    try {
+      const response = await reservationApi.reserveSeats(sessionId, [
+        seat.seat_id,
+      ]);
+      const nextSeats = buildReservedSeatsFromReservation(
+        response,
+        currentSeats,
+        response.expires_at
+      );
+
+      reservation.addSeats(nextSeats, { sessionId });
+      setCurrentSeats((current) =>
+        markSeatsAsReservedBySeatIds(
+          current,
+          response.seats.map((responseSeat) => responseSeat.seat_id),
+          response.expires_at
+        )
+      );
+    } catch (error) {
+      setCurrentSeats((current) =>
+        restoreSeatSnapshots(current, [seat])
+      );
+      setErrorMessage(getSeatInteractionErrorMessage(error));
+    } finally {
+      setPendingSeatIds((current) =>
+        removeFromSet(current, seat.session_seat_id)
+      );
+    }
+  }
+
+  async function releaseSeat(seat: SessionSeatMapItem) {
+    const reservedSeat = reservedSeatsForSession.find(
+      (currentSeat) => currentSeat.sessionSeatId === seat.session_seat_id
+    );
+
+    setErrorMessage(null);
+    setPendingSeatIds((current) => addToSet(current, seat.session_seat_id));
+    reservation.removeSeat(seat.session_seat_id);
+    setCurrentSeats((current) =>
+      markSeatsAsAvailableBySessionSeatIds(current, [seat.session_seat_id])
+    );
+
+    try {
+      const response = await reservationApi.releaseReservations(sessionId, [
+        seat.session_seat_id,
+      ]);
+      const releasedSessionSeatIds = response.seats.map(
+        (responseSeat) => responseSeat.session_seat_id
+      );
+
+      setCurrentSeats((current) =>
+        markSeatsAsAvailableBySessionSeatIds(current, releasedSessionSeatIds)
+      );
+    } catch (error) {
+      setCurrentSeats((current) =>
+        restoreSeatSnapshots(current, [seat])
+      );
+
+      if (reservedSeat) {
+        reservation.addSeats([reservedSeat], { sessionId });
+      }
+
+      setErrorMessage(getSeatInteractionErrorMessage(error));
+    } finally {
+      setPendingSeatIds((current) =>
+        removeFromSet(current, seat.session_seat_id)
+      );
+    }
+  }
+
+  return (
+    <SeatMapLayout
+      countdownLabel={formatCountdownLabel(
+        reservation.sessionId === sessionId
+          ? reservation.reservationExpiresAt
+          : null
+      )}
+      errorMessage={errorMessage}
+      onSeatToggle={toggleSeat}
+      pendingSeatIds={pendingSeatIds}
+      reservedSeats={reservedSeatsForSession}
+      seats={currentSeats}
+      selectedSeatIds={selectedSeatIds}
+    />
+  );
+}
+
+export function SeatMapLayout({
+  countdownLabel,
+  errorMessage,
+  onSeatToggle,
+  pendingSeatIds = new Set(),
+  reservedSeats = [],
+  seats,
+  selectedSeatIds = new Set(),
+}: SeatMapLayoutProps) {
+  const rows = useMemo(() => groupSeatMapRows(seats), [seats]);
+  const hasReservedSeats = reservedSeats.length > 0;
 
   if (rows.length === 0) {
     return (
@@ -140,12 +301,18 @@ export function SeatMapView({ seats }: SeatMapViewProps) {
       <div className="seat-map-section__header">
         <h2 id="mapa-assentos">Mapa de assentos</h2>
         <p>
-          Visitantes podem consultar a sala. A seleção abaixo é local e não
-          reserva assentos.
+          Visitantes podem consultar a sala. Para reservar ou liberar assentos,
+          entre na sua conta.
         </p>
       </div>
 
       <SeatMapLegend />
+
+      {errorMessage ? (
+        <p className="inline-status inline-status-error" role="alert">
+          {errorMessage}
+        </p>
+      ) : null}
 
       <div
         aria-label="Área rolável do mapa de assentos"
@@ -181,10 +348,14 @@ export function SeatMapView({ seats }: SeatMapViewProps) {
                     const isUnavailable =
                       visualState === "reserved" ||
                       visualState === "purchased";
+                    const isPending = pendingSeatIds.has(
+                      seat.session_seat_id
+                    );
 
                     return (
                       <button
-                        aria-disabled={isUnavailable}
+                        aria-busy={isPending}
+                        aria-disabled={isUnavailable || isPending}
                         aria-label={getSeatAccessibleLabel(
                           seat,
                           visualState
@@ -196,6 +367,7 @@ export function SeatMapView({ seats }: SeatMapViewProps) {
                           seat.is_accessible
                             ? "seat-map__seat--accessible"
                             : "",
+                          isPending ? "seat-map__seat--pending" : "",
                           shouldAddCenterAisle(row.seats, seatIndex)
                             ? "seat-map__seat--after-aisle"
                             : "",
@@ -204,7 +376,7 @@ export function SeatMapView({ seats }: SeatMapViewProps) {
                           .join(" ")}
                         data-state={visualState}
                         key={seat.session_seat_id}
-                        onClick={() => toggleSeat(seat)}
+                        onClick={() => onSeatToggle?.(seat)}
                         type="button"
                       >
                         <span className="seat-map__seat-number">
@@ -241,6 +413,37 @@ export function SeatMapView({ seats }: SeatMapViewProps) {
           <div className="seat-map__back-label">Fundo da sala</div>
         </div>
       </div>
+
+      <aside aria-label="Resumo da reserva" className="seat-reservation-summary">
+        <div>
+          <h3>Reserva temporária</h3>
+          <p>
+            {hasReservedSeats
+              ? `${reservedSeats.length} assento${reservedSeats.length === 1 ? "" : "s"} reservado${reservedSeats.length === 1 ? "" : "s"}.`
+              : "Nenhum assento reservado nesta sessão."}
+          </p>
+        </div>
+        {countdownLabel ? (
+          <p className="seat-reservation-summary__timer" role="timer">
+            {countdownLabel}
+          </p>
+        ) : null}
+        {hasReservedSeats ? (
+          <>
+            <ul className="seat-reservation-summary__list">
+              {reservedSeats.map((seat) => (
+                <li key={seat.sessionSeatId}>
+                  {seat.row}
+                  {seat.number}
+                </li>
+              ))}
+            </ul>
+            <Link className="button button-primary" href="/ticket-types">
+              Continuar
+            </Link>
+          </>
+        ) : null}
+      </aside>
     </section>
   );
 }
@@ -349,6 +552,120 @@ export function getSeatAccessibleLabel(
   const accessibleSuffix = seat.is_accessible ? ", assento acessível" : "";
 
   return `Assento ${identifier}, fileira ${seat.row}, número ${seat.number}, ${seatStateLabels[visualState]}${accessibleSuffix}.`;
+}
+
+export function buildReservedSeatsFromReservation(
+  response: TemporaryReservationResponse,
+  seatMap: SessionSeatMapItem[],
+  expiresAtValue = response.expires_at
+): ReservedSeat[] {
+  const expiresAt = new Date(expiresAtValue);
+  const seatsBySeatId = new Map(seatMap.map((seat) => [seat.seat_id, seat]));
+
+  return response.seats.map((reservedSeat) => {
+    const originalSeat = seatsBySeatId.get(reservedSeat.seat_id);
+
+    if (!originalSeat) {
+      throw new Error("Reserved seat was not present in the loaded seat map.");
+    }
+
+    return {
+      basePrice: SESSION_BASE_PRICE_PLACEHOLDER,
+      expiresAt,
+      isAccessible: originalSeat.is_accessible,
+      number: reservedSeat.number,
+      row: reservedSeat.row,
+      seatId: reservedSeat.seat_id,
+      sessionSeatId: originalSeat.session_seat_id,
+    };
+  });
+}
+
+export function markSeatsAsReservedBySeatIds(
+  seats: SessionSeatMapItem[],
+  seatIds: string[],
+  lockExpiresAt: string | null = null
+) {
+  const seatIdsToReserve = new Set(seatIds);
+
+  return seats.map((seat) =>
+    seatIdsToReserve.has(seat.seat_id)
+      ? {
+          ...seat,
+          lock_expires_at: lockExpiresAt,
+          reserved_by_current_user: true,
+          status: "RESERVED" as const,
+        }
+      : seat
+  );
+}
+
+export function markSeatsAsAvailableBySessionSeatIds(
+  seats: SessionSeatMapItem[],
+  sessionSeatIds: string[]
+) {
+  const sessionSeatIdsToRelease = new Set(sessionSeatIds);
+
+  return seats.map((seat) =>
+    sessionSeatIdsToRelease.has(seat.session_seat_id)
+      ? {
+          ...seat,
+          lock_expires_at: null,
+          reserved_by_current_user: false,
+          status: "AVAILABLE" as const,
+        }
+      : seat
+  );
+}
+
+export function restoreSeatSnapshots(
+  seats: SessionSeatMapItem[],
+  snapshots: SessionSeatMapItem[]
+) {
+  const snapshotsBySessionSeatId = new Map(
+    snapshots.map((seat) => [seat.session_seat_id, seat])
+  );
+
+  return seats.map(
+    (seat) => snapshotsBySessionSeatId.get(seat.session_seat_id) ?? seat
+  );
+}
+
+export function formatCountdownLabel(expiresAt: Date | null, now = new Date()) {
+  if (!expiresAt) {
+    return null;
+  }
+
+  const remainingSeconds = Math.max(
+    0,
+    Math.ceil((expiresAt.getTime() - now.getTime()) / 1000)
+  );
+  const minutes = Math.floor(remainingSeconds / 60);
+  const seconds = remainingSeconds % 60;
+
+  return `Expira em ${String(minutes).padStart(2, "0")}:${String(
+    seconds
+  ).padStart(2, "0")}`;
+}
+
+export function getSeatInteractionErrorMessage(error: unknown) {
+  if (error instanceof ApiError && error.code === "SEAT_ALREADY_RESERVED") {
+    return "Esse assento acabou de ser reservado por outra pessoa. Escolha outro lugar.";
+  }
+
+  return getApiErrorUserMessage(error);
+}
+
+function addToSet<T>(set: ReadonlySet<T>, value: T) {
+  const nextSet = new Set(set);
+  nextSet.add(value);
+  return nextSet;
+}
+
+function removeFromSet<T>(set: ReadonlySet<T>, value: T) {
+  const nextSet = new Set(set);
+  nextSet.delete(value);
+  return nextSet;
 }
 
 function shouldAddCenterAisle(seats: SessionSeatMapItem[], seatIndex: number) {
