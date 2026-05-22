@@ -13,6 +13,7 @@ import { MovieGrid } from "./MovieGrid";
 import {
   formatMovieDuration,
   formatMovieGenres,
+  formatMovieReleaseDate,
   getMovieDetailsHref,
 } from "./movie-formatters";
 
@@ -102,5 +103,7 @@ test("movie component helpers format API-shaped values", () => {
   assert.equal(formatMovieDuration(0), "Duração indisponível");
   assert.equal(formatMovieGenres([]), "Gênero indisponível");
   assert.equal(formatMovieGenres(movie.genres), "Ficção científica, Aventura");
+  assert.equal(formatMovieReleaseDate("2026-05-13"), "13/05/2026");
+  assert.equal(formatMovieReleaseDate(null), "Estreia indisponível");
   assert.equal(getMovieDetailsHref(movie.id), "/movies/movie-123");
 });
