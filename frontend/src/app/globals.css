@@ -378,6 +378,10 @@ h1 {
   margin: 0;
 }
 
+.state-message__action {
+  margin-top: 4px;
+}
+
 .state-message-empty {
   background: #ffffff;
   border-left-color: var(--color-info);
@@ -442,6 +446,11 @@ h1 {
   font-weight: 750;
   line-height: 1.5;
   margin: 0;
+}
+
+.home-catalog {
+  display: grid;
+  gap: 28px;
 }
 
 .movie-grid-section {
