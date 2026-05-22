@@ -5,6 +5,8 @@ import type {
 } from "@/types/reservation";
 
 export type ReservationState = {
+  expirationNotice: string | null;
+  expiredSessionId: string | null;
   sessionId: string | null;
   reservedSeats: ReservedSeat[];
   ticketTypes: Record<string, TicketType>;
@@ -15,6 +17,8 @@ export type ReservationState = {
 export const DEFAULT_TICKET_TYPE: TicketType = "inteira";
 
 export const initialReservationState: ReservationState = {
+  expirationNotice: null,
+  expiredSessionId: null,
   paymentMethod: null,
   reservationExpiresAt: null,
   reservedSeats: [],
@@ -45,6 +49,8 @@ export function addSeatsToReservation(
 
   return {
     ...state,
+    expirationNotice: null,
+    expiredSessionId: null,
     reservationExpiresAt: nextExpiresAt,
     reservedSeats: Array.from(nextSeatsById.values()),
     sessionId: sessionId ?? state.sessionId,
@@ -103,6 +109,31 @@ export function setReservationPaymentMethod(
 
 export function resetReservation(): ReservationState {
   return { ...initialReservationState };
+}
+
+export function expireReservation(
+  state: ReservationState,
+  message: string
+): ReservationState {
+  return {
+    ...initialReservationState,
+    expirationNotice: message,
+    expiredSessionId: state.sessionId,
+  };
+}
+
+export function clearReservationExpirationNotice(
+  state: ReservationState
+): ReservationState {
+  if (!state.expirationNotice && !state.expiredSessionId) {
+    return state;
+  }
+
+  return {
+    ...state,
+    expirationNotice: null,
+    expiredSessionId: null,
+  };
 }
 
 function getEarliestExpiration(seats: ReservedSeat[]) {

@@ -5,6 +5,8 @@ import type { ReservedSeat } from "@/types/reservation";
 
 import {
   addSeatsToReservation,
+  clearReservationExpirationNotice,
+  expireReservation,
   initialReservationState,
   removeSeatFromReservation,
   resetReservation,
@@ -34,6 +36,8 @@ const secondSeat: ReservedSeat = {
 
 test("reservation state starts without persisted purchase data", () => {
   assert.deepEqual(initialReservationState, {
+    expirationNotice: null,
+    expiredSessionId: null,
     paymentMethod: null,
     reservationExpiresAt: null,
     reservedSeats: [],
@@ -150,4 +154,31 @@ test("resetReservation clears selected seats, ticket types, payment method, and 
 
   assert.notDeepEqual(state, initialReservationState);
   assert.deepEqual(resetReservation(), initialReservationState);
+});
+
+test("expireReservation clears purchase flow data and keeps a transient notice", () => {
+  const state = setReservationPaymentMethod(
+    addSeatsToReservation(initialReservationState, [firstSeat], "session-1"),
+    "pix"
+  );
+  const expired = expireReservation(state, "Reserva expirada.");
+
+  assert.deepEqual(expired, {
+    ...initialReservationState,
+    expirationNotice: "Reserva expirada.",
+    expiredSessionId: "session-1",
+  });
+});
+
+test("clearReservationExpirationNotice removes only transient expiration feedback", () => {
+  const expired = {
+    ...initialReservationState,
+    expirationNotice: "Reserva expirada.",
+    expiredSessionId: "session-1",
+  };
+
+  assert.deepEqual(
+    clearReservationExpirationNotice(expired),
+    initialReservationState
+  );
 });
