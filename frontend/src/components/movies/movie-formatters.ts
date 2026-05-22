@@ -1,5 +1,9 @@
 import type { CatalogMovie } from "@/types/catalog";
 
+const ptBrDateFormatter = new Intl.DateTimeFormat("pt-BR", {
+  timeZone: "UTC",
+});
+
 export function formatMovieDuration(durationMinutes: number) {
   if (!Number.isFinite(durationMinutes) || durationMinutes <= 0) {
     return "Duração indisponível";
@@ -25,6 +29,20 @@ export function formatMovieGenres(genres: CatalogMovie["genres"]) {
   }
 
   return genres.map((genre) => genre.name).join(", ");
+}
+
+export function formatMovieReleaseDate(releaseDate?: string | null) {
+  if (!releaseDate) {
+    return "Estreia indisponível";
+  }
+
+  const parsedDate = new Date(`${releaseDate}T00:00:00.000Z`);
+
+  if (Number.isNaN(parsedDate.getTime())) {
+    return "Estreia indisponível";
+  }
+
+  return ptBrDateFormatter.format(parsedDate);
 }
 
 export function getMovieDetailsHref(movieId: CatalogMovie["id"]) {

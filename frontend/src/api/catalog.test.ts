@@ -3,12 +3,45 @@ import test from "node:test";
 
 import { catalogApi } from "./catalog";
 
+const movieDetailResponse = {
+  created_at: "2026-05-20T10:00:00-03:00",
+  duration_minutes: 125,
+  genres: [{ id: "genre-1", name: "Aventura" }],
+  id: "movie-123",
+  is_featured: false,
+  poster_url: "https://cdn.example.com/movie.jpg",
+  release_date: "2026-05-13",
+  status: "em_cartaz",
+  synopsis: "Uma aventura em Natal.",
+  title: "A Jornada",
+  updated_at: "2026-05-21T10:00:00-03:00",
+};
+
 const paginatedMoviesResponse = {
   count: 0,
   next: null,
   previous: null,
   results: [],
 };
+
+test("catalogApi gets a movie through the public catalog detail endpoint", async () => {
+  const originalFetch = globalThis.fetch;
+
+  try {
+    globalThis.fetch = async (input, init) => {
+      assert.equal(input, "http://localhost:8000/api/v1/catalog/movies/movie-123/");
+      assert.equal(init?.method, "GET");
+
+      return Response.json(movieDetailResponse);
+    };
+
+    const response = await catalogApi.getMovie("movie-123");
+
+    assert.deepEqual(response, movieDetailResponse);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
 
 test("catalogApi lists movies through the public catalog endpoint", async () => {
   const originalFetch = globalThis.fetch;
@@ -54,6 +87,21 @@ test("catalogApi builds supported movie filters", async () => {
       "http://localhost:8000/api/v1/catalog/movies/?status=pre_venda",
       "http://localhost:8000/api/v1/catalog/movies/?status=em_cartaz&is_featured=true&page=2",
     ]);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("catalogApi rejects unexpected movie detail responses", async () => {
+  const originalFetch = globalThis.fetch;
+
+  try {
+    globalThis.fetch = async () => Response.json({ id: "movie-123" });
+
+    await assert.rejects(
+      catalogApi.getMovie("movie-123"),
+      /Unexpected catalog movie detail response/
+    );
   } finally {
     globalThis.fetch = originalFetch;
   }

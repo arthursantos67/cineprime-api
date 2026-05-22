@@ -14,3 +14,10 @@ export type CatalogMovie = {
   status: MovieStatus;
   is_featured: boolean;
 };
+
+export type CatalogMovieDetail = CatalogMovie & {
+  created_at?: string;
+  release_date?: string | null;
+  synopsis: string;
+  updated_at?: string;
+};
