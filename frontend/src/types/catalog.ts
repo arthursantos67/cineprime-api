@@ -21,3 +21,20 @@ export type CatalogMovieDetail = CatalogMovie & {
   synopsis: string;
   updated_at?: string;
 };
+
+export type CatalogRoomSummary = {
+  capacity: number;
+  id: string;
+  name: string;
+};
+
+export type CatalogSession = {
+  base_price: string;
+  created_at?: string;
+  end_time: string;
+  id: string;
+  movie: CatalogMovie;
+  room: CatalogRoomSummary;
+  start_time: string;
+  updated_at?: string;
+};
