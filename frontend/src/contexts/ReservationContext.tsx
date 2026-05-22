@@ -13,6 +13,8 @@ import {
 import { AUTH_PROTECTED_STATE_RESET_EVENT } from "./AuthContext";
 import {
   addSeatsToReservation,
+  clearReservationExpirationNotice,
+  expireReservation as getExpiredReservationState,
   initialReservationState,
   removeSeatFromReservation,
   resetReservation as getResetReservationState,
@@ -31,6 +33,8 @@ type ReservationContextValue = ReservationState & {
     seats: ReservedSeat[],
     options?: { defaultTicketType?: TicketType; sessionId?: string }
   ) => void;
+  clearExpirationNotice: () => void;
+  expireReservation: (message?: string) => void;
   removeSeat: (sessionSeatId: string) => void;
   resetReservation: () => void;
   setPaymentMethod: (method: PaymentMethod) => void;
@@ -38,6 +42,9 @@ type ReservationContextValue = ReservationState & {
 };
 
 const ReservationContext = createContext<ReservationContextValue | null>(null);
+
+export const RESERVATION_EXPIRED_MESSAGE =
+  "Sua reserva temporária expirou. Os assentos foram liberados; escolha seus lugares novamente para continuar a compra.";
 
 export function ReservationProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<ReservationState>(initialReservationState);
@@ -68,6 +75,10 @@ export function ReservationProvider({ children }: { children: ReactNode }) {
     );
   }, []);
 
+  const clearExpirationNotice = useCallback(() => {
+    setState((currentState) => clearReservationExpirationNotice(currentState));
+  }, []);
+
   const setTicketType = useCallback(
     (sessionSeatId: string, type: TicketType) => {
       setState((currentState) =>
@@ -84,6 +95,13 @@ export function ReservationProvider({ children }: { children: ReactNode }) {
   const resetReservation = useCallback(() => {
     setState(getResetReservationState());
   }, []);
+
+  const expireReservation = useCallback(
+    (message = RESERVATION_EXPIRED_MESSAGE) => {
+      setState((currentState) => getExpiredReservationState(currentState, message));
+    },
+    []
+  );
 
   useEffect(() => {
     if (typeof window === "undefined") {
@@ -104,6 +122,8 @@ export function ReservationProvider({ children }: { children: ReactNode }) {
     () => ({
       ...state,
       addSeats,
+      clearExpirationNotice,
+      expireReservation,
       removeSeat,
       resetReservation,
       setPaymentMethod,
@@ -111,6 +131,8 @@ export function ReservationProvider({ children }: { children: ReactNode }) {
     }),
     [
       addSeats,
+      clearExpirationNotice,
+      expireReservation,
       removeSeat,
       resetReservation,
       setPaymentMethod,

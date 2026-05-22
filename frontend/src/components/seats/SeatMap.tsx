@@ -8,6 +8,7 @@ import { reservationApi } from "@/api/reservation";
 import { useGuardedAction } from "@/components/auth/useGuardedAction";
 import { StateMessage } from "@/components/ui/StateMessage";
 import { useReservation } from "@/contexts/ReservationContext";
+import { useReservationCountdown } from "@/hooks/useReservationCountdown";
 import type {
   ReservedSeat,
   SessionSeatMapItem,
@@ -41,6 +42,7 @@ type SeatMapViewProps = {
 
 type SeatMapLayoutProps = {
   countdownLabel: string | null;
+  countdownWarning?: boolean;
   errorMessage?: string | null;
   onSeatToggle?: (seat: SessionSeatMapItem) => void;
   pendingSeatIds?: ReadonlySet<string>;
@@ -131,6 +133,11 @@ export function SeatMapView({ seats, sessionId }: SeatMapViewProps) {
     () => new Set()
   );
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const reservationExpiresAt =
+    reservation.sessionId === sessionId
+      ? reservation.reservationExpiresAt
+      : null;
+  const countdown = useReservationCountdown(reservationExpiresAt);
 
   useEffect(() => {
     setCurrentSeats(seats);
@@ -158,6 +165,37 @@ export function SeatMapView({ seats, sessionId }: SeatMapViewProps) {
       ]),
     [currentSeats, reservedSeatsForSession]
   );
+
+  useEffect(() => {
+    if (!reservation.expirationNotice) {
+      return;
+    }
+
+    if (
+      reservation.expiredSessionId &&
+      reservation.expiredSessionId !== sessionId
+    ) {
+      return;
+    }
+
+    setErrorMessage(reservation.expirationNotice);
+    reservation.clearExpirationNotice();
+  }, [reservation, sessionId]);
+
+  useEffect(() => {
+    if (!countdown?.isExpired || reservedSeatsForSession.length === 0) {
+      return;
+    }
+
+    const expiredSessionSeatIds = reservedSeatsForSession.map(
+      (seat) => seat.sessionSeatId
+    );
+
+    reservation.expireReservation();
+    setCurrentSeats((current) =>
+      markSeatsAsAvailableBySessionSeatIds(current, expiredSessionSeatIds)
+    );
+  }, [countdown?.isExpired, reservation, reservedSeatsForSession]);
 
   function toggleSeat(seat: SessionSeatMapItem) {
     if (pendingSeatIds.has(seat.session_seat_id)) {
@@ -261,11 +299,8 @@ export function SeatMapView({ seats, sessionId }: SeatMapViewProps) {
 
   return (
     <SeatMapLayout
-      countdownLabel={formatCountdownLabel(
-        reservation.sessionId === sessionId
-          ? reservation.reservationExpiresAt
-          : null
-      )}
+      countdownLabel={countdown ? `Expira em ${countdown.displayValue}` : null}
+      countdownWarning={countdown?.isWarning ?? false}
       errorMessage={errorMessage}
       onSeatToggle={toggleSeat}
       pendingSeatIds={pendingSeatIds}
@@ -278,6 +313,7 @@ export function SeatMapView({ seats, sessionId }: SeatMapViewProps) {
 
 export function SeatMapLayout({
   countdownLabel,
+  countdownWarning = false,
   errorMessage,
   onSeatToggle,
   pendingSeatIds = new Set(),
@@ -424,7 +460,15 @@ export function SeatMapLayout({
           </p>
         </div>
         {countdownLabel ? (
-          <p className="seat-reservation-summary__timer" role="timer">
+          <p
+            className={[
+              "seat-reservation-summary__timer",
+              countdownWarning ? "seat-reservation-summary__timer--warning" : "",
+            ]
+              .filter(Boolean)
+              .join(" ")}
+            role="timer"
+          >
             {countdownLabel}
           </p>
         ) : null}
@@ -629,23 +673,6 @@ export function restoreSeatSnapshots(
   return seats.map(
     (seat) => snapshotsBySessionSeatId.get(seat.session_seat_id) ?? seat
   );
-}
-
-export function formatCountdownLabel(expiresAt: Date | null, now = new Date()) {
-  if (!expiresAt) {
-    return null;
-  }
-
-  const remainingSeconds = Math.max(
-    0,
-    Math.ceil((expiresAt.getTime() - now.getTime()) / 1000)
-  );
-  const minutes = Math.floor(remainingSeconds / 60);
-  const seconds = remainingSeconds % 60;
-
-  return `Expira em ${String(minutes).padStart(2, "0")}:${String(
-    seconds
-  ).padStart(2, "0")}`;
 }
 
 export function getSeatInteractionErrorMessage(error: unknown) {

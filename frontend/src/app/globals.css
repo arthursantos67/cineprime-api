@@ -1006,6 +1006,12 @@ h1 {
   white-space: nowrap;
 }
 
+.seat-reservation-summary__timer--warning {
+  background: #feeceb;
+  border-color: #d93025;
+  color: #9a1b13 !important;
+}
+
 .seat-reservation-summary__list {
   display: flex;
   flex-wrap: wrap;

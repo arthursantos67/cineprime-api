@@ -10,7 +10,6 @@ import type { SessionSeatMapItem } from "@/types/reservation";
 
 import {
   buildReservedSeatsFromReservation,
-  formatCountdownLabel,
   getSeatAccessibleLabel,
   getSeatInteractionErrorMessage,
   getSeatVisualState,
@@ -118,10 +117,8 @@ test("seat map layout renders reservation summary and countdown", () => {
   const expiresAt = new Date("2026-05-22T21:40:00.000Z");
   const html = renderToStaticMarkup(
     createElement(SeatMapLayout, {
-      countdownLabel: formatCountdownLabel(
-        expiresAt,
-        new Date("2026-05-22T21:35:30.000Z")
-      ),
+      countdownLabel: "Expira em 04:30",
+      countdownWarning: true,
       reservedSeats: [
         {
           basePrice: 0,
@@ -140,6 +137,7 @@ test("seat map layout renders reservation summary and countdown", () => {
   assert.match(html, /Reserva temporária/);
   assert.match(html, /1 assento reservado/);
   assert.match(html, /Expira em 04:30/);
+  assert.match(html, /seat-reservation-summary__timer--warning/);
   assert.match(html, /B7/);
   assert.match(html, /Continuar/);
 });
