@@ -1,4 +1,5 @@
 import { SeatMap } from "@/components/seats/SeatMap";
+import { PurchaseFlowLayout } from "@/components/reservations/PurchaseFlowLayout";
 import { PageSection } from "@/components/ui/PageSection";
 
 type SeatSelectionPageProps = {
@@ -18,7 +19,13 @@ export default async function SeatSelectionPage({
       eyebrow="Sessão"
       title="Mapa de assentos"
     >
-      <SeatMap sessionId={sessionId} />
+      <PurchaseFlowLayout
+        currentStep="seats"
+        summaryActionHref="/ticket-types"
+        summaryActionLabel="Continuar"
+      >
+        <SeatMap sessionId={sessionId} />
+      </PurchaseFlowLayout>
     </PageSection>
   );
 }

@@ -35,6 +35,10 @@ export const catalogApi = {
     return getMovie(movieId);
   },
 
+  getSession(sessionId: string) {
+    return getSession(sessionId);
+  },
+
   getSessions(params: GetSessionsParams = {}) {
     return getSessions(params);
   },
@@ -67,6 +71,19 @@ async function getMovie(movieId: string) {
   }
 
   return response satisfies CatalogMovieDetail;
+}
+
+async function getSession(sessionId: string) {
+  const response = await apiRequest<unknown>(`${SESSIONS_PATH}${sessionId}/`, {
+    auth: "none",
+    method: "GET",
+  });
+
+  if (!isCatalogSession(response)) {
+    throw new Error("Unexpected catalog session detail response.");
+  }
+
+  return response satisfies CatalogSession;
 }
 
 async function listMovies(params: ListMoviesParams) {

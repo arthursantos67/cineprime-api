@@ -79,7 +79,6 @@ test("seat visual states distinguish available, selected, reserved, and purchase
 test("seat map renders screen, row labels, seat numbers, and semantic states", () => {
   const html = renderToStaticMarkup(
     createElement(SeatMapLayout, {
-      countdownLabel: null,
       seats: [
         seat({ number: 1, row: "A" }),
         seat({
@@ -111,35 +110,6 @@ test("seat map renders screen, row labels, seat numbers, and semantic states", (
   assert.match(html, /seat-map__seat--selected/);
   assert.match(html, /aria-disabled="true"/);
   assert.match(html, /aria-pressed="true"/);
-});
-
-test("seat map layout renders reservation summary and countdown", () => {
-  const expiresAt = new Date("2026-05-22T21:40:00.000Z");
-  const html = renderToStaticMarkup(
-    createElement(SeatMapLayout, {
-      countdownLabel: "Expira em 04:30",
-      countdownWarning: true,
-      reservedSeats: [
-        {
-          basePrice: 0,
-          expiresAt,
-          isAccessible: false,
-          number: 7,
-          row: "B",
-          seatId: "seat-1",
-          sessionSeatId: "session-seat-1",
-        },
-      ],
-      seats: [seat({ number: 7, row: "B", session_seat_id: "session-seat-1" })],
-    })
-  );
-
-  assert.match(html, /Reserva temporária/);
-  assert.match(html, /1 assento reservado/);
-  assert.match(html, /Expira em 04:30/);
-  assert.match(html, /seat-reservation-summary__timer--warning/);
-  assert.match(html, /B7/);
-  assert.match(html, /Continuar/);
 });
 
 test("seat legend explains every state in pt-BR", () => {
@@ -191,9 +161,11 @@ test("reserved seats built from reservation response preserve original session s
         seat_id: "seat-1",
         session_seat_id: "session-seat-original",
       }),
-    ]
+    ],
+    42.5
   );
 
+  assert.equal(reservedSeats[0].basePrice, 42.5);
   assert.equal(reservedSeats[0].seatId, "seat-1");
   assert.equal(reservedSeats[0].sessionSeatId, "session-seat-original");
   assert.equal(reservedSeats[0].isAccessible, true);

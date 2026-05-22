@@ -969,71 +969,226 @@ h1 {
   text-transform: uppercase;
 }
 
-.seat-reservation-summary {
-  align-items: center;
-  background: #f8fafc;
-  border: 1px solid var(--color-border);
-  border-radius: 8px;
+.purchase-flow {
   display: grid;
-  gap: 14px;
-  grid-template-columns: minmax(0, 1fr) auto;
-  padding: 16px;
+  gap: 18px;
 }
 
-.seat-reservation-summary h3,
-.seat-reservation-summary p {
+.purchase-flow__body {
+  align-items: start;
+  display: grid;
+  gap: 20px;
+  grid-template-columns: minmax(0, 1fr) minmax(288px, 340px);
+}
+
+.purchase-flow__primary {
+  display: grid;
+  gap: 18px;
+  min-width: 0;
+}
+
+.purchase-flow__summary {
+  min-width: 0;
+  position: sticky;
+  top: 96px;
+}
+
+.checkout-steps {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  box-shadow: var(--shadow-soft);
+  overflow-x: auto;
+  padding: 12px;
+}
+
+.checkout-steps__list {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(5, minmax(112px, 1fr));
+  list-style: none;
+  margin: 0;
+  min-width: 620px;
+  padding: 0;
+}
+
+.checkout-steps__item {
+  align-items: center;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  color: var(--color-muted);
+  display: flex;
+  gap: 8px;
+  min-height: 44px;
+  min-width: 0;
+  padding: 8px 10px;
+}
+
+.checkout-steps__item--completed {
+  background: #e8f5ee;
+  border-color: #9fd5b8;
+  color: #0f5c38;
+}
+
+.checkout-steps__item--current {
+  background: #fff8df;
+  border-color: #d8a907;
+  color: var(--color-text);
+}
+
+.checkout-steps__marker {
+  align-items: center;
+  border: 2px solid currentColor;
+  border-radius: 999px;
+  display: inline-flex;
+  flex: 0 0 26px;
+  font-size: 13px;
+  font-weight: 900;
+  height: 26px;
+  justify-content: center;
+  line-height: 1;
+  width: 26px;
+}
+
+.checkout-steps__label {
+  font-size: 14px;
+  font-weight: 850;
+  overflow-wrap: anywhere;
+}
+
+.order-summary {
+  background: #ffffff;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  box-shadow: var(--shadow-soft);
+  display: grid;
+  gap: 14px;
+  min-height: 280px;
+  padding: 18px;
+}
+
+.order-summary__header {
+  align-items: start;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.order-summary__header h2,
+.order-summary__header p,
+.order-summary__empty,
+.order-summary__timer,
+.order-summary__details {
   margin: 0;
 }
 
-.seat-reservation-summary h3 {
-  font-size: 18px;
+.order-summary__header h2 {
+  font-size: 20px;
   line-height: 1.25;
 }
 
-.seat-reservation-summary p {
+.order-summary__header p,
+.order-summary__empty {
   color: var(--color-muted);
   line-height: 1.45;
 }
 
-.seat-reservation-summary__timer {
-  background: #fff8df;
-  border: 1px solid #e3bd34;
-  border-radius: 6px;
-  color: var(--color-text) !important;
-  font-size: 14px;
-  font-weight: 850;
-  padding: 9px 12px;
+.order-summary__total {
+  color: var(--color-brand);
+  font-size: 18px;
+  line-height: 1.25;
   white-space: nowrap;
 }
 
-.seat-reservation-summary__timer--warning {
-  background: #feeceb;
-  border-color: #d93025;
-  color: #9a1b13 !important;
+.order-summary__timer {
+  background: #fff8df;
+  border: 1px solid #e3bd34;
+  border-radius: 6px;
+  color: var(--color-text);
+  font-size: 14px;
+  font-weight: 850;
+  padding: 9px 12px;
 }
 
-.seat-reservation-summary__list {
-  display: flex;
-  flex-wrap: wrap;
+.order-summary__timer--warning,
+.order-summary__timer--expired {
+  background: #feeceb;
+  border-color: #d93025;
+  color: #9a1b13;
+}
+
+.order-summary__list {
+  display: grid;
   gap: 8px;
-  grid-column: 1 / -1;
   list-style: none;
   margin: 0;
+  min-height: 48px;
   padding: 0;
 }
 
-.seat-reservation-summary__list li {
-  background: #ffffff;
+.order-summary__item {
+  align-items: center;
+  background: #f8fafc;
   border: 1px solid var(--color-border);
   border-radius: 6px;
-  font-size: 14px;
-  font-weight: 850;
-  line-height: 1;
-  padding: 8px 10px;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  min-height: 58px;
+  padding: 10px 12px;
 }
 
-.seat-reservation-summary .button {
-  justify-self: end;
+.order-summary__item div {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.order-summary__item strong,
+.order-summary__item span {
+  overflow-wrap: anywhere;
+}
+
+.order-summary__item strong {
+  font-size: 15px;
+  line-height: 1.25;
+}
+
+.order-summary__item span {
+  color: var(--color-muted);
+  font-size: 14px;
+  font-weight: 750;
+}
+
+.order-summary__details {
+  border-top: 1px solid var(--color-border);
+  display: grid;
+  gap: 8px;
+  padding-top: 12px;
+}
+
+.order-summary__details div {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.order-summary__details dt {
+  color: var(--color-muted);
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.order-summary__details dd {
+  font-size: 15px;
+  font-weight: 850;
+  margin: 0;
+  text-align: right;
+}
+
+.order-summary__action {
+  width: 100%;
 }
 
 .movie-detail-loading__poster,
@@ -1146,14 +1301,21 @@ h1 {
     grid-template-columns: 1fr;
   }
 
-  .seat-reservation-summary {
-    align-items: stretch;
+  .purchase-flow__body {
     grid-template-columns: 1fr;
   }
 
-  .seat-reservation-summary .button {
-    justify-self: stretch;
-    width: 100%;
+  .purchase-flow__summary {
+    position: static;
+  }
+
+  .checkout-steps__list {
+    grid-template-columns: repeat(5, minmax(104px, 1fr));
+    min-width: 560px;
+  }
+
+  .order-summary {
+    min-height: 0;
   }
 
   .movie-detail__action-panel .button {
