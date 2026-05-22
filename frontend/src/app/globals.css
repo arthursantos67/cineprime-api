@@ -744,6 +744,227 @@ h1 {
   font-weight: 750;
 }
 
+.seat-map-section {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  box-shadow: var(--shadow-soft);
+  display: grid;
+  gap: 18px;
+  padding: 22px;
+}
+
+.seat-map-section__header {
+  display: grid;
+  gap: 8px;
+}
+
+.seat-map-section__header h2 {
+  font-size: 22px;
+  line-height: 1.25;
+  margin: 0;
+}
+
+.seat-map-section__header p {
+  color: var(--color-muted);
+  line-height: 1.55;
+  margin: 0;
+}
+
+.seat-map__legend {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 16px;
+}
+
+.seat-map__legend-item {
+  align-items: center;
+  color: var(--color-text);
+  display: inline-flex;
+  font-size: 14px;
+  font-weight: 750;
+  gap: 8px;
+}
+
+.seat-map__legend-swatch {
+  align-items: center;
+  border: 2px solid var(--color-border);
+  border-radius: 6px;
+  display: inline-flex;
+  font-size: 12px;
+  font-weight: 900;
+  height: 26px;
+  justify-content: center;
+  line-height: 1;
+  width: 26px;
+}
+
+.seat-map__legend-swatch--available {
+  background: #ffffff;
+  border-color: #6b7686;
+  color: var(--color-text);
+}
+
+.seat-map__legend-swatch--selected {
+  background: #157347;
+  border-color: #0f5c38;
+  color: #ffffff;
+}
+
+.seat-map__legend-swatch--reserved {
+  background: #d9dee7;
+  border-color: #8a94a6;
+  color: #354052;
+}
+
+.seat-map__legend-swatch--purchased {
+  background: #3a414d;
+  border-color: #252b34;
+  color: #ffffff;
+}
+
+.seat-map__legend-swatch--accessible {
+  background: #eaf2ff;
+  border-color: var(--color-info);
+  color: #0b57b7;
+}
+
+.seat-map-scroll {
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  overflow-x: auto;
+  padding: 18px;
+}
+
+.seat-map-scroll:focus-visible {
+  outline-offset: 4px;
+}
+
+.seat-map {
+  display: grid;
+  gap: 18px;
+  margin: 0 auto;
+  min-width: max-content;
+  width: fit-content;
+}
+
+.seat-map__screen {
+  background: #1f6feb;
+  border-radius: 999px 999px 12px 12px;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 900;
+  letter-spacing: 0;
+  line-height: 1;
+  margin: 0 auto;
+  min-width: 280px;
+  padding: 12px 34px;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.seat-map__rows {
+  display: grid;
+  gap: 10px;
+}
+
+.seat-map__row {
+  align-items: center;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: 28px minmax(0, 1fr) 28px;
+}
+
+.seat-map__row-label {
+  color: var(--color-muted);
+  font-size: 14px;
+  font-weight: 900;
+  text-align: center;
+}
+
+.seat-map__seat-list {
+  display: flex;
+  gap: 8px;
+}
+
+.seat-map__seat {
+  align-items: center;
+  background: #ffffff;
+  border: 2px solid #6b7686;
+  border-radius: 6px;
+  color: var(--color-text);
+  display: grid;
+  flex: 0 0 42px;
+  gap: 2px;
+  grid-template-columns: 1fr auto;
+  grid-template-rows: 1fr auto;
+  height: 42px;
+  justify-items: center;
+  line-height: 1;
+  min-width: 42px;
+  padding: 4px;
+  position: relative;
+}
+
+.seat-map__seat:hover {
+  border-color: var(--color-info);
+}
+
+.seat-map__seat[aria-disabled="true"] {
+  cursor: not-allowed;
+}
+
+.seat-map__seat--selected {
+  background: #157347;
+  border-color: #0f5c38;
+  color: #ffffff;
+}
+
+.seat-map__seat--reserved {
+  background: #d9dee7;
+  border-color: #8a94a6;
+  color: #354052;
+}
+
+.seat-map__seat--purchased {
+  background: #3a414d;
+  border-color: #252b34;
+  color: #ffffff;
+}
+
+.seat-map__seat--accessible {
+  box-shadow: inset 0 -4px 0 #1f6feb;
+}
+
+.seat-map__seat--after-aisle {
+  margin-right: 20px;
+}
+
+.seat-map__seat-number {
+  font-size: 14px;
+  font-weight: 900;
+  grid-column: 1 / 3;
+}
+
+.seat-map__seat-marker,
+.seat-map__seat-accessible {
+  font-size: 10px;
+  font-weight: 900;
+}
+
+.seat-map__seat-accessible {
+  color: inherit;
+}
+
+.seat-map__back-label {
+  color: var(--color-muted);
+  font-size: 12px;
+  font-weight: 900;
+  text-align: center;
+  text-transform: uppercase;
+}
+
 .movie-detail-loading__poster,
 .movie-detail-loading .skeleton-line {
   animation: skeleton-pulse 1300ms ease-in-out infinite;

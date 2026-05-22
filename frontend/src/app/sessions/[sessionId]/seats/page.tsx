@@ -1,26 +1,24 @@
-import { SeatSelectionActions } from "@/components/seats/SeatSelectionActions";
+import { SeatMap } from "@/components/seats/SeatMap";
 import { PageSection } from "@/components/ui/PageSection";
-import { StateMessage } from "@/components/ui/StateMessage";
 
-export default function SeatSelectionPage() {
+type SeatSelectionPageProps = {
+  params: Promise<{
+    sessionId: string;
+  }>;
+};
+
+export default async function SeatSelectionPage({
+  params,
+}: SeatSelectionPageProps) {
+  const { sessionId } = await params;
+
   return (
     <PageSection
-      description="Escolha assentos disponíveis, acompanhe reservas temporárias e avance para os tipos de ingresso."
+      description="Consulte a disposição da sala, veja os estados dos assentos e navegue pelo mapa com teclado ou toque."
       eyebrow="Sessão"
-      title="Seleção de assentos"
+      title="Mapa de assentos"
     >
-      <div className="panel">
-        <span className="inline-status inline-status-info">Tela</span>
-        <p className="panel-copy">
-          O mapa de assentos usará estados visuais para disponível, selecionado,
-          reservado, comprado e acessível.
-        </p>
-      </div>
-      <StateMessage tone="loading" title="Mapa de assentos pendente">
-        A estrutura responsiva permite rolagem horizontal quando a sala for mais
-        larga que a tela do dispositivo.
-      </StateMessage>
-      <SeatSelectionActions />
+      <SeatMap sessionId={sessionId} />
     </PageSection>
   );
 }
