@@ -43,7 +43,8 @@ test("movie detail renders backend movie fields with accessible media", () => {
   assert.match(html, /Aventura, Drama/);
   assert.match(html, /2h 5min/);
   assert.match(html, /13\/05\/2026/);
-  assert.match(html, /Escolher sessão/);
+  assert.match(html, /Sessões/);
+  assert.match(html, /Carregando sessões/);
   assert.doesNotMatch(html, /age_rating|classificação|room_type|audio_format|sala tradicional|legendado/i);
 });
 

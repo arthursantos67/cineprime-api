@@ -620,7 +620,7 @@ h1 {
 }
 
 .movie-detail__synopsis,
-.movie-detail__action-panel {
+.movie-detail__sessions {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: 8px;
@@ -629,24 +629,119 @@ h1 {
 }
 
 .movie-detail__synopsis h2,
-.movie-detail__action-panel h2 {
+.movie-detail__sessions h2 {
   font-size: 20px;
   line-height: 1.25;
   margin: 0 0 10px;
 }
 
 .movie-detail__synopsis p,
-.movie-detail__action-panel p {
+.movie-detail__sessions p {
   color: var(--color-muted);
   line-height: 1.65;
   margin: 0;
 }
 
-.movie-detail__action-panel {
-  align-items: center;
+.movie-detail__sessions {
   display: grid;
   gap: 18px;
+}
+
+.movie-detail__sessions-header {
+  align-items: end;
+  display: grid;
+  gap: 12px;
   grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.session-date-selector {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(92px, 1fr));
+}
+
+.session-date-selector__button {
+  background: #ffffff;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  color: var(--color-text);
+  display: grid;
+  gap: 6px;
+  min-height: 72px;
+  padding: 12px;
+  text-align: left;
+}
+
+.session-date-selector__button[aria-pressed="true"] {
+  background: #fff2bf;
+  border-color: #d8a907;
+}
+
+.session-date-selector__button span {
+  color: var(--color-muted);
+  font-size: 13px;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+.session-date-selector__button strong {
+  font-size: 17px;
+  line-height: 1;
+}
+
+.session-list {
+  display: grid;
+  gap: 14px;
+}
+
+.session-room-group {
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+}
+
+.session-room-group h3 {
+  font-size: 18px;
+  line-height: 1.25;
+  margin: 0;
+}
+
+.session-time-grid {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(142px, 1fr));
+}
+
+.session-option {
+  background: #f8fafc;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  display: grid;
+  gap: 6px;
+  min-height: 92px;
+  padding: 14px;
+  transition:
+    background 160ms ease,
+    border-color 160ms ease,
+    color 160ms ease;
+}
+
+.session-option:hover {
+  background: #fff8df;
+  border-color: #d8a907;
+}
+
+.session-option strong {
+  font-size: 22px;
+  line-height: 1;
+}
+
+.session-option span {
+  color: var(--color-muted);
+  font-size: 14px;
+  font-weight: 750;
 }
 
 .movie-detail-loading__poster,
@@ -755,7 +850,7 @@ h1 {
   }
 
   .movie-detail__metadata,
-  .movie-detail__action-panel {
+  .movie-detail__sessions-header {
     grid-template-columns: 1fr;
   }
 

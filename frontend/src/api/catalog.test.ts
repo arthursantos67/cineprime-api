@@ -24,6 +24,35 @@ const paginatedMoviesResponse = {
   results: [],
 };
 
+const sessionResponse = {
+  count: 1,
+  next: null,
+  previous: null,
+  results: [
+    {
+      base_price: "42.50",
+      end_time: "2026-05-22T21:00:00-03:00",
+      id: "session-123",
+      movie: {
+        duration_minutes: 125,
+        genres: [{ id: "genre-1", name: "Aventura" }],
+        id: "movie-123",
+        is_featured: false,
+        poster_url: "https://cdn.example.com/movie.jpg",
+        release_date: "2026-05-13",
+        status: "em_cartaz",
+        title: "A Jornada",
+      },
+      room: {
+        capacity: 80,
+        id: "room-1",
+        name: "Sala 1",
+      },
+      start_time: "2026-05-22T18:30:00-03:00",
+    },
+  ],
+};
+
 test("catalogApi gets a movie through the public catalog detail endpoint", async () => {
   const originalFetch = globalThis.fetch;
 
@@ -92,6 +121,56 @@ test("catalogApi builds supported movie filters", async () => {
   }
 });
 
+test("catalogApi builds session movie and date filters", async () => {
+  const originalFetch = globalThis.fetch;
+
+  try {
+    globalThis.fetch = async (input, init) => {
+      assert.equal(
+        input,
+        "http://localhost:8000/api/v1/catalog/sessions/?movie=movie-123&date=2026-05-22"
+      );
+      assert.equal(init?.method, "GET");
+
+      return Response.json(sessionResponse);
+    };
+
+    const response = await catalogApi.getSessions({
+      date: "2026-05-22",
+      movie: "movie-123",
+    });
+
+    assert.deepEqual(response, sessionResponse);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("catalogApi builds optional session range filters", async () => {
+  const originalFetch = globalThis.fetch;
+
+  try {
+    globalThis.fetch = async (input) => {
+      assert.equal(
+        input,
+        "http://localhost:8000/api/v1/catalog/sessions/?movie=movie-123&date=2026-05-22&start_from=2026-05-22T00%3A00%3A00-03%3A00&start_to=2026-05-22T23%3A59%3A59-03%3A00&page=2"
+      );
+
+      return Response.json({ ...sessionResponse, results: [] });
+    };
+
+    await catalogApi.getSessions({
+      date: "2026-05-22",
+      movie: "movie-123",
+      page: 2,
+      start_from: "2026-05-22T00:00:00-03:00",
+      start_to: "2026-05-22T23:59:59-03:00",
+    });
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 test("catalogApi rejects unexpected movie detail responses", async () => {
   const originalFetch = globalThis.fetch;
 
@@ -116,6 +195,22 @@ test("catalogApi rejects unexpected non-paginated movie responses", async () => 
     await assert.rejects(
       catalogApi.listMovies(),
       /Unexpected catalog movie list response/
+    );
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("catalogApi rejects unexpected session responses", async () => {
+  const originalFetch = globalThis.fetch;
+
+  try {
+    globalThis.fetch = async () =>
+      Response.json({ ...sessionResponse, results: [{ id: "session-123" }] });
+
+    await assert.rejects(
+      catalogApi.getSessions({ date: "2026-05-22", movie: "movie-123" }),
+      /Unexpected catalog session list response/
     );
   } finally {
     globalThis.fetch = originalFetch;
