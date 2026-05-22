@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import Link from "next/link";
 
 import { ApiError, getApiErrorUserMessage } from "@/api/client";
+import { catalogApi } from "@/api/catalog";
 import { reservationApi } from "@/api/reservation";
 import { useGuardedAction } from "@/components/auth/useGuardedAction";
 import { StateMessage } from "@/components/ui/StateMessage";
@@ -18,7 +18,7 @@ import type {
 type SeatMapLoadState =
   | { status: "error"; errorMessage?: string }
   | { status: "loading" }
-  | { seats: SessionSeatMapItem[]; status: "success" };
+  | { seats: SessionSeatMapItem[]; sessionBasePrice: number; status: "success" };
 
 export type SeatMapRow = {
   rowLabel: string;
@@ -36,17 +36,15 @@ type SeatMapProps = {
 };
 
 type SeatMapViewProps = {
+  sessionBasePrice: number;
   sessionId: string;
   seats: SessionSeatMapItem[];
 };
 
 type SeatMapLayoutProps = {
-  countdownLabel: string | null;
-  countdownWarning?: boolean;
   errorMessage?: string | null;
   onSeatToggle?: (seat: SessionSeatMapItem) => void;
   pendingSeatIds?: ReadonlySet<string>;
-  reservedSeats?: ReservedSeat[];
   seats: SessionSeatMapItem[];
   selectedSeatIds?: ReadonlySet<string>;
 };
@@ -65,8 +63,6 @@ const seatStateMarkers: Record<SeatVisualState, string> = {
   selected: "S",
 };
 
-const SESSION_BASE_PRICE_PLACEHOLDER = 0;
-
 export function SeatMap({ sessionId }: SeatMapProps) {
   const [state, setState] = useState<SeatMapLoadState>({ status: "loading" });
 
@@ -83,10 +79,20 @@ export function SeatMap({ sessionId }: SeatMapProps) {
       setState({ status: "loading" });
 
       try {
-        const seats = await reservationApi.getSeatMap(trimmedSessionId);
+        const [seats, session] = await Promise.all([
+          reservationApi.getSeatMap(trimmedSessionId),
+          catalogApi.getSession(trimmedSessionId),
+        ]);
+        const sessionBasePrice = Number(session.base_price);
 
         if (isActive) {
-          setState({ seats, status: "success" });
+          setState({
+            seats,
+            sessionBasePrice: Number.isFinite(sessionBasePrice)
+              ? sessionBasePrice
+              : 0,
+            status: "success",
+          });
         }
       } catch (error) {
         if (isActive) {
@@ -122,10 +128,20 @@ export function SeatMap({ sessionId }: SeatMapProps) {
     );
   }
 
-  return <SeatMapView seats={state.seats} sessionId={sessionId.trim()} />;
+  return (
+    <SeatMapView
+      seats={state.seats}
+      sessionBasePrice={state.sessionBasePrice}
+      sessionId={sessionId.trim()}
+    />
+  );
 }
 
-export function SeatMapView({ seats, sessionId }: SeatMapViewProps) {
+export function SeatMapView({
+  seats,
+  sessionBasePrice,
+  sessionId,
+}: SeatMapViewProps) {
   const guardAction = useGuardedAction();
   const reservation = useReservation();
   const [currentSeats, setCurrentSeats] = useState(seats);
@@ -234,6 +250,7 @@ export function SeatMapView({ seats, sessionId }: SeatMapViewProps) {
       const nextSeats = buildReservedSeatsFromReservation(
         response,
         currentSeats,
+        sessionBasePrice,
         response.expires_at
       );
 
@@ -299,12 +316,9 @@ export function SeatMapView({ seats, sessionId }: SeatMapViewProps) {
 
   return (
     <SeatMapLayout
-      countdownLabel={countdown ? `Expira em ${countdown.displayValue}` : null}
-      countdownWarning={countdown?.isWarning ?? false}
       errorMessage={errorMessage}
       onSeatToggle={toggleSeat}
       pendingSeatIds={pendingSeatIds}
-      reservedSeats={reservedSeatsForSession}
       seats={currentSeats}
       selectedSeatIds={selectedSeatIds}
     />
@@ -312,17 +326,13 @@ export function SeatMapView({ seats, sessionId }: SeatMapViewProps) {
 }
 
 export function SeatMapLayout({
-  countdownLabel,
-  countdownWarning = false,
   errorMessage,
   onSeatToggle,
   pendingSeatIds = new Set(),
-  reservedSeats = [],
   seats,
   selectedSeatIds = new Set(),
 }: SeatMapLayoutProps) {
   const rows = useMemo(() => groupSeatMapRows(seats), [seats]);
-  const hasReservedSeats = reservedSeats.length > 0;
 
   if (rows.length === 0) {
     return (
@@ -449,45 +459,6 @@ export function SeatMapLayout({
           <div className="seat-map__back-label">Fundo da sala</div>
         </div>
       </div>
-
-      <aside aria-label="Resumo da reserva" className="seat-reservation-summary">
-        <div>
-          <h3>Reserva temporária</h3>
-          <p>
-            {hasReservedSeats
-              ? `${reservedSeats.length} assento${reservedSeats.length === 1 ? "" : "s"} reservado${reservedSeats.length === 1 ? "" : "s"}.`
-              : "Nenhum assento reservado nesta sessão."}
-          </p>
-        </div>
-        {countdownLabel ? (
-          <p
-            className={[
-              "seat-reservation-summary__timer",
-              countdownWarning ? "seat-reservation-summary__timer--warning" : "",
-            ]
-              .filter(Boolean)
-              .join(" ")}
-            role="timer"
-          >
-            {countdownLabel}
-          </p>
-        ) : null}
-        {hasReservedSeats ? (
-          <>
-            <ul className="seat-reservation-summary__list">
-              {reservedSeats.map((seat) => (
-                <li key={seat.sessionSeatId}>
-                  {seat.row}
-                  {seat.number}
-                </li>
-              ))}
-            </ul>
-            <Link className="button button-primary" href="/ticket-types">
-              Continuar
-            </Link>
-          </>
-        ) : null}
-      </aside>
     </section>
   );
 }
@@ -601,6 +572,7 @@ export function getSeatAccessibleLabel(
 export function buildReservedSeatsFromReservation(
   response: TemporaryReservationResponse,
   seatMap: SessionSeatMapItem[],
+  basePrice: number,
   expiresAtValue = response.expires_at
 ): ReservedSeat[] {
   const expiresAt = new Date(expiresAtValue);
@@ -614,7 +586,7 @@ export function buildReservedSeatsFromReservation(
     }
 
     return {
-      basePrice: SESSION_BASE_PRICE_PLACEHOLDER,
+      basePrice,
       expiresAt,
       isAccessible: originalSeat.is_accessible,
       number: reservedSeat.number,

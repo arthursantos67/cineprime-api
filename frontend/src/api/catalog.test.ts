@@ -91,6 +91,29 @@ test("catalogApi lists movies through the public catalog endpoint", async () => 
   }
 });
 
+test("catalogApi gets a session through the public catalog detail endpoint", async () => {
+  const originalFetch = globalThis.fetch;
+  const sessionDetailResponse = sessionResponse.results[0];
+
+  try {
+    globalThis.fetch = async (input, init) => {
+      assert.equal(
+        input,
+        "http://localhost:8000/api/v1/catalog/sessions/session-123/"
+      );
+      assert.equal(init?.method, "GET");
+
+      return Response.json(sessionDetailResponse);
+    };
+
+    const response = await catalogApi.getSession("session-123");
+
+    assert.deepEqual(response, sessionDetailResponse);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 test("catalogApi builds supported movie filters", async () => {
   const originalFetch = globalThis.fetch;
   const requestedUrls: string[] = [];
@@ -211,6 +234,21 @@ test("catalogApi rejects unexpected session responses", async () => {
     await assert.rejects(
       catalogApi.getSessions({ date: "2026-05-22", movie: "movie-123" }),
       /Unexpected catalog session list response/
+    );
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("catalogApi rejects unexpected session detail responses", async () => {
+  const originalFetch = globalThis.fetch;
+
+  try {
+    globalThis.fetch = async () => Response.json({ id: "session-123" });
+
+    await assert.rejects(
+      catalogApi.getSession("session-123"),
+      /Unexpected catalog session detail response/
     );
   } finally {
     globalThis.fetch = originalFetch;
