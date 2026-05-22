@@ -104,7 +104,32 @@ test("removeSeat clears seat-specific ticket type and preserves remaining reserv
   assert.deepEqual(updated.reservedSeats, [secondSeat]);
   assert.deepEqual(updated.ticketTypes, { "session-seat-2": "inteira" });
   assert.equal(updated.paymentMethod, "cartao_credito");
+  assert.equal(updated.reservationExpiresAt, secondSeat.expiresAt);
   assert.equal(updated.sessionId, "session-1");
+});
+
+test("removeSeat recalculates expiration from remaining reserved seats", () => {
+  const thirdSeat: ReservedSeat = {
+    basePrice: 42.5,
+    expiresAt: new Date("2026-05-22T21:50:00.000Z"),
+    isAccessible: false,
+    number: 9,
+    row: "B",
+    seatId: "seat-3",
+    sessionSeatId: "session-seat-3",
+  };
+  const state = addSeatsToReservation(
+    initialReservationState,
+    [firstSeat, secondSeat, thirdSeat],
+    "session-1"
+  );
+
+  assert.equal(state.reservationExpiresAt, secondSeat.expiresAt);
+
+  const updated = removeSeatFromReservation(state, "session-seat-2");
+
+  assert.deepEqual(updated.reservedSeats, [firstSeat, thirdSeat]);
+  assert.equal(updated.reservationExpiresAt, firstSeat.expiresAt);
 });
 
 test("removeSeat clears the flow when the last seat is removed", () => {

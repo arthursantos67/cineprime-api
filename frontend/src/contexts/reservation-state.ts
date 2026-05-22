@@ -61,12 +61,12 @@ export function removeSeatFromReservation(
   const reservedSeats = state.reservedSeats.filter(
     (seat) => seat.sessionSeatId !== sessionSeatId
   );
+  const reservationExpiresAt = getEarliestExpiration(reservedSeats);
 
   return {
     ...state,
     paymentMethod: reservedSeats.length === 0 ? null : state.paymentMethod,
-    reservationExpiresAt:
-      reservedSeats.length === 0 ? null : state.reservationExpiresAt,
+    reservationExpiresAt,
     reservedSeats,
     sessionId: reservedSeats.length === 0 ? null : state.sessionId,
     ticketTypes,
@@ -103,4 +103,12 @@ export function setReservationPaymentMethod(
 
 export function resetReservation(): ReservationState {
   return { ...initialReservationState };
+}
+
+function getEarliestExpiration(seats: ReservedSeat[]) {
+  return (
+    seats
+      .map((seat) => seat.expiresAt)
+      .sort((left, right) => left.getTime() - right.getTime())[0] ?? null
+  );
 }
