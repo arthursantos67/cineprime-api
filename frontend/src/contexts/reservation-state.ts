@@ -1,10 +1,12 @@
 import type {
+  CheckoutResponse,
   PaymentMethod,
   ReservedSeat,
   TicketType,
 } from "@/types/reservation";
 
 export type ReservationState = {
+  checkoutResult: CheckoutResponse | null;
   expirationNotice: string | null;
   expiredSessionId: string | null;
   sessionId: string | null;
@@ -17,6 +19,7 @@ export type ReservationState = {
 export const DEFAULT_TICKET_TYPE: TicketType = "inteira";
 
 export const initialReservationState: ReservationState = {
+  checkoutResult: null,
   expirationNotice: null,
   expiredSessionId: null,
   paymentMethod: null,
@@ -49,6 +52,7 @@ export function addSeatsToReservation(
 
   return {
     ...state,
+    checkoutResult: null,
     expirationNotice: null,
     expiredSessionId: null,
     reservationExpiresAt: nextExpiresAt,
@@ -104,6 +108,15 @@ export function setReservationPaymentMethod(
   return {
     ...state,
     paymentMethod: method,
+  };
+}
+
+export function storeCheckoutResult(
+  checkoutResult: CheckoutResponse
+): ReservationState {
+  return {
+    ...initialReservationState,
+    checkoutResult,
   };
 }
 
