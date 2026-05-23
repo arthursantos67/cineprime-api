@@ -20,9 +20,11 @@ import {
   resetReservation as getResetReservationState,
   setReservationPaymentMethod,
   setReservationTicketType,
+  storeCheckoutResult as getStoredCheckoutResultState,
   type ReservationState,
 } from "./reservation-state";
 import type {
+  CheckoutResponse,
   PaymentMethod,
   ReservedSeat,
   TicketType,
@@ -39,6 +41,7 @@ type ReservationContextValue = ReservationState & {
   resetReservation: () => void;
   setPaymentMethod: (method: PaymentMethod) => void;
   setTicketType: (sessionSeatId: string, type: TicketType) => void;
+  storeCheckoutResult: (checkoutResult: CheckoutResponse) => void;
 };
 
 const ReservationContext = createContext<ReservationContextValue | null>(null);
@@ -96,6 +99,10 @@ export function ReservationProvider({ children }: { children: ReactNode }) {
     setState(getResetReservationState());
   }, []);
 
+  const storeCheckoutResult = useCallback((checkoutResult: CheckoutResponse) => {
+    setState(getStoredCheckoutResultState(checkoutResult));
+  }, []);
+
   const expireReservation = useCallback(
     (message = RESERVATION_EXPIRED_MESSAGE) => {
       setState((currentState) => getExpiredReservationState(currentState, message));
@@ -128,6 +135,7 @@ export function ReservationProvider({ children }: { children: ReactNode }) {
       resetReservation,
       setPaymentMethod,
       setTicketType,
+      storeCheckoutResult,
     }),
     [
       addSeats,
@@ -137,6 +145,7 @@ export function ReservationProvider({ children }: { children: ReactNode }) {
       resetReservation,
       setPaymentMethod,
       setTicketType,
+      storeCheckoutResult,
       state,
     ]
   );

@@ -12,6 +12,7 @@ import {
   resetReservation,
   setReservationPaymentMethod,
   setReservationTicketType,
+  storeCheckoutResult,
 } from "./reservation-state";
 
 const firstSeat: ReservedSeat = {
@@ -36,6 +37,7 @@ const secondSeat: ReservedSeat = {
 
 test("reservation state starts without persisted purchase data", () => {
   assert.deepEqual(initialReservationState, {
+    checkoutResult: null,
     expirationNotice: null,
     expiredSessionId: null,
     paymentMethod: null,
@@ -59,6 +61,20 @@ test("addSeats preserves seat identifiers and applies default ticket types", () 
   assert.equal(state.reservedSeats[0].seatId, "seat-1");
   assert.equal(state.ticketTypes["session-seat-1"], "inteira");
   assert.equal(state.reservationExpiresAt, firstSeat.expiresAt);
+});
+
+test("addSeats clears a previous in-memory checkout confirmation", () => {
+  const checkedOut = storeCheckoutResult({
+    payment_method: "pix",
+    seats: [],
+    status: "PURCHASED",
+    tickets: [],
+    total_amount: "0.00",
+  });
+  const state = addSeatsToReservation(checkedOut, [firstSeat], "session-1");
+
+  assert.equal(state.checkoutResult, null);
+  assert.deepEqual(state.reservedSeats, [firstSeat]);
 });
 
 test("addSeats can use a custom default ticket type and keeps the earliest expiration", () => {
@@ -154,6 +170,54 @@ test("resetReservation clears selected seats, ticket types, payment method, and 
 
   assert.notDeepEqual(state, initialReservationState);
   assert.deepEqual(resetReservation(), initialReservationState);
+});
+
+test("storeCheckoutResult keeps generated tickets in memory and clears active order state", () => {
+  const checkoutResult = {
+    payment_method: "pix" as const,
+    seats: [
+      {
+        amount_paid: "42.50",
+        number: 7,
+        row: "B",
+        seat_id: "seat-1",
+        session_seat_id: "session-seat-1",
+        status: "PURCHASED" as const,
+        ticket_type: "inteira" as const,
+      },
+    ],
+    status: "PURCHASED",
+    tickets: [
+      {
+        amount_paid: "42.50",
+        movie: { id: "movie-1", title: "O Filme" },
+        payment_method: "pix" as const,
+        room: { id: "room-1", name: "Sala 1" },
+        seat: {
+          id: "seat-1",
+          identifier: "B7",
+          number: 7,
+          row: "B",
+        },
+        seat_id: "seat-1",
+        session: {
+          end_time: "2026-05-22T23:00:00-03:00",
+          id: "session-1",
+          start_time: "2026-05-22T21:00:00-03:00",
+        },
+        session_seat_id: "session-seat-1",
+        ticket_code: "ABC123",
+        ticket_id: "ticket-1",
+        ticket_type: "inteira" as const,
+      },
+    ],
+    total_amount: "42.50",
+  };
+
+  assert.deepEqual(storeCheckoutResult(checkoutResult), {
+    ...initialReservationState,
+    checkoutResult,
+  });
 });
 
 test("expireReservation clears purchase flow data and keeps a transient notice", () => {

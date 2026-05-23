@@ -1191,6 +1191,214 @@ h1 {
   width: 100%;
 }
 
+.checkout-review {
+  display: grid;
+  gap: 18px;
+}
+
+.checkout-review__panel,
+.confirmation-tickets {
+  background: #ffffff;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  box-shadow: var(--shadow-soft);
+  display: grid;
+  gap: 16px;
+  padding: 20px;
+}
+
+.checkout-review__heading,
+.confirmation-tickets__heading {
+  align-items: start;
+  display: grid;
+  gap: 14px;
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.checkout-review__heading h2,
+.checkout-review__heading p,
+.checkout-review__session,
+.confirmation-tickets__heading h2,
+.confirmation-tickets__heading p {
+  margin: 0;
+}
+
+.checkout-review__heading h2,
+.confirmation-tickets__heading h2 {
+  font-size: 21px;
+  line-height: 1.25;
+}
+
+.checkout-review__heading p,
+.confirmation-tickets__heading p {
+  color: var(--color-muted);
+  line-height: 1.5;
+  margin-top: 6px;
+}
+
+.checkout-review__heading strong,
+.confirmation-tickets__heading strong {
+  color: var(--color-brand);
+  font-size: 20px;
+  white-space: nowrap;
+}
+
+.checkout-review__session,
+.confirmation-ticket__details {
+  display: grid;
+  gap: 10px;
+}
+
+.checkout-review__session div,
+.confirmation-ticket__details div {
+  align-items: center;
+  border-bottom: 1px solid var(--color-border);
+  display: flex;
+  gap: 14px;
+  justify-content: space-between;
+  padding-bottom: 10px;
+}
+
+.checkout-review__session dt,
+.confirmation-ticket__details dt {
+  color: var(--color-muted);
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.checkout-review__session dd,
+.confirmation-ticket__details dd {
+  font-weight: 850;
+  margin: 0;
+  text-align: right;
+}
+
+.checkout-review__items,
+.confirmation-tickets__list {
+  display: grid;
+  gap: 10px;
+}
+
+.checkout-review__item {
+  background: #f8fafc;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(88px, 0.8fr) minmax(120px, 1fr) auto;
+  min-height: 66px;
+  padding: 12px;
+}
+
+.checkout-review__item div {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.checkout-review__item span {
+  color: var(--color-muted);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.checkout-review__item strong {
+  font-size: 15px;
+  overflow-wrap: anywhere;
+}
+
+.payment-methods {
+  display: grid;
+  gap: 10px;
+}
+
+.payment-methods__option {
+  align-items: center;
+  background: #f8fafc;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  cursor: pointer;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: auto minmax(0, 1fr);
+  min-height: 72px;
+  padding: 12px;
+}
+
+.payment-methods__option:has(input:checked) {
+  background: #fff8df;
+  border-color: #d8a907;
+}
+
+.payment-methods__option input {
+  height: 18px;
+  width: 18px;
+}
+
+.payment-methods__option span {
+  display: grid;
+  gap: 4px;
+}
+
+.payment-methods__option strong {
+  font-size: 16px;
+}
+
+.payment-methods__option small {
+  color: var(--color-muted);
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.checkout-review__submit {
+  justify-self: end;
+  min-width: 190px;
+}
+
+.confirmation-ticket {
+  background: #f8fafc;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  display: grid;
+  gap: 14px;
+  padding: 16px;
+}
+
+.confirmation-ticket__header {
+  align-items: start;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.confirmation-ticket__header h3,
+.confirmation-ticket__header p {
+  margin: 0;
+}
+
+.confirmation-ticket__header h3 {
+  font-size: 18px;
+  line-height: 1.25;
+}
+
+.confirmation-ticket__header p {
+  color: var(--color-muted);
+  font-weight: 750;
+  margin-top: 4px;
+}
+
+.confirmation-ticket__header span {
+  background: #ffffff;
+  border: 1px dashed var(--color-border);
+  border-radius: 6px;
+  font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
+  font-size: 13px;
+  font-weight: 850;
+  padding: 8px 10px;
+  white-space: nowrap;
+}
+
 .movie-detail-loading__poster,
 .movie-detail-loading .skeleton-line {
   animation: skeleton-pulse 1300ms ease-in-out infinite;
@@ -1316,6 +1524,20 @@ h1 {
 
   .order-summary {
     min-height: 0;
+  }
+
+  .checkout-review__heading,
+  .confirmation-tickets__heading,
+  .confirmation-ticket__header {
+    grid-template-columns: 1fr;
+  }
+
+  .checkout-review__item {
+    grid-template-columns: 1fr;
+  }
+
+  .checkout-review__submit {
+    justify-self: stretch;
   }
 
   .movie-detail__action-panel .button {
