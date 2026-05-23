@@ -2,12 +2,8 @@ import Link from "next/link";
 
 import { StateMessage } from "@/components/ui/StateMessage";
 import type { TicketFilterType, UserTicket } from "@/types/ticket";
-import { formatCurrency, formatDateTime } from "@/utils/formatters";
 
-import {
-  paymentMethodLabels,
-  ticketTypeLabels,
-} from "../reservations/order-summary";
+import { TicketCard as SharedTicketCard } from "./TicketCard";
 
 export type MyTicketsStatus = "error" | "loading" | "success";
 
@@ -104,40 +100,7 @@ export function MyTicketsContent({
 }
 
 export function TicketCard({ ticket }: { ticket: UserTicket }) {
-  return (
-    <article className="my-ticket">
-      <div className="my-ticket__header">
-        <div>
-          <h3>{ticket.movie.title}</h3>
-          <p>{formatDateTime(ticket.session.start_time)}</p>
-        </div>
-        <span>{ticket.ticket_code}</span>
-      </div>
-
-      <dl className="my-ticket__details">
-        <div>
-          <dt>Sala</dt>
-          <dd>{ticket.room.name}</dd>
-        </div>
-        <div>
-          <dt>Assento</dt>
-          <dd>{ticket.seat.identifier}</dd>
-        </div>
-        <div>
-          <dt>Ingresso</dt>
-          <dd>{ticketTypeLabels[ticket.ticket_type]}</dd>
-        </div>
-        <div>
-          <dt>Valor pago</dt>
-          <dd>{formatCurrency(Number(ticket.amount_paid))}</dd>
-        </div>
-        <div>
-          <dt>Pagamento</dt>
-          <dd>{paymentMethodLabels[ticket.payment_method]}</dd>
-        </div>
-      </dl>
-    </article>
-  );
+  return <SharedTicketCard showVisualCode={false} ticket={ticket} />;
 }
 
 export function getTicketFilterFromSearchParams(

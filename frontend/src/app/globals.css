@@ -1419,14 +1419,12 @@ h1 {
   white-space: nowrap;
 }
 
-.checkout-review__session,
-.confirmation-ticket__details {
+.checkout-review__session {
   display: grid;
   gap: 10px;
 }
 
-.checkout-review__session div,
-.confirmation-ticket__details div {
+.checkout-review__session div {
   align-items: center;
   border-bottom: 1px solid var(--color-border);
   display: flex;
@@ -1435,15 +1433,13 @@ h1 {
   padding-bottom: 10px;
 }
 
-.checkout-review__session dt,
-.confirmation-ticket__details dt {
+.checkout-review__session dt {
   color: var(--color-muted);
   font-size: 14px;
   font-weight: 800;
 }
 
-.checkout-review__session dd,
-.confirmation-ticket__details dd {
+.checkout-review__session dd {
   font-weight: 850;
   margin: 0;
   text-align: right;
@@ -1532,47 +1528,9 @@ h1 {
   min-width: 190px;
 }
 
-.confirmation-ticket {
-  background: #f8fafc;
-  border: 1px solid var(--color-border);
-  border-radius: 8px;
-  display: grid;
-  gap: 14px;
-  padding: 16px;
-}
-
-.confirmation-ticket__header {
-  align-items: start;
-  display: grid;
-  gap: 12px;
-  grid-template-columns: minmax(0, 1fr) auto;
-}
-
-.confirmation-ticket__header h3,
-.confirmation-ticket__header p {
-  margin: 0;
-}
-
-.confirmation-ticket__header h3 {
-  font-size: 18px;
-  line-height: 1.25;
-}
-
-.confirmation-ticket__header p {
-  color: var(--color-muted);
-  font-weight: 750;
-  margin-top: 4px;
-}
-
-.confirmation-ticket__header span {
-  background: #ffffff;
-  border: 1px dashed var(--color-border);
-  border-radius: 6px;
-  font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
-  font-size: 13px;
-  font-weight: 850;
-  padding: 8px 10px;
-  white-space: nowrap;
+.confirmation-tickets__actions {
+  display: flex;
+  justify-content: flex-end;
 }
 
 .my-tickets {
@@ -1621,6 +1579,7 @@ h1 {
   gap: 12px;
 }
 
+.ticket-card,
 .my-ticket {
   background: #ffffff;
   border: 1px solid var(--color-border);
@@ -1631,6 +1590,12 @@ h1 {
   padding: 18px;
 }
 
+.confirmation-tickets .ticket-card {
+  background: #f8fafc;
+  box-shadow: none;
+}
+
+.ticket-card__header,
 .my-ticket__header {
   align-items: start;
   display: grid;
@@ -1638,23 +1603,28 @@ h1 {
   grid-template-columns: minmax(0, 1fr) auto;
 }
 
+.ticket-card__header h3,
+.ticket-card__header p,
 .my-ticket__header h3,
 .my-ticket__header p {
   margin: 0;
 }
 
+.ticket-card__header h3,
 .my-ticket__header h3 {
   font-size: 19px;
   line-height: 1.25;
   overflow-wrap: anywhere;
 }
 
+.ticket-card__header p,
 .my-ticket__header p {
   color: var(--color-muted);
   font-weight: 750;
   margin-top: 4px;
 }
 
+.ticket-card__header span,
 .my-ticket__header span {
   background: #f8fafc;
   border: 1px dashed var(--color-border);
@@ -1666,13 +1636,19 @@ h1 {
   white-space: nowrap;
 }
 
+.confirmation-tickets .ticket-card__header span {
+  background: #ffffff;
+}
+
+.ticket-card__details,
 .my-ticket__details {
   display: grid;
   gap: 10px;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(138px, 1fr));
   margin: 0;
 }
 
+.ticket-card__details div,
 .my-ticket__details div {
   background: #f8fafc;
   border: 1px solid var(--color-border);
@@ -1683,16 +1659,69 @@ h1 {
   padding: 10px;
 }
 
+.confirmation-tickets .ticket-card__details div {
+  background: #ffffff;
+}
+
+.ticket-card__details dt,
 .my-ticket__details dt {
   color: var(--color-muted);
   font-size: 13px;
   font-weight: 800;
 }
 
+.ticket-card__details dd,
 .my-ticket__details dd {
   font-weight: 850;
   margin: 0;
   overflow-wrap: anywhere;
+}
+
+.ticket-card__visual-code {
+  align-items: center;
+  background: #ffffff;
+  border: 1px dashed var(--color-border);
+  border-radius: 6px;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: minmax(180px, 1fr) auto;
+  padding: 12px;
+}
+
+.ticket-card__visual-code p {
+  color: var(--color-muted);
+  font-size: 13px;
+  font-weight: 750;
+  line-height: 1.35;
+  margin: 0;
+  max-width: 220px;
+}
+
+.ticket-card__barcode {
+  align-items: flex-end;
+  display: flex;
+  gap: 2px;
+  height: 58px;
+  overflow: hidden;
+}
+
+.ticket-card__barcode-bar {
+  background: #111827;
+  border-radius: 1px;
+  display: block;
+  height: 100%;
+}
+
+.ticket-card__barcode-bar--narrow {
+  width: 3px;
+}
+
+.ticket-card__barcode-bar--medium {
+  width: 5px;
+}
+
+.ticket-card__barcode-bar--wide {
+  width: 8px;
 }
 
 .movie-detail-loading__poster,
@@ -1825,7 +1854,7 @@ h1 {
   .checkout-review__heading,
   .ticket-types__heading,
   .confirmation-tickets__heading,
-  .confirmation-ticket__header,
+  .ticket-card__header,
   .my-tickets__toolbar,
   .my-ticket__header {
     grid-template-columns: 1fr;
@@ -1835,8 +1864,8 @@ h1 {
     justify-content: flex-start;
   }
 
-  .my-ticket__details {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+  .ticket-card__visual-code {
+    grid-template-columns: 1fr;
   }
 
   .checkout-review__item {
