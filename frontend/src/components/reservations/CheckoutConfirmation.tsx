@@ -2,29 +2,37 @@
 
 import Link from "next/link";
 
+import { TicketCard } from "@/components/tickets/TicketCard";
 import { StateMessage } from "@/components/ui/StateMessage";
 import { useReservation } from "@/contexts/ReservationContext";
-import { formatCurrency, formatDateTime } from "@/utils/formatters";
+import type { CheckoutResponse } from "@/types/reservation";
+import { formatCurrency } from "@/utils/formatters";
 
-import {
-  paymentMethodLabels,
-  ticketTypeLabels,
-} from "./order-summary";
+import { paymentMethodLabels } from "./order-summary";
 
 export function CheckoutConfirmation() {
   const { checkoutResult } = useReservation();
 
+  return <CheckoutConfirmationContent checkoutResult={checkoutResult} />;
+}
+
+export function CheckoutConfirmationContent({
+  checkoutResult,
+}: {
+  checkoutResult: CheckoutResponse | null;
+}) {
   if (!checkoutResult || checkoutResult.tickets.length === 0) {
     return (
       <StateMessage
         action={
-          <Link className="button button-primary" href="/">
-            Voltar ao catálogo
+          <Link className="button button-primary" href="/my-tickets">
+            Ver meus ingressos
           </Link>
         }
-        title="Nenhum ingresso em memória"
+        title="Confirmação indisponível"
       >
-        Finalize uma compra para visualizar a confirmação nesta sessão.
+        Os dados desta confirmação ficam apenas na memória da sessão. Se a
+        página foi recarregada, consulte seus ingressos em Meus Ingressos.
       </StateMessage>
     );
   }
@@ -38,8 +46,8 @@ export function CheckoutConfirmation() {
         <div>
           <h2 id="ingressos-gerados">Compra confirmada</h2>
           <p>
-            {checkoutResult.tickets.length} ingresso
-            {checkoutResult.tickets.length === 1 ? "" : "s"} gerado
+            Sua compra foi concluída com sucesso. {checkoutResult.tickets.length}{" "}
+            ingresso{checkoutResult.tickets.length === 1 ? "" : "s"} gerado
             {checkoutResult.tickets.length === 1 ? "" : "s"} com pagamento em{" "}
             {paymentMethodLabels[checkoutResult.payment_method]}.
           </p>
@@ -49,35 +57,14 @@ export function CheckoutConfirmation() {
 
       <div className="confirmation-tickets__list">
         {checkoutResult.tickets.map((ticket) => (
-          <article className="confirmation-ticket" key={ticket.ticket_id}>
-            <div className="confirmation-ticket__header">
-              <div>
-                <h3>{ticket.movie.title}</h3>
-                <p>{formatDateTime(ticket.session.start_time)}</p>
-              </div>
-              <span>{ticket.ticket_code}</span>
-            </div>
-
-            <dl className="confirmation-ticket__details">
-              <div>
-                <dt>Sala</dt>
-                <dd>{ticket.room.name}</dd>
-              </div>
-              <div>
-                <dt>Assento</dt>
-                <dd>{ticket.seat.identifier}</dd>
-              </div>
-              <div>
-                <dt>Ingresso</dt>
-                <dd>{ticketTypeLabels[ticket.ticket_type]}</dd>
-              </div>
-              <div>
-                <dt>Valor</dt>
-                <dd>{formatCurrency(Number(ticket.amount_paid))}</dd>
-              </div>
-            </dl>
-          </article>
+          <TicketCard key={ticket.ticket_id} ticket={ticket} />
         ))}
+      </div>
+
+      <div className="confirmation-tickets__actions">
+        <Link className="button button-primary" href="/my-tickets">
+          Ir para Meus Ingressos
+        </Link>
       </div>
     </section>
   );
