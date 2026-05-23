@@ -29,7 +29,6 @@ const movie: CatalogMovieDetail = {
 test("movie detail renders backend movie fields with accessible media", () => {
   const html = renderToStaticMarkup(
     createElement(MovieDetailView, {
-      movieId: movie.id,
       state: {
         movie,
         status: "success",
