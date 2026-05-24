@@ -144,8 +144,13 @@ class Session(models.Model):
             )
 
             if sensitive_fields_changed:
+                from reservations.models import SessionSeatStatus
+
                 SessionSeat = apps.get_model("reservations", "SessionSeat")
-                sensitive_statuses = ["RESERVED", "PURCHASED"]
+                sensitive_statuses = [
+                    SessionSeatStatus.RESERVED,
+                    SessionSeatStatus.PURCHASED,
+                ]
 
                 has_reserved_or_purchased_seats = SessionSeat.objects.filter(
                     session=self,
