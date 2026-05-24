@@ -23,6 +23,9 @@ cp .env.example .env
 docker compose up --build
 ```
 
+The backend container uses its Dockerfile startup command, which applies Django
+migrations before starting the development server.
+
 Services:
 
 - Backend API: `http://localhost:8000`
