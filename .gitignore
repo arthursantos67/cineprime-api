@@ -216,4 +216,6 @@ frontend/.next/
 frontend/out/
 frontend/.env
 frontend/.env.local
+frontend/playwright-report/
+frontend/test-results/
 *.tsbuildinfo
