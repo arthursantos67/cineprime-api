@@ -10,6 +10,7 @@ export type CatalogMovie = {
   title: string;
   genres: CatalogGenre[];
   duration_minutes: number;
+  release_date?: string | null;
   poster_url: string;
   status: MovieStatus;
   is_featured: boolean;
@@ -17,7 +18,6 @@ export type CatalogMovie = {
 
 export type CatalogMovieDetail = CatalogMovie & {
   created_at?: string;
-  release_date?: string | null;
   synopsis: string;
   updated_at?: string;
 };

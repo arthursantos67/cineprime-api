@@ -92,7 +92,10 @@ async function listMovies(params: ListMoviesParams) {
     method: "GET",
   });
 
-  if (!isPaginatedResponse<CatalogMovie>(response)) {
+  if (
+    !isPaginatedResponse<CatalogMovie>(response) ||
+    !response.results.every(isCatalogMovie)
+  ) {
     throw new Error("Unexpected catalog movie list response.");
   }
 
@@ -144,6 +147,9 @@ function isCatalogMovie(value: unknown): value is CatalogMovie {
     Array.isArray(value.genres) &&
     value.genres.every(isCatalogGenre) &&
     typeof value.duration_minutes === "number" &&
+    (typeof value.release_date === "string" ||
+      value.release_date === null ||
+      value.release_date === undefined) &&
     typeof value.poster_url === "string" &&
     (value.status === "em_cartaz" || value.status === "pre_venda") &&
     typeof value.is_featured === "boolean"
