@@ -564,13 +564,13 @@ The seat map is a grid derived from the `SessionSeat` list returned by `GET /api
 
 - Docker Compose stack includes: `web`, `db`, `redis`, `celery`, and optionally `frontend` services.
 - Environment variables control DB connection, Redis, JWT lifetimes, throttling, email, logging behavior, and frontend API base URL.
-- The frontend build artifact (static files) may be served by a dedicated Nginx container or a CDN.
+- The frontend production deployment uses a Next.js-compatible runtime container unless the app is explicitly configured and validated for static export.
 
 ### 12.2 CI Requirements
 
 GitHub Actions pipeline validates:
 - Backend: dependency installation via Poetry, Django system check, migrations, test suite execution
-- Frontend: dependency installation, linting, build, unit and integration tests
+- Frontend: dependency installation, linting, unit/integration tests, Playwright E2E tests, and production build
 - Docker Compose configuration validation
 - Docker image build (both backend and frontend images)
 

@@ -1,8 +1,6 @@
 # Cinepolis Natal Frontend
 
-Browser-based SPA foundation for the full-stack Cinepolis Natal platform.
-
-This workspace intentionally contains placeholders only. Full cinema UI flows will be implemented in dedicated frontend issues.
+Next.js App Router frontend for the full-stack Cinepolis Natal cinema ticket reservation platform.
 
 ## Stack
 
@@ -10,11 +8,12 @@ This workspace intentionally contains placeholders only. Full cinema UI flows wi
 - App Router
 - TypeScript
 - Node.js test runner with `tsx`
+- Playwright
 - ESLint
 
 ## Routes
 
-The scaffold defines the PRD page entrypoints:
+The frontend implements the PRD purchase and account entrypoints:
 
 | Route | Page |
 | --- | --- |
@@ -32,7 +31,12 @@ The scaffold defines the PRD page entrypoints:
 
 The API client boundary lives at [`src/api/client.ts`](./src/api/client.ts).
 
-Set the backend base URL with:
+The frontend requires `NEXT_PUBLIC_API_BASE_URL`, an absolute `http` or `https`
+URL for the Django/DRF API. Because this is a `NEXT_PUBLIC_*` variable, it is
+compiled into browser code during `npm run build`; set the production value at
+build time, not only when starting the container.
+
+Local development example:
 
 ```bash
 NEXT_PUBLIC_API_BASE_URL=http://localhost:8000
@@ -44,18 +48,47 @@ For local setup:
 cp .env.example .env.local
 ```
 
-## Commands
+Docker Compose sets `NEXT_PUBLIC_API_BASE_URL=http://localhost:8000` for the
+frontend dev service. This lets the browser call the backend through the API
+port exposed on the host.
+
+Production deployments should set the public API URL to the deployed backend
+origin, for example `https://api.example.com`, while the backend separately
+allows the frontend origin through CORS configuration. Do not commit secrets to
+frontend env files; public frontend variables are visible to users.
+
+The production build validates this required variable with:
 
 ```bash
-npm install
+npm run validate:env
+```
+
+## Commands
+
+Install with the lockfile:
+
+```bash
+npm ci
+```
+
+Run the local dev server on `http://localhost:3000`:
+
+```bash
 npm run dev
+```
+
+Quality and build checks:
+
+```bash
 npm run lint
 npm run test
-npm run e2e
+npm run e2e:ci
 npm run build
 ```
 
-The Next.js dev server runs on `http://localhost:3000`.
+`npm run test` covers unit and integration tests under `src/`.
+After a successful build, `npm run start` runs the generated Next.js standalone
+server.
 
 ## Browser E2E Tests
 
@@ -90,10 +123,60 @@ written to `playwright-report/`; both paths are ignored by git.
 
 ## Docker
 
-From the repository root:
+### Development
+
+The root Compose file uses [`Dockerfile.dev`](./Dockerfile.dev), bind mounts the
+frontend source, installs dependencies into a named volume, and runs the Next.js
+development server:
 
 ```bash
 docker compose up frontend
 ```
 
-The Compose service injects `NEXT_PUBLIC_API_BASE_URL=http://localhost:8000` so the browser can call the backend through the host-exposed API port.
+This path is intended for local work and remains hot-reload friendly.
+
+### Production Image
+
+The default [`Dockerfile`](./Dockerfile) is production-oriented:
+
+- installs dependencies with `npm ci`
+- builds with `npm run build`
+- uses Next.js `output: "standalone"`
+- copies only the standalone server and static assets into the runtime stage
+- starts with `node server.js`, matching the package `npm run start` strategy
+
+Build it from the repository root with the public API URL supplied at build
+time:
+
+```bash
+docker build \
+  --build-arg NEXT_PUBLIC_API_BASE_URL=https://api.example.com \
+  -t cinepolis-natal-frontend:prod \
+  frontend
+```
+
+Run the production container:
+
+```bash
+docker run --rm -p 3000:3000 cinepolis-natal-frontend:prod
+```
+
+Static CDN or Nginx-only hosting should not be assumed for this app. Use that
+strategy only if the project is explicitly changed to a static export and the
+routes/data-fetching behavior are validated for that mode.
+
+## CI
+
+GitHub Actions validates the frontend from this package with:
+
+```bash
+npm ci
+npm run lint
+npm run test
+npx playwright install --with-deps chromium
+npm run e2e:ci
+npm run build
+```
+
+The Docker validation job also builds the production frontend image with
+`NEXT_PUBLIC_API_BASE_URL` passed as a build argument.

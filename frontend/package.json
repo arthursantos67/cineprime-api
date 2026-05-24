@@ -8,9 +8,12 @@
     "build": "next build",
     "e2e": "playwright test",
     "e2e:ci": "playwright test --reporter=line",
-    "start": "next start",
+    "start": "node .next/standalone/server.js",
     "lint": "eslint .",
-    "test": "node --import tsx --test \"src/**/*.test.ts\""
+    "prebuild": "npm run validate:env",
+    "postbuild": "node scripts/prepare-standalone.mjs",
+    "test": "node --import tsx --test \"src/**/*.test.ts\" \"src/**/*.integration.test.ts\"",
+    "validate:env": "node scripts/validate-env.mjs"
   },
   "dependencies": {
     "next": "^15.5.0",

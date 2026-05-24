@@ -9,7 +9,7 @@ Detailed product requirements are in [`product-requirements-document.md`](./prod
 | Path | Ownership |
 | --- | --- |
 | [`backend/`](./backend/) | Django API, DRF apps, tests, Python dependency files, backend Dockerfile, Postman collection |
-| [`frontend/`](./frontend/) | Next.js App Router scaffold, route placeholders, API client boundary, frontend Dockerfile |
+| [`frontend/`](./frontend/) | Next.js App Router app, API client boundary, frontend Dockerfiles, tests |
 | [`docker-compose.yml`](./docker-compose.yml) | Full-stack local runtime wiring |
 | [`.github/workflows/`](./.github/workflows/) | Independent backend, frontend, and Docker validation |
 | [`product-requirements-document.md`](./product-requirements-document.md) | Full-stack PRD |
@@ -49,25 +49,28 @@ docker compose exec celery celery -A cinepolis_natal_api inspect ping
 
 ## Frontend
 
-Frontend commands and SPA scaffold notes live in [`frontend/README.md`](./frontend/README.md).
+Frontend commands, Docker usage, and deployment notes live in [`frontend/README.md`](./frontend/README.md).
 
 Common local commands:
 
 ```bash
 cd frontend
-npm install
+npm ci
 npm run dev
 npm run lint
 npm run test
+npm run e2e:ci
 npm run build
 ```
 
-The frontend reads the backend base URL from `NEXT_PUBLIC_API_BASE_URL`.
+The frontend requires `NEXT_PUBLIC_API_BASE_URL`. Local Compose injects
+`http://localhost:8000` for the frontend dev service; production frontend Docker
+builds must receive the deployed API origin as a build argument.
 
 ## CI
 
 GitHub Actions validates the two apps independently:
 
 - backend Docker Compose checks, migrations, and tests
-- frontend install, lint, tests, and build from `frontend/`
-- Docker Compose config plus backend/frontend image builds
+- frontend install, lint, unit/integration tests, Playwright E2E, and build from `frontend/`
+- Docker Compose config plus backend and production frontend image builds

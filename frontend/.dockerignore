@@ -3,4 +3,7 @@ dist
 .next
 .env
 .env.local
+playwright-report
+test-results
+coverage
 npm-debug.log*
