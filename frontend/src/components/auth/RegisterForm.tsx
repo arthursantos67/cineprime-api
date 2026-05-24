@@ -11,42 +11,27 @@ import {
   type AuthFieldErrors,
 } from "./auth-form-utils";
 
-export function RegisterForm() {
-  const router = useRouter();
-  const [fieldErrors, setFieldErrors] = useState<AuthFieldErrors>({});
-  const [formError, setFormError] = useState<string | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+export type RegisterFormViewProps = {
+  fieldErrors: AuthFieldErrors;
+  formError: string | null;
+  isSubmitting: boolean;
+  onSubmit: (event: FormEvent<HTMLFormElement>) => void;
+};
+
+export function RegisterFormView({
+  fieldErrors,
+  formError,
+  isSubmitting,
+  onSubmit,
+}: RegisterFormViewProps) {
   const formErrorId = formError ? "register-form-error" : undefined;
-
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setFieldErrors({});
-    setFormError(null);
-    setIsSubmitting(true);
-
-    const formData = new FormData(event.currentTarget);
-    const username = String(formData.get("username") ?? "");
-    const email = String(formData.get("email") ?? "");
-    const password = String(formData.get("password") ?? "");
-
-    try {
-      await authApi.register({ email, password, username });
-      router.replace(buildRegisteredLoginUrl());
-    } catch (error) {
-      const validationState = getRegistrationValidationState(error);
-      setFieldErrors(validationState.fieldErrors);
-      setFormError(validationState.formError);
-    } finally {
-      setIsSubmitting(false);
-    }
-  }
 
   return (
     <div className="panel">
       <form
         aria-describedby={formErrorId}
         className="form-grid"
-        onSubmit={handleSubmit}
+        onSubmit={onSubmit}
       >
         <div className="form-field">
           <label htmlFor="username">Nome de usuário</label>
@@ -115,5 +100,44 @@ export function RegisterForm() {
         </button>
       </form>
     </div>
+  );
+}
+
+export function RegisterForm() {
+  const router = useRouter();
+  const [fieldErrors, setFieldErrors] = useState<AuthFieldErrors>({});
+  const [formError, setFormError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setFieldErrors({});
+    setFormError(null);
+    setIsSubmitting(true);
+
+    const formData = new FormData(event.currentTarget);
+    const username = String(formData.get("username") ?? "");
+    const email = String(formData.get("email") ?? "");
+    const password = String(formData.get("password") ?? "");
+
+    try {
+      await authApi.register({ email, password, username });
+      router.replace(buildRegisteredLoginUrl());
+    } catch (error) {
+      const validationState = getRegistrationValidationState(error);
+      setFieldErrors(validationState.fieldErrors);
+      setFormError(validationState.formError);
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  return (
+    <RegisterFormView
+      fieldErrors={fieldErrors}
+      formError={formError}
+      isSubmitting={isSubmitting}
+      onSubmit={handleSubmit}
+    />
   );
 }
