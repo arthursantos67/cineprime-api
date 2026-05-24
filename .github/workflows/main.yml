@@ -58,6 +58,8 @@ jobs:
   frontend:
     name: Validate Frontend
     runs-on: ubuntu-latest
+    env:
+      NEXT_PUBLIC_API_BASE_URL: http://localhost:8000
     defaults:
       run:
         working-directory: frontend
@@ -78,6 +80,12 @@ jobs:
 
       - name: Run frontend tests
         run: npm run test
+
+      - name: Install Playwright browser
+        run: npx playwright install --with-deps chromium
+
+      - name: Run frontend E2E tests
+        run: npm run e2e:ci
 
       - name: Build frontend
         run: npm run build
@@ -111,4 +119,4 @@ jobs:
         run: docker build -t cinepolis-natal-backend:ci backend
 
       - name: Build frontend image
-        run: docker build -t cinepolis-natal-frontend:ci frontend
+        run: docker build --build-arg NEXT_PUBLIC_API_BASE_URL=http://localhost:8000 -t cinepolis-natal-frontend:ci frontend

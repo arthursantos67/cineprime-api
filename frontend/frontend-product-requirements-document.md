@@ -900,7 +900,9 @@ The frontend CI workflow must run:
 1. `npm ci`
 2. `npm run lint`
 3. `npm run test`
-4. `npm run build`
+4. `npx playwright install --with-deps chromium`
+5. `npm run e2e:ci`
+6. `npm run build`
 
 ---
 
@@ -910,16 +912,17 @@ The frontend CI workflow must run:
 
 | Variable | Description | Example |
 |---|---|---|
-| `NEXT_PUBLIC_API_BASE_URL` | Backend REST API base URL | `http://localhost:8000` |
+| `NEXT_PUBLIC_API_BASE_URL` | Backend REST API base URL compiled into browser code at build time | `http://localhost:8000` |
 
 ### 12.2 Local Commands
 
 ```bash
 cd frontend
-npm install
+npm ci
 npm run dev
 npm run lint
 npm run test
+npm run e2e:ci
 npm run build
 ```
 
@@ -927,10 +930,10 @@ The development server runs on `http://localhost:3000`.
 
 ### 12.3 Docker and Deployment
 
-- The current frontend Dockerfile is development-oriented and runs `npm run dev`.
-- The root `docker-compose.yml` mounts the frontend directory and injects `NEXT_PUBLIC_API_BASE_URL=http://localhost:8000`.
-- Production deployment should use a Next.js-compatible runtime strategy.
-- A production Dockerfile should use a multi-stage build with `npm ci`, `npm run build`, and a minimal runtime.
+- The default frontend Dockerfile is production-oriented, multi-stage, installs with `npm ci`, runs `npm run build`, and uses a minimal Next.js standalone runtime.
+- The root `docker-compose.yml` keeps local development on `Dockerfile.dev`, mounts the frontend directory, and injects `NEXT_PUBLIC_API_BASE_URL=http://localhost:8000`.
+- Production Docker builds must pass `NEXT_PUBLIC_API_BASE_URL` as a build argument because public Next.js variables are compiled into browser assets.
+- The production container starts with the Next.js standalone runtime command `node server.js`.
 - Static CDN or Nginx-only hosting should be used only if the project is explicitly configured for static export.
 
 ---
