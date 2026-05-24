@@ -30,6 +30,11 @@ import {
   type AuthState,
   type AuthUser,
 } from "./auth-state";
+import {
+  clearPersistedRefreshToken,
+  getPersistedRefreshToken,
+  persistRefreshToken,
+} from "./auth-persistence";
 
 export type { AuthUser } from "./auth-state";
 
@@ -55,7 +60,13 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
-  const [state, setState] = useState<AuthState>(initialAuthState);
+  // Start in "loading" so ProtectedRoute holds rendering while we check for a
+  // persisted refresh token. Resolves to "authenticated" or "unauthenticated"
+  // after the on-mount restoration attempt completes.
+  const [state, setState] = useState<AuthState>({
+    ...initialAuthState,
+    status: "loading",
+  });
   const accessTokenRef = useRef<string | null>(null);
   const refreshTokenRef = useRef<string | null>(null);
   const refreshPromiseRef = useRef<Promise<string | null> | null>(null);
@@ -72,6 +83,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     refreshPromiseRef.current = null;
     accessTokenRef.current = null;
     refreshTokenRef.current = null;
+    clearPersistedRefreshToken();
     setState(applyLogout());
     clearProtectedState();
   }, [clearProtectedState]);
@@ -163,6 +175,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       accessTokenRef.current = tokens.access;
       refreshTokenRef.current = tokens.refresh;
+      persistRefreshToken(tokens.refresh);
       setState((currentState) => applyLogin(currentState, tokens));
 
       const user = await authApi.currentUser(tokens.access);
@@ -186,6 +199,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     accessTokenRef.current = state.accessToken;
     refreshTokenRef.current = state.refreshToken;
   }, [state.accessToken, state.refreshToken]);
+
+  // On mount: attempt to restore auth from a persisted refresh token so that
+  // protected routes survive page reload without requiring a new login.
+  useEffect(() => {
+    const storedRefresh = getPersistedRefreshToken();
+
+    if (!storedRefresh) {
+      setState(applyLogout());
+      return;
+    }
+
+    const generationAtStart = authGenerationRef.current + 1;
+    authGenerationRef.current = generationAtStart;
+
+    authApi
+      .refreshAccess(storedRefresh)
+      .then(({ access }) => {
+        if (authGenerationRef.current !== generationAtStart) return null;
+        accessTokenRef.current = access;
+        refreshTokenRef.current = storedRefresh;
+        setState((s) => applyAccessRefresh({ ...s, refreshToken: storedRefresh }, access));
+        return authApi.currentUser(access);
+      })
+      .then((user) => {
+        if (!user) return;
+        if (authGenerationRef.current !== generationAtStart) return;
+        setState((s) => applyCurrentUser(s, user));
+      })
+      .catch(() => {
+        if (authGenerationRef.current !== generationAtStart) return;
+        clearPersistedRefreshToken();
+        setState(applyLogout());
+      });
+  }, []);
 
   useEffect(() => {
     setApiAuthController({

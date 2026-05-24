@@ -27,6 +27,53 @@ The frontend implements the PRD purchase and account entrypoints:
 | `/login` | Login |
 | `/register` | Register |
 
+## Authentication Model
+
+Authentication uses JWT tokens issued by the Django/DRF backend at
+`/api/v1/auth/login/`. The frontend applies a **sessionStorage-based refresh
+token persistence** strategy:
+
+| Storage | What is stored | Lifetime |
+|---|---|---|
+| In-memory (React state + ref) | Access token | Current page session only |
+| `sessionStorage` | Refresh token | Tab session (cleared on tab close) |
+| `localStorage` | Nothing | — |
+
+**Why sessionStorage for the refresh token?**
+
+- The access token is short-lived and never written to any browser storage.
+  An XSS attack cannot steal it across sessions.
+- The refresh token survives page reloads within the same tab, so users are
+  not forced to log in again after every refresh.
+- Closing the tab clears `sessionStorage`, so sessions do not persist beyond
+  the current browser tab — a deliberate tradeoff in favor of security over
+  long-term convenience.
+
+**Reload behavior:**
+
+1. On mount, `AuthProvider` reads the refresh token from `sessionStorage`.
+2. If a token is found, it calls `/api/v1/auth/token/refresh/` to obtain a
+   new access token, then `/api/v1/users/me/` to restore user data.
+3. If the refresh fails (expired or revoked token), the stored token is
+   removed and the user is redirected to `/login` by the protected route guard.
+4. If no token is found, the user is immediately treated as unauthenticated.
+
+**Logout:**
+
+Logout clears both the in-memory access token and the persisted refresh token
+from `sessionStorage`. Any subsequent navigation to a protected route redirects
+to `/login`.
+
+**Security tests:**
+
+`src/contexts/auth-security.test.ts` statically asserts these invariants:
+
+- `localStorage` is never used for any token.
+- `sessionStorage` is only touched by `auth-persistence.ts` and only for the
+  refresh token — never for the access token.
+- `auth-state.ts`, `client.ts`, and `auth.ts` contain no browser storage
+  references.
+
 ## API Configuration
 
 The API client boundary lives at [`src/api/client.ts`](./src/api/client.ts).
