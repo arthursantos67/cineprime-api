@@ -24,6 +24,34 @@ const paginatedMoviesResponse = {
   results: [],
 };
 
+const paginatedMoviesWithReleaseDateResponse = {
+  count: 2,
+  next: null,
+  previous: null,
+  results: [
+    {
+      duration_minutes: 125,
+      genres: [{ id: "genre-1", name: "Aventura" }],
+      id: "movie-123",
+      is_featured: true,
+      poster_url: "https://cdn.example.com/movie.jpg",
+      release_date: "2026-05-13",
+      status: "em_cartaz",
+      title: "A Jornada",
+    },
+    {
+      duration_minutes: 90,
+      genres: [],
+      id: "movie-456",
+      is_featured: false,
+      poster_url: "https://cdn.example.com/movie2.jpg",
+      release_date: null,
+      status: "pre_venda",
+      title: "Sem Data",
+    },
+  ],
+};
+
 const sessionResponse = {
   count: 1,
   next: null,
@@ -203,6 +231,42 @@ test("catalogApi rejects unexpected movie detail responses", async () => {
     await assert.rejects(
       catalogApi.getMovie("movie-123"),
       /Unexpected catalog movie detail response/
+    );
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("catalogApi lists movies with release_date field in results", async () => {
+  const originalFetch = globalThis.fetch;
+
+  try {
+    globalThis.fetch = async () =>
+      Response.json(paginatedMoviesWithReleaseDateResponse);
+
+    const response = await catalogApi.listMovies();
+
+    assert.deepEqual(response, paginatedMoviesWithReleaseDateResponse);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("catalogApi rejects movie list results with invalid movie objects", async () => {
+  const originalFetch = globalThis.fetch;
+
+  try {
+    globalThis.fetch = async () =>
+      Response.json({
+        count: 1,
+        next: null,
+        previous: null,
+        results: [{ id: "movie-bad" }],
+      });
+
+    await assert.rejects(
+      catalogApi.listMovies(),
+      /Unexpected catalog movie list response/
     );
   } finally {
     globalThis.fetch = originalFetch;
