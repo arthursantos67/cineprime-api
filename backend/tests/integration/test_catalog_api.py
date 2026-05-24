@@ -9,8 +9,43 @@ from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APIClient
 
+import catalog.views as catalog_views
 from catalog.models import Genre, Movie, MovieStatus, Room, Session
 from users.models import User
+
+
+class UnavailableCatalogCache:
+    def add(self, *args, **kwargs):
+        raise ConnectionError("Redis unavailable")
+
+    def get(self, *args, **kwargs):
+        raise ConnectionError("Redis unavailable")
+
+    def set(self, *args, **kwargs):
+        raise ConnectionError("Redis unavailable")
+
+    def incr(self, *args, **kwargs):
+        raise ConnectionError("Redis unavailable")
+
+
+class FailingCatalogCacheRead:
+    def __init__(self):
+        self.get_calls = 0
+
+    def add(self, *args, **kwargs):
+        return False
+
+    def get(self, *args, **kwargs):
+        self.get_calls += 1
+        if self.get_calls == 1:
+            return 1
+        raise ConnectionError("Redis unavailable")
+
+    def set(self, *args, **kwargs):
+        raise ConnectionError("Redis unavailable")
+
+    def incr(self, *args, **kwargs):
+        raise ConnectionError("Redis unavailable")
 
 
 @pytest.mark.django_db
@@ -714,6 +749,21 @@ class TestCatalogApi:
         assert first_response.data == second_response.data
         assert len(second_request_queries) < len(first_request_queries)
 
+    def test_list_movies_should_fall_back_to_database_when_cache_read_fails(
+        self,
+        monkeypatch,
+        anonymous_api_client,
+        movie,
+    ):
+        monkeypatch.setattr(catalog_views, "cache", FailingCatalogCacheRead())
+
+        response = anonymous_api_client.get("/api/v1/catalog/movies/")
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["count"] == 1
+        assert response.data["results"][0]["id"] == str(movie.id)
+        assert "error" not in response.data
+
     def test_movie_list_cache_should_remain_query_aware(self, api_client, genre):
         cache.clear()
         current_movie = self.create_movie(
@@ -754,6 +804,21 @@ class TestCatalogApi:
         assert second_response.status_code == status.HTTP_200_OK
         assert first_response.data == second_response.data
         assert len(second_request_queries) < len(first_request_queries)
+
+    def test_list_sessions_should_fall_back_to_database_when_cache_is_unavailable(
+        self,
+        monkeypatch,
+        anonymous_api_client,
+        session,
+    ):
+        monkeypatch.setattr(catalog_views, "cache", UnavailableCatalogCache())
+
+        response = anonymous_api_client.get("/api/v1/catalog/sessions/")
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["count"] == 1
+        assert response.data["results"][0]["id"] == str(session.id)
+        assert "error" not in response.data
 
     def test_movie_list_cache_should_be_invalidated_after_movie_creation(
         self,
