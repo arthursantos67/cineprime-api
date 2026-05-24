@@ -11,38 +11,19 @@ import {
   getSafeRedirectFromSearch,
 } from "./auth-form-utils";
 
-export function LoginForm() {
-  const router = useRouter();
-  const { loading, login } = useAuth();
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [confirmationMessage, setConfirmationMessage] = useState<string | null>(
-    null
-  );
+export type LoginFormViewProps = {
+  confirmationMessage: string | null;
+  errorMessage: string | null;
+  isSubmitting: boolean;
+  onSubmit: (event: FormEvent<HTMLFormElement>) => void;
+};
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setErrorMessage(null);
-
-    const formData = new FormData(event.currentTarget);
-    const email = String(formData.get("email") ?? "");
-    const password = String(formData.get("password") ?? "");
-
-    try {
-      await login({ email, password });
-      const search = typeof window === "undefined" ? "" : window.location.search;
-      router.replace(getSafeRedirectFromSearch(search));
-    } catch (error) {
-      setErrorMessage(getLoginFormErrorMessage(error));
-    }
-  }
-
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      setConfirmationMessage(getLoginConfirmationMessage(window.location.search));
-    }
-  }, []);
-
-  const isSubmitting = loading;
+export function LoginFormView({
+  confirmationMessage,
+  errorMessage,
+  isSubmitting,
+  onSubmit,
+}: LoginFormViewProps) {
   const formErrorId = errorMessage ? "login-form-error" : undefined;
 
   return (
@@ -55,7 +36,7 @@ export function LoginForm() {
       <form
         aria-describedby={formErrorId}
         className="form-grid"
-        onSubmit={handleSubmit}
+        onSubmit={onSubmit}
       >
         <div className="form-field">
           <label htmlFor="email">E-mail</label>
@@ -95,5 +76,46 @@ export function LoginForm() {
         </button>
       </form>
     </div>
+  );
+}
+
+export function LoginForm() {
+  const router = useRouter();
+  const { loading, login } = useAuth();
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [confirmationMessage, setConfirmationMessage] = useState<string | null>(
+    null
+  );
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setErrorMessage(null);
+
+    const formData = new FormData(event.currentTarget);
+    const email = String(formData.get("email") ?? "");
+    const password = String(formData.get("password") ?? "");
+
+    try {
+      await login({ email, password });
+      const search = typeof window === "undefined" ? "" : window.location.search;
+      router.replace(getSafeRedirectFromSearch(search));
+    } catch (error) {
+      setErrorMessage(getLoginFormErrorMessage(error));
+    }
+  }
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      setConfirmationMessage(getLoginConfirmationMessage(window.location.search));
+    }
+  }, []);
+
+  return (
+    <LoginFormView
+      confirmationMessage={confirmationMessage}
+      errorMessage={errorMessage}
+      isSubmitting={loading}
+      onSubmit={handleSubmit}
+    />
   );
 }

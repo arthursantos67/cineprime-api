@@ -28,7 +28,45 @@ type SessionDetailState =
   | { errorMessage: string; status: "error" }
   | { session: CatalogSession; status: "success" };
 
-const paymentMethods: PaymentMethod[] = ["cartao_credito", "pix"];
+export const PAYMENT_METHODS: PaymentMethod[] = ["cartao_credito", "pix"];
+
+export type PaymentMethodSelectorProps = {
+  disabled?: boolean;
+  onChange: (method: PaymentMethod) => void;
+  selectedMethod: PaymentMethod | null;
+};
+
+export function PaymentMethodSelector({
+  disabled = false,
+  onChange,
+  selectedMethod,
+}: PaymentMethodSelectorProps) {
+  return (
+    <fieldset className="payment-methods">
+      <legend className="sr-only">Forma de pagamento</legend>
+      {PAYMENT_METHODS.map((method) => (
+        <label className="payment-methods__option" key={method}>
+          <input
+            checked={selectedMethod === method}
+            disabled={disabled}
+            name="payment_method"
+            onChange={() => onChange(method)}
+            type="radio"
+            value={method}
+          />
+          <span>
+            <strong>{paymentMethodLabels[method]}</strong>
+            <small>
+              {method === "cartao_credito"
+                ? "Finalize com cartão de crédito."
+                : "Finalize com pagamento via PIX."}
+            </small>
+          </span>
+        </label>
+      ))}
+    </fieldset>
+  );
+}
 
 export function CheckoutReview() {
   const router = useRouter();
@@ -213,36 +251,14 @@ export function CheckoutReview() {
           </div>
         </div>
 
-        <fieldset
-          aria-describedby={errorMessage ? "checkout-review-error" : undefined}
-          aria-labelledby="forma-pagamento"
-          className="payment-methods"
-        >
-          <legend className="sr-only">Forma de pagamento</legend>
-          {paymentMethods.map((method) => (
-            <label className="payment-methods__option" key={method}>
-              <input
-                checked={reservation.paymentMethod === method}
-                disabled={isSubmitting}
-                name="payment_method"
-                onChange={() => {
-                  reservation.setPaymentMethod(method);
-                  setErrorMessage(null);
-                }}
-                type="radio"
-                value={method}
-              />
-              <span>
-                <strong>{paymentMethodLabels[method]}</strong>
-                <small>
-                  {method === "cartao_credito"
-                    ? "Finalize com cartão de crédito."
-                    : "Finalize com pagamento via PIX."}
-                </small>
-              </span>
-            </label>
-          ))}
-        </fieldset>
+        <PaymentMethodSelector
+          disabled={isSubmitting}
+          onChange={(method) => {
+            reservation.setPaymentMethod(method);
+            setErrorMessage(null);
+          }}
+          selectedMethod={reservation.paymentMethod}
+        />
       </section>
 
       {errorMessage ? (
