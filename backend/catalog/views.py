@@ -24,21 +24,54 @@ SESSION_LIST_CACHE_VERSION_KEY = "catalog:sessions:version"
 INITIAL_CACHE_VERSION = 1
 
 
+def _safe_cache_add(key, value, *, timeout):
+    try:
+        return cache.add(key, value, timeout=timeout)
+    except Exception:
+        return None
+
+
+def _safe_cache_get(key):
+    try:
+        return cache.get(key)
+    except Exception:
+        return None
+
+
+def _safe_cache_set(key, value, *, timeout):
+    try:
+        cache.set(key, value, timeout=timeout)
+    except Exception:
+        return
+
+
+def _safe_cache_incr(key):
+    try:
+        return cache.incr(key)
+    except ValueError:
+        return None
+    except Exception:
+        return None
+
+
 def _get_cache_namespace_version(version_key):
-    cache.add(version_key, INITIAL_CACHE_VERSION, timeout=None)
-    return cache.get(version_key)
+    if _safe_cache_add(version_key, INITIAL_CACHE_VERSION, timeout=None) is None:
+        return None
+    return _safe_cache_get(version_key)
 
 
 def _bump_cache_namespace_version(version_key):
-    cache.add(version_key, INITIAL_CACHE_VERSION, timeout=None)
-    try:
-        cache.incr(version_key)
-    except ValueError:
-        cache.set(version_key, INITIAL_CACHE_VERSION + 1, timeout=None)
+    if _safe_cache_add(version_key, INITIAL_CACHE_VERSION, timeout=None) is None:
+        return
+
+    if _safe_cache_incr(version_key) is None:
+        _safe_cache_set(version_key, INITIAL_CACHE_VERSION + 1, timeout=None)
 
 
 def _catalog_list_cache_key(namespace, version_key, request):
     version = _get_cache_namespace_version(version_key)
+    if version is None:
+        return None
     return f"catalog:{namespace}:v{version}:{request.get_full_path()}"
 
 
@@ -151,13 +184,16 @@ class MovieListCreateView(ListCreateAPIView):
             MOVIE_LIST_CACHE_VERSION_KEY,
             request,
         )
-        cached_response = cache.get(cache_key)
+        cached_response = None
+        if cache_key is not None:
+            cached_response = _safe_cache_get(cache_key)
 
         if cached_response is not None:
             return Response(cached_response)
 
         response = super().list(request, *args, **kwargs)
-        cache.set(cache_key, response.data, timeout=self.CACHE_TTL_SECONDS)
+        if cache_key is not None:
+            _safe_cache_set(cache_key, response.data, timeout=self.CACHE_TTL_SECONDS)
         return response
 
     def create(self, request, *args, **kwargs):
@@ -306,13 +342,16 @@ class SessionListCreateView(ListCreateAPIView):
             SESSION_LIST_CACHE_VERSION_KEY,
             request,
         )
-        cached_response = cache.get(cache_key)
+        cached_response = None
+        if cache_key is not None:
+            cached_response = _safe_cache_get(cache_key)
 
         if cached_response is not None:
             return Response(cached_response)
 
         response = super().list(request, *args, **kwargs)
-        cache.set(cache_key, response.data, timeout=self.CACHE_TTL_SECONDS)
+        if cache_key is not None:
+            _safe_cache_set(cache_key, response.data, timeout=self.CACHE_TTL_SECONDS)
         return response
 
     def create(self, request, *args, **kwargs):
