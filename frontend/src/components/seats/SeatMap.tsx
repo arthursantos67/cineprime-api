@@ -364,6 +364,11 @@ export function SeatMapLayout({
           Visitantes podem consultar a sala. Para reservar ou liberar assentos,
           entre na sua conta.
         </p>
+        <p className="sr-only" id="mapa-assentos-instrucoes">
+          Em telas estreitas, role horizontalmente para acessar todos os
+          assentos. Use Tab para chegar aos assentos e Enter ou Espaço para
+          selecionar ou liberar um assento disponível.
+        </p>
       </div>
 
       <SeatMapLegend />
@@ -375,6 +380,7 @@ export function SeatMapLayout({
       ) : null}
 
       <div
+        aria-describedby="mapa-assentos-instrucoes"
         aria-label="Área rolável do mapa de assentos"
         className="seat-map-scroll"
         tabIndex={0}
@@ -511,9 +517,9 @@ export function SeatMapLegend() {
   ];
 
   return (
-    <div aria-label="Legenda dos assentos" className="seat-map__legend">
+    <ul aria-label="Legenda dos assentos" className="seat-map__legend">
       {legendItems.map((item) => (
-        <div className="seat-map__legend-item" key={item.label}>
+        <li className="seat-map__legend-item" key={item.label}>
           <span
             aria-hidden="true"
             className={[
@@ -524,9 +530,9 @@ export function SeatMapLegend() {
             {item.marker}
           </span>
           <span>{item.label}</span>
-        </div>
+        </li>
       ))}
-    </div>
+    </ul>
   );
 }
 

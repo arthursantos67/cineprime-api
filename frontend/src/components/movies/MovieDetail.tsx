@@ -277,7 +277,6 @@ function MovieSessionSelector({ movieId }: { movieId: string }) {
       <div
         aria-label="Datas disponíveis"
         className="session-date-selector"
-        role="list"
       >
         {dateOptions.map((dateOption) => (
           <button
@@ -355,6 +354,11 @@ function SessionList({
           <div className="session-time-grid">
             {group.sessions.map((session) => (
               <Link
+                aria-label={`Selecionar sessão das ${formatSessionTime(
+                  session.start_time
+                )}, sala ${group.roomName}, valor ${formatSessionPrice(
+                  session.base_price
+                )}`}
                 className="session-option"
                 href={getSessionSeatsHref(session.id)}
                 key={session.id}

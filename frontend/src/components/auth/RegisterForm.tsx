@@ -16,6 +16,7 @@ export function RegisterForm() {
   const [fieldErrors, setFieldErrors] = useState<AuthFieldErrors>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const formErrorId = formError ? "register-form-error" : undefined;
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -42,7 +43,11 @@ export function RegisterForm() {
 
   return (
     <div className="panel">
-      <form className="form-grid" onSubmit={handleSubmit}>
+      <form
+        aria-describedby={formErrorId}
+        className="form-grid"
+        onSubmit={handleSubmit}
+      >
         <div className="form-field">
           <label htmlFor="username">Nome de usuário</label>
           <input
@@ -101,7 +106,7 @@ export function RegisterForm() {
           ) : null}
         </div>
         {formError ? (
-          <p className="form-error" role="alert">
+          <p className="form-error" id="register-form-error" role="alert">
             {formError}
           </p>
         ) : null}

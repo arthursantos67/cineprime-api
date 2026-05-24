@@ -55,9 +55,11 @@ export function CheckoutConfirmationContent({
         <strong>{formatCurrency(Number(checkoutResult.total_amount))}</strong>
       </div>
 
-      <div className="confirmation-tickets__list">
+      <div className="confirmation-tickets__list" role="list">
         {checkoutResult.tickets.map((ticket) => (
-          <TicketCard key={ticket.ticket_id} ticket={ticket} />
+          <div key={ticket.ticket_id} role="listitem">
+            <TicketCard ticket={ticket} />
+          </div>
         ))}
       </div>
 

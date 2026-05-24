@@ -103,6 +103,9 @@ test("seat map renders screen, row labels, seat numbers, and semantic states", (
   assert.match(html, /Fundo da sala/);
   assert.match(html, /Fileira A/);
   assert.match(html, /Fileira B/);
+  assert.match(html, /tabindex="0"/);
+  assert.match(html, /aria-describedby="mapa-assentos-instrucoes"/);
+  assert.match(html, /role="group"/);
   assert.match(html, /seat-map__seat--available/);
   assert.match(html, /seat-map__seat--accessible/);
   assert.match(html, /seat-map__seat--reserved/);
@@ -110,11 +113,13 @@ test("seat map renders screen, row labels, seat numbers, and semantic states", (
   assert.match(html, /seat-map__seat--selected/);
   assert.match(html, /aria-disabled="true"/);
   assert.match(html, /aria-pressed="true"/);
+  assert.match(html, /Assento A2, fileira A, número 2, Disponível, assento acessível/);
 });
 
 test("seat legend explains every state in pt-BR", () => {
   const html = renderToStaticMarkup(createElement(SeatMapLegend));
 
+  assert.match(html, /<ul/);
   assert.match(html, /Legenda dos assentos/);
   assert.match(html, /Disponível/);
   assert.match(html, /Selecionado/);

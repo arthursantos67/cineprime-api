@@ -130,7 +130,11 @@ export function CheckoutReview() {
   }
 
   return (
-    <form className="checkout-review" onSubmit={submitCheckout}>
+    <form
+      aria-describedby={errorMessage ? "checkout-review-error" : undefined}
+      className="checkout-review"
+      onSubmit={submitCheckout}
+    >
       <section aria-labelledby="revisao-pedido" className="checkout-review__panel">
         <div className="checkout-review__heading">
           <div>
@@ -209,7 +213,12 @@ export function CheckoutReview() {
           </div>
         </div>
 
-        <div className="payment-methods" role="radiogroup">
+        <fieldset
+          aria-describedby={errorMessage ? "checkout-review-error" : undefined}
+          aria-labelledby="forma-pagamento"
+          className="payment-methods"
+        >
+          <legend className="sr-only">Forma de pagamento</legend>
           {paymentMethods.map((method) => (
             <label className="payment-methods__option" key={method}>
               <input
@@ -233,13 +242,15 @@ export function CheckoutReview() {
               </span>
             </label>
           ))}
-        </div>
+        </fieldset>
       </section>
 
       {errorMessage ? (
-        <StateMessage tone="error" title="Não foi possível finalizar">
-          {errorMessage}
-        </StateMessage>
+        <div id="checkout-review-error">
+          <StateMessage tone="error" title="Não foi possível finalizar">
+            {errorMessage}
+          </StateMessage>
+        </div>
       ) : null}
 
       <button
