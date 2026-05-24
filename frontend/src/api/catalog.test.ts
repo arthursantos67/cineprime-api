@@ -273,6 +273,36 @@ test("catalogApi rejects movie list results with invalid movie objects", async (
   }
 });
 
+test("catalogApi rejects movie list results with missing required movie field", async () => {
+  const originalFetch = globalThis.fetch;
+
+  try {
+    globalThis.fetch = async () =>
+      Response.json({
+        count: 1,
+        next: null,
+        previous: null,
+        results: [
+          {
+            duration_minutes: 125,
+            genres: [{ id: "genre-1", name: "Aventura" }],
+            id: "movie-123",
+            is_featured: true,
+            poster_url: "https://cdn.example.com/movie.jpg",
+            status: "em_cartaz",
+          },
+        ],
+      });
+
+    await assert.rejects(
+      catalogApi.listMovies(),
+      /Unexpected catalog movie list response/
+    );
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 test("catalogApi rejects unexpected non-paginated movie responses", async () => {
   const originalFetch = globalThis.fetch;
 
