@@ -142,7 +142,9 @@ cp .env.example .env
 docker compose up --build
 ```
 
-This provisions the backend API, frontend dev server, PostgreSQL, Redis, and Celery worker. The backend remains available at `http://localhost:8000`.
+This provisions the backend API, frontend dev server, PostgreSQL, Redis, and
+Celery worker. The backend runs Django migrations during container startup before
+serving requests, then remains available at `http://localhost:8000`.
 
 Common backend commands:
 
