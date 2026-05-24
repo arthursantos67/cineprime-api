@@ -86,6 +86,8 @@ test("checkout confirmation renders the success state and generated tickets", ()
   assert.match(html, /R\$\s?42,50/);
   assert.match(html, /A Jornada/);
   assert.match(html, /ABC123/);
+  assert.match(html, /role="list"/);
+  assert.match(html, /role="listitem"/);
   assert.match(html, /href="\/my-tickets"/);
 });
 

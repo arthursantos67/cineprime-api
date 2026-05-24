@@ -89,9 +89,11 @@ export function MyTicketsContent({
       ) : null}
 
       {status === "success" && tickets.length > 0 ? (
-        <div className="my-tickets__list">
+        <div className="my-tickets__list" role="list">
           {tickets.map((ticket) => (
-            <TicketCard key={ticket.ticket_id} ticket={ticket} />
+            <div key={ticket.ticket_id} role="listitem">
+              <TicketCard ticket={ticket} />
+            </div>
           ))}
         </div>
       ) : null}

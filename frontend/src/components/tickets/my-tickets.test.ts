@@ -72,6 +72,8 @@ test("my tickets content renders active pt-BR filter links", () => {
   assert.match(html, /href="\/my-tickets\?type=upcoming"/);
   assert.match(html, /href="\/my-tickets\?type=past"/);
   assert.match(html, /aria-current="page"[^>]*>Próximos/);
+  assert.match(html, /role="list"/);
+  assert.match(html, /role="listitem"/);
 });
 
 test("my tickets content renders loading, empty, and error states", () => {

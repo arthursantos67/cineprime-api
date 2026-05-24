@@ -57,6 +57,18 @@ button {
   outline-offset: 3px;
 }
 
+.sr-only {
+  clip: rect(0 0 0 0);
+  border: 0;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  padding: 0;
+  position: absolute;
+  white-space: nowrap;
+  width: 1px;
+}
+
 .app-shell {
   min-height: 100vh;
 }
@@ -491,6 +503,10 @@ h1 {
   height: 100%;
 }
 
+.movie-card__link:focus-visible {
+  outline-offset: -4px;
+}
+
 .movie-card__link:hover .movie-card__title {
   color: var(--color-brand);
 }
@@ -733,6 +749,11 @@ h1 {
   border-color: #d8a907;
 }
 
+.session-option:focus-visible {
+  background: #fff8df;
+  border-color: var(--color-info);
+}
+
 .session-option strong {
   font-size: 22px;
   line-height: 1;
@@ -776,6 +797,9 @@ h1 {
   display: flex;
   flex-wrap: wrap;
   gap: 10px 16px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
 }
 
 .seat-map__legend-item {
@@ -1247,6 +1271,7 @@ h1 {
   display: grid;
   gap: 12px;
   margin: 0;
+  min-inline-size: 0;
   min-width: 0;
   padding: 14px;
 }
@@ -1295,6 +1320,11 @@ h1 {
   border-color: #d8a907;
 }
 
+.ticket-types__option:focus-within {
+  border-color: var(--color-info);
+  box-shadow: 0 0 0 3px rgb(31 111 235 / 18%);
+}
+
 .ticket-types__option input {
   height: 18px;
   width: 18px;
@@ -1320,6 +1350,7 @@ h1 {
 
 .ticket-types__option b {
   font-size: 15px;
+  overflow-wrap: anywhere;
   white-space: nowrap;
 }
 
@@ -1430,6 +1461,7 @@ h1 {
   display: flex;
   gap: 14px;
   justify-content: space-between;
+  min-width: 0;
   padding-bottom: 10px;
 }
 
@@ -1442,6 +1474,7 @@ h1 {
 .checkout-review__session dd {
   font-weight: 850;
   margin: 0;
+  overflow-wrap: anywhere;
   text-align: right;
 }
 
@@ -1480,8 +1513,12 @@ h1 {
 }
 
 .payment-methods {
+  border: 0;
   display: grid;
   gap: 10px;
+  margin: 0;
+  min-inline-size: 0;
+  padding: 0;
 }
 
 .payment-methods__option {
@@ -1502,6 +1539,11 @@ h1 {
   border-color: #d8a907;
 }
 
+.payment-methods__option:focus-within {
+  border-color: var(--color-info);
+  box-shadow: 0 0 0 3px rgb(31 111 235 / 18%);
+}
+
 .payment-methods__option input {
   height: 18px;
   width: 18px;
@@ -1510,10 +1552,12 @@ h1 {
 .payment-methods__option span {
   display: grid;
   gap: 4px;
+  min-width: 0;
 }
 
 .payment-methods__option strong {
   font-size: 16px;
+  overflow-wrap: anywhere;
 }
 
 .payment-methods__option small {
@@ -1632,8 +1676,10 @@ h1 {
   font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
   font-size: 13px;
   font-weight: 850;
+  max-width: 100%;
+  overflow-wrap: anywhere;
   padding: 8px 10px;
-  white-space: nowrap;
+  white-space: normal;
 }
 
 .confirmation-tickets .ticket-card__header span {
@@ -1796,6 +1842,13 @@ h1 {
   .primary-nav,
   .header-actions {
     justify-content: flex-start;
+    width: 100%;
+  }
+
+  .primary-nav {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-bottom: 2px;
   }
 
   .page-heading {
@@ -1908,6 +1961,10 @@ h1 {
     white-space: normal;
   }
 
+  .header-actions .button {
+    flex: 1 1 132px;
+  }
+
   .panel {
     padding: 18px;
   }
@@ -1932,5 +1989,17 @@ h1 {
 
   .my-ticket__details {
     grid-template-columns: 1fr;
+  }
+
+  .checkout-review__session div,
+  .order-summary__details div {
+    align-items: start;
+    display: grid;
+    gap: 4px;
+  }
+
+  .checkout-review__session dd,
+  .order-summary__details dd {
+    text-align: left;
   }
 }

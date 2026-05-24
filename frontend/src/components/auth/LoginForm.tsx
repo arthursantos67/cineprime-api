@@ -52,7 +52,11 @@ export function LoginForm() {
           {confirmationMessage}
         </p>
       ) : null}
-      <form className="form-grid" onSubmit={handleSubmit}>
+      <form
+        aria-describedby={formErrorId}
+        className="form-grid"
+        onSubmit={handleSubmit}
+      >
         <div className="form-field">
           <label htmlFor="email">E-mail</label>
           <input

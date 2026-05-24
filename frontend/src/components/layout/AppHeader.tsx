@@ -54,7 +54,7 @@ export function AppHeader() {
           })}
         </nav>
 
-        <div className="header-actions" aria-label="Ações da conta">
+        <div className="header-actions" aria-label="Ações da conta" role="group">
           {isAuthenticated ? (
             <>
               <Link className="button button-secondary" href="/my-tickets">

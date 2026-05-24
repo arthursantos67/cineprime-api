@@ -94,6 +94,9 @@ test("ticket type selection form renders seats, options, voucher field, and subt
   assert.match(html, /B7/);
   assert.match(html, /Fileira B, assento 7/);
   assert.match(html, /B8/);
+  assert.match(html, /<fieldset/);
+  assert.match(html, /name="ticket-type-session-seat-1"/);
+  assert.match(html, /name="ticket-type-session-seat-2"/);
   assert.match(html, /Inteira/);
   assert.match(html, /Meia-entrada/);
   assert.match(html, /Código promocional/);
