@@ -51,10 +51,42 @@ npm install
 npm run dev
 npm run lint
 npm run test
+npm run e2e
 npm run build
 ```
 
 The Next.js dev server runs on `http://localhost:3000`.
+
+## Browser E2E Tests
+
+The frontend uses Playwright for browser coverage of the critical purchase and
+guard flows required by the PRD.
+
+```bash
+npm run e2e
+npm run e2e:ci
+```
+
+The Playwright config is scoped to this package in
+[`playwright.config.ts`](./playwright.config.ts). It starts the Next.js app on
+`http://127.0.0.1:3100` and injects a stable
+`NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:40123`.
+
+E2E tests do not call a live backend. They mock all `/api/v1/**` browser
+requests through Playwright route handlers in [`e2e/support`](./e2e/support),
+using fixed catalog, auth, reservation, checkout, and expiration data. This
+keeps CI deterministic and avoids Redis, Celery, payment gateways, third-party
+services, or uncontrolled seed data.
+
+For a new CI job, install browsers once before running the CI script:
+
+```bash
+npx playwright install --with-deps chromium
+npm run e2e:ci
+```
+
+Failure artifacts are retained under `test-results/`, and the HTML report is
+written to `playwright-report/`; both paths are ignored by git.
 
 ## Docker
 
