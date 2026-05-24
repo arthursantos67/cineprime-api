@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { ApiError, getApiErrorUserMessage } from "@/api/client";
 import { catalogApi } from "@/api/catalog";
@@ -65,10 +65,12 @@ const seatStateMarkers: Record<SeatVisualState, string> = {
 
 export function SeatMap({ sessionId }: SeatMapProps) {
   const [state, setState] = useState<SeatMapLoadState>({ status: "loading" });
+  const [retryCount, setRetryCount] = useState(0);
+
+  const trimmedSessionId = sessionId.trim();
 
   useEffect(() => {
     let isActive = true;
-    const trimmedSessionId = sessionId.trim();
 
     if (!trimmedSessionId) {
       setState({ errorMessage: "Sessão inválida.", status: "error" });
@@ -109,7 +111,11 @@ export function SeatMap({ sessionId }: SeatMapProps) {
     return () => {
       isActive = false;
     };
-  }, [sessionId]);
+  }, [trimmedSessionId, retryCount]);
+
+  const handleRetry = useCallback(() => {
+    setRetryCount((count) => count + 1);
+  }, []);
 
   if (state.status === "loading") {
     return (
@@ -121,7 +127,15 @@ export function SeatMap({ sessionId }: SeatMapProps) {
 
   if (state.status === "error") {
     return (
-      <StateMessage title="Mapa indisponível" tone="error">
+      <StateMessage
+        action={
+          <button className="button button-ghost" onClick={handleRetry} type="button">
+            Tentar novamente
+          </button>
+        }
+        title="Mapa indisponível"
+        tone="error"
+      >
         {state.errorMessage ??
           "Não conseguimos carregar os assentos desta sessão agora."}
       </StateMessage>

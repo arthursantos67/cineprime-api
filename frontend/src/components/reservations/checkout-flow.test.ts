@@ -1,12 +1,14 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
+import { ApiError } from "@/api/client";
 import type { ReservedSeat } from "@/types/reservation";
 
 import {
   CHECKOUT_EMPTY_ORDER_MESSAGE,
   CHECKOUT_PAYMENT_REQUIRED_MESSAGE,
   buildCheckoutPayload,
+  getCheckoutErrorMessage,
   getCheckoutSubmitBlocker,
 } from "./checkout-flow";
 
@@ -94,4 +96,35 @@ test("getCheckoutSubmitBlocker requires seats and a selected payment method", ()
     }),
     null
   );
+});
+
+test("getCheckoutErrorMessage maps INVALID_TICKET_TYPE without exposing raw backend message", () => {
+  const error = new ApiError("Invalid ticket type details.", 400, {
+    code: "INVALID_TICKET_TYPE",
+    details: {},
+  });
+
+  const message = getCheckoutErrorMessage(error);
+
+  assert.doesNotMatch(message, /Invalid ticket type details/);
+  assert.ok(message.length > 0);
+});
+
+test("getCheckoutErrorMessage maps INVALID_PAYMENT_METHOD without exposing raw backend message", () => {
+  const error = new ApiError("Invalid payment method details.", 400, {
+    code: "INVALID_PAYMENT_METHOD",
+    details: {},
+  });
+
+  const message = getCheckoutErrorMessage(error);
+
+  assert.doesNotMatch(message, /Invalid payment method details/);
+  assert.ok(message.length > 0);
+});
+
+test("getCheckoutErrorMessage returns connection message for network errors preserving state", () => {
+  const message = getCheckoutErrorMessage(new TypeError("Failed to fetch"));
+
+  assert.match(message, /servidor/);
+  assert.doesNotMatch(message, /Failed to fetch/);
 });

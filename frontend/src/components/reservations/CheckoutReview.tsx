@@ -169,7 +169,7 @@ export function CheckoutReview() {
         ) : null}
 
         {sessionState.status === "error" ? (
-          <p className="inline-status inline-status-error" role="status">
+          <p className="inline-status inline-status-error" role="alert">
             {sessionState.errorMessage}
           </p>
         ) : null}

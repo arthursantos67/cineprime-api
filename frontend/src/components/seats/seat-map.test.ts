@@ -235,3 +235,32 @@ test("seat conflict errors use a friendly pt-BR message", () => {
   assert.match(message, /reservado/);
   assert.doesNotMatch(message, /Conflict/);
 });
+
+test("seat interaction error for non-conflict API failures falls back to mapped message", () => {
+  const message = getSeatInteractionErrorMessage(
+    new ApiError("Internal Server Error", 500, {
+      code: "INTERNAL_SERVER_ERROR",
+      details: {},
+    })
+  );
+
+  assert.doesNotMatch(message, /Internal Server Error/);
+  assert.ok(message.length > 0);
+});
+
+test("seat interaction error for network failure returns connection message", () => {
+  const message = getSeatInteractionErrorMessage(new TypeError("Failed to fetch"));
+
+  assert.match(message, /servidor/);
+  assert.doesNotMatch(message, /Failed to fetch/);
+});
+
+test("seat map layout renders empty state when room has no seats", () => {
+  const html = renderToStaticMarkup(
+    createElement(SeatMapLayout, { seats: [] })
+  );
+
+  assert.match(html, /Sala sem assentos/);
+  assert.match(html, /Ainda não há assentos cadastrados/);
+  assert.doesNotMatch(html, /seat-map__seat/);
+});
