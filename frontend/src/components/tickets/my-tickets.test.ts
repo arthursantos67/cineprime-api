@@ -105,6 +105,22 @@ test("my tickets content renders loading, empty, and error states", () => {
   assert.match(errorHtml, /Sua sessão expirou/);
 });
 
+test("my tickets error state renders retry button", () => {
+  const html = renderToStaticMarkup(
+    createElement(MyTicketsContent, {
+      activeFilter: null,
+      errorMessage: "Não foi possível conectar ao servidor. Verifique sua conexão e tente novamente.",
+      onRetry: () => undefined,
+      status: "error",
+      tickets: [],
+    })
+  );
+
+  assert.match(html, /Ingressos indisponíveis/);
+  assert.match(html, /Tentar novamente/);
+  assert.match(html, /servidor/);
+});
+
 test("ticket card renders ticket details with Brazilian formatting", () => {
   const html = renderToStaticMarkup(createElement(TicketCard, { ticket }));
 

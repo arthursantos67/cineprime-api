@@ -8,6 +8,7 @@ import {
   buildLoginRedirectUrl,
   buildApiUrl,
   getApiErrorUserMessage,
+  isNetworkError,
   isPaginatedResponse,
   resolveApiBaseUrl,
   sanitizeRedirectPath,
@@ -242,6 +243,24 @@ test("getApiErrorUserMessage falls back safely for unknown backend codes", () =>
   assert.equal(
     getApiErrorUserMessage(error),
     "Não foi possível concluir a solicitação. Tente novamente."
+  );
+});
+
+test("getApiErrorUserMessage returns a connection-specific message for network errors", () => {
+  const networkError = new TypeError("Failed to fetch");
+  const message = getApiErrorUserMessage(networkError);
+
+  assert.match(message, /servidor/);
+  assert.match(message, /conexão/);
+  assert.doesNotMatch(message, /Failed to fetch/);
+});
+
+test("isNetworkError distinguishes network failures from API errors", () => {
+  assert.equal(isNetworkError(new TypeError("Failed to fetch")), true);
+  assert.equal(isNetworkError(new Error("Generic error")), true);
+  assert.equal(
+    isNetworkError(new ApiError("API failure", 500, { code: "INTERNAL_SERVER_ERROR", details: {} })),
+    false
   );
 });
 

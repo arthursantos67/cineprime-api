@@ -233,6 +233,10 @@ export const API_ERROR_MESSAGES: Record<KnownBackendErrorCode, string> = {
     "Não foi possível concluir a solicitação. Tente novamente mais tarde.",
 };
 
+export function isNetworkError(error: unknown): boolean {
+  return !(error instanceof ApiError);
+}
+
 export function getApiErrorUserMessage(error: unknown) {
   if (
     error instanceof ApiError &&
@@ -241,6 +245,10 @@ export function getApiErrorUserMessage(error: unknown) {
     return API_ERROR_MESSAGES[
       error.code as keyof typeof API_ERROR_MESSAGES
     ];
+  }
+
+  if (isNetworkError(error)) {
+    return "Não foi possível conectar ao servidor. Verifique sua conexão e tente novamente.";
   }
 
   return "Não foi possível concluir a solicitação. Tente novamente.";
