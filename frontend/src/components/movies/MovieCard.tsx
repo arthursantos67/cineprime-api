@@ -31,6 +31,7 @@ export function MovieCard({ movie }: MovieCardProps) {
           loading="lazy"
           src={movie.poster_url}
           sizes="(max-width: 820px) 100vw, (max-width: 1200px) 33vw, 220px"
+          unoptimized
           width={320}
         />
         <div className="movie-card__body">

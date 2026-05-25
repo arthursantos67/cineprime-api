@@ -104,6 +104,12 @@ origin, for example `https://api.example.com`, while the backend separately
 allows the frontend origin through CORS configuration. Do not commit secrets to
 frontend env files; public frontend variables are visible to users.
 
+`NEXT_IMAGE_REMOTE_HOSTNAMES` may be set at build time with a comma-separated
+list of trusted HTTPS poster/CDN hostnames for Next.js image configuration. The
+movie poster surfaces intentionally pass externally supplied `poster_url` values
+through `next/image` with optimization disabled, so arbitrary API data is not
+fetched server-side by the Next.js image optimizer.
+
 The production build validates this required variable with:
 
 ```bash
@@ -198,6 +204,7 @@ time:
 ```bash
 docker build \
   --build-arg NEXT_PUBLIC_API_BASE_URL=https://api.example.com \
+  --build-arg NEXT_IMAGE_REMOTE_HOSTNAMES=cdn.example.com \
   -t cinepolis-natal-frontend:prod \
   frontend
 ```

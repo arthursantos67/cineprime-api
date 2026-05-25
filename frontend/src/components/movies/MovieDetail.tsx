@@ -139,6 +139,7 @@ function MovieDetailSuccess({ movie }: { movie: CatalogMovieDetail }) {
             priority
             src={movie.poster_url}
             sizes="(max-width: 820px) 100vw, 340px"
+            unoptimized
             width={480}
           />
         ) : (

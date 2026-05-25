@@ -31,6 +31,7 @@ export function FeaturedMovieBanner({
           priority
           src={movie.poster_url}
           sizes="(max-width: 820px) 100vw, 360px"
+          unoptimized
           width={480}
         />
       </div>
