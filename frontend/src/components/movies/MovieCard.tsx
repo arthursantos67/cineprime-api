@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { ResponsiveImage } from "@/components/ui/ResponsiveImage";
 import type { CatalogMovie } from "@/types/catalog";
 
 import {
@@ -23,13 +24,15 @@ export function MovieCard({ movie }: MovieCardProps) {
         className="movie-card__link"
         href={getMovieDetailsHref(movie.id)}
       >
-        {/* API poster URLs are arbitrary remote images until image domains are configured. */}
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
+        <ResponsiveImage
           alt={`Poster de ${movie.title}`}
           className="movie-card__poster"
+          height={480}
           loading="lazy"
           src={movie.poster_url}
+          sizes="(max-width: 820px) 100vw, (max-width: 1200px) 33vw, 220px"
+          unoptimized
+          width={320}
         />
         <div className="movie-card__body">
           <h2 className="movie-card__title">{movie.title}</h2>

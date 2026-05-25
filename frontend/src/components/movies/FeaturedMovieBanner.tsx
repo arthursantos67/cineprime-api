@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { ResponsiveImage } from "@/components/ui/ResponsiveImage";
 import type { CatalogMovie } from "@/types/catalog";
 
 import {
@@ -23,13 +24,15 @@ export function FeaturedMovieBanner({
       className="featured-movie"
     >
       <div className="featured-movie__media">
-        {/* API poster URLs are arbitrary remote images until image domains are configured. */}
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
+        <ResponsiveImage
           alt={`Poster de ${movie.title}`}
           className="featured-movie__poster"
-          loading="eager"
+          height={720}
+          priority
           src={movie.poster_url}
+          sizes="(max-width: 820px) 100vw, 360px"
+          unoptimized
+          width={480}
         />
       </div>
       <div className="featured-movie__content">

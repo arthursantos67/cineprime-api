@@ -39,6 +39,9 @@ test("movie card renders backend movie fields and navigates to the detail route"
   assert.match(html, /Ver detalhes de Duna: Parte Dois/);
   assert.match(html, /Poster de Duna: Parte Dois/);
   assert.match(html, /loading="lazy"/);
+  assert.match(html, /data-nimg="1"/);
+  assert.match(html, /src="https:\/\/cdn\.example\.com\/duna\.jpg"/);
+  assert.doesNotMatch(html, /\/_next\/image/);
   assert.match(html, /Duna: Parte Dois/);
   assert.match(html, /Ficção científica, Aventura/);
   assert.match(html, /2h 46min/);
@@ -90,6 +93,10 @@ test("featured banner renders featured movie media and primary action", () => {
 
   assert.match(html, /Filme em destaque: Duna: Parte Dois/);
   assert.match(html, /Poster de Duna: Parte Dois/);
+  assert.match(html, /rel="preload" as="image"/);
+  assert.match(html, /data-nimg="1"/);
+  assert.match(html, /href="https:\/\/cdn\.example\.com\/duna\.jpg"/);
+  assert.doesNotMatch(html, /\/_next\/image/);
   assert.match(html, /Destaque/);
   assert.match(html, /Ver sessões/);
   assert.match(html, /href="\/movies\/movie-123"/);

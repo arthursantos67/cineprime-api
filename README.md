@@ -68,7 +68,9 @@ npm run build
 
 The frontend requires `NEXT_PUBLIC_API_BASE_URL`. Local Compose injects
 `http://localhost:8000` for the frontend dev service; production frontend Docker
-builds must receive the deployed API origin as a build argument.
+builds must receive the deployed API origin as a build argument. Set
+`NEXT_IMAGE_REMOTE_HOSTNAMES` at build time when production poster images come
+from a known CDN or asset host.
 
 ## CI
 
