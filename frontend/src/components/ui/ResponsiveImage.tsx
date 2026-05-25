@@ -6,12 +6,11 @@ const NextImage = resolveNextImageComponent(NextImageModule);
 const shouldBypassOptimization = process.env.npm_lifecycle_event === "test";
 
 export function ResponsiveImage(props: ImageProps) {
-  return (
-    <NextImage
-      {...props}
-      unoptimized={props.unoptimized ?? shouldBypassOptimization}
-    />
-  );
+  if (shouldBypassOptimization && props.unoptimized === undefined) {
+    return <NextImage {...props} unoptimized />;
+  }
+
+  return <NextImage {...props} />;
 }
 
 function resolveNextImageComponent(candidate: unknown): ElementType<ImageProps> {
