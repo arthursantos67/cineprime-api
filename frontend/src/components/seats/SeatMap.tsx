@@ -25,11 +25,37 @@ export type SeatMapRow = {
   seats: SessionSeatMapItem[];
 };
 
+export type SeatMapDisplaySeat = {
+  displayNumber: number;
+  seat: SessionSeatMapItem;
+};
+
+export type SeatMapAccessiblePair = {
+  accessibleSeat: SeatMapDisplaySeat;
+  companionSeat?: SeatMapDisplaySeat;
+};
+
+export type SeatMapRenderedRow = SeatMapRow & {
+  leftSeats: SeatMapDisplaySeat[];
+  rightSeats: SeatMapDisplaySeat[];
+};
+
+export type SeatMapLayoutModel = {
+  accessibleLeftPairs: SeatMapAccessiblePair[];
+  accessibleRightPairs: SeatMapAccessiblePair[];
+  rows: SeatMapRenderedRow[];
+};
+
 export type SeatVisualState =
   | "available"
   | "purchased"
   | "reserved"
   | "selected";
+
+type SeatAccessibleLabelOptions = {
+  displayLabel?: string;
+  displayNumber?: number;
+};
 
 type SeatMapProps = {
   sessionId: string;
@@ -57,11 +83,14 @@ const seatStateLabels: Record<SeatVisualState, string> = {
 };
 
 const seatStateMarkers: Record<SeatVisualState, string> = {
-  available: "L",
+  available: "",
   purchased: "C",
   reserved: "R",
-  selected: "S",
+  selected: "",
 };
+
+const ACCESSIBLE_SEAT_COUNT = 6;
+const ACCESSIBLE_SEATS_PER_SIDE = 3;
 
 export function SeatMap({ sessionId }: SeatMapProps) {
   const [state, setState] = useState<SeatMapLoadState>({ status: "loading" });
@@ -346,9 +375,9 @@ export function SeatMapLayout({
   seats,
   selectedSeatIds = new Set(),
 }: SeatMapLayoutProps) {
-  const rows = useMemo(() => groupSeatMapRows(seats), [seats]);
+  const layout = useMemo(() => buildSeatMapLayout(seats), [seats]);
 
-  if (rows.length === 0) {
+  if (seats.length === 0) {
     return (
       <StateMessage title="Sala sem assentos">
         Ainda não há assentos cadastrados para esta sessão.
@@ -391,8 +420,40 @@ export function SeatMapLayout({
         >
           <div className="seat-map__screen">Tela</div>
 
+          <div
+            aria-label="Assentos acessíveis e prioritários"
+            className="seat-map__accessible-row"
+            role="group"
+          >
+            <span aria-hidden="true" className="seat-map__row-label" />
+            <div className="seat-map__accessible-list">
+              <div className="seat-map__accessible-group seat-map__accessible-group--left">
+                {layout.accessibleLeftPairs.map((pair) =>
+                  renderAccessiblePair({
+                    companionFirst: true,
+                    onSeatToggle,
+                    pair,
+                    pendingSeatIds,
+                    selectedSeatIds,
+                  })
+                )}
+              </div>
+              <div className="seat-map__accessible-group seat-map__accessible-group--right">
+                {layout.accessibleRightPairs.map((pair) =>
+                  renderAccessiblePair({
+                    onSeatToggle,
+                    pair,
+                    pendingSeatIds,
+                    selectedSeatIds,
+                  })
+                )}
+              </div>
+            </div>
+            <span aria-hidden="true" className="seat-map__row-label" />
+          </div>
+
           <div className="seat-map__rows">
-            {rows.map((row) => (
+            {layout.rows.map((row) => (
               <div className="seat-map__row" key={row.rowLabel}>
                 <span
                   aria-hidden="true"
@@ -405,66 +466,31 @@ export function SeatMapLayout({
                   className="seat-map__seat-list"
                   role="group"
                 >
-                  {row.seats.map((seat, seatIndex) => {
-                    const visualState = getSeatVisualState(
-                      seat,
-                      selectedSeatIds
-                    );
-                    const isSelected = visualState === "selected";
-                    const isUnavailable =
-                      visualState === "reserved" ||
-                      visualState === "purchased";
-                    const isPending = pendingSeatIds.has(
-                      seat.session_seat_id
-                    );
-
-                    return (
-                      <button
-                        aria-busy={isPending}
-                        aria-disabled={isUnavailable || isPending}
-                        aria-label={getSeatAccessibleLabel(
-                          seat,
-                          visualState
-                        )}
-                        aria-pressed={isSelected}
-                        className={[
-                          "seat-map__seat",
-                          `seat-map__seat--${visualState}`,
-                          seat.is_accessible
-                            ? "seat-map__seat--accessible"
-                            : "",
-                          isPending ? "seat-map__seat--pending" : "",
-                          shouldAddCenterAisle(row.seats, seatIndex)
-                            ? "seat-map__seat--after-aisle"
-                            : "",
-                        ]
-                          .filter(Boolean)
-                          .join(" ")}
-                        data-state={visualState}
-                        key={seat.session_seat_id}
-                        onClick={() => onSeatToggle?.(seat)}
-                        type="button"
-                      >
-                        <span className="seat-map__seat-number">
-                          {seat.number}
-                        </span>
-                        <span
-                          aria-hidden="true"
-                          className="seat-map__seat-marker"
-                        >
-                          {seatStateMarkers[visualState]}
-                        </span>
-                        {seat.is_accessible ? (
-                          <span
-                            aria-hidden="true"
-                            className="seat-map__seat-accessible"
-                          >
-                            ♿
-                          </span>
-                        ) : null}
-                      </button>
-                    );
-                  })}
+                  <div className="seat-map__seat-group seat-map__seat-group--left">
+                    {row.leftSeats.map((seat) =>
+                      renderSeatButton({
+                        displayNumber: seat.displayNumber,
+                        key: seat.seat.session_seat_id,
+                        onSeatToggle,
+                        pendingSeatIds,
+                        seat: seat.seat,
+                        selectedSeatIds,
+                      })
+                    )}
+                  </div>
+                  <span aria-hidden="true" className="seat-map__center-aisle" />
+                  <div className="seat-map__seat-group seat-map__seat-group--right">
+                    {row.rightSeats.map((seat) =>
+                      renderSeatButton({
+                        displayNumber: seat.displayNumber,
+                        key: seat.seat.session_seat_id,
+                        onSeatToggle,
+                        pendingSeatIds,
+                        seat: seat.seat,
+                        selectedSeatIds,
+                      })
+                    )}
+                  </div>
                 </div>
                 <span
                   aria-hidden="true"
@@ -480,6 +506,123 @@ export function SeatMapLayout({
         </div>
       </div>
     </section>
+  );
+}
+
+function renderAccessiblePair({
+  companionFirst = false,
+  onSeatToggle,
+  pair,
+  pendingSeatIds,
+  selectedSeatIds,
+}: {
+  companionFirst?: boolean;
+  onSeatToggle?: (seat: SessionSeatMapItem) => void;
+  pair: SeatMapAccessiblePair;
+  pendingSeatIds: ReadonlySet<string>;
+  selectedSeatIds: ReadonlySet<string>;
+}) {
+  const accessibleSeatButton = renderSeatButton({
+    displayNumber: pair.accessibleSeat.displayNumber,
+    key: `${pair.accessibleSeat.seat.session_seat_id}-accessible`,
+    onSeatToggle,
+    pendingSeatIds,
+    seat: pair.accessibleSeat.seat,
+    selectedSeatIds,
+  });
+  const companionSeatButton = pair.companionSeat
+    ? renderSeatButton({
+        displayLabel: "AC",
+        isCompanion: true,
+        key: `${pair.companionSeat.seat.session_seat_id}-companion`,
+        onSeatToggle,
+        pendingSeatIds,
+        seat: pair.companionSeat.seat,
+        selectedSeatIds,
+      })
+    : null;
+
+  return (
+    <span
+      className="seat-map__accessible-pair"
+      key={pair.accessibleSeat.seat.session_seat_id}
+    >
+      {companionFirst ? companionSeatButton : accessibleSeatButton}
+      {companionFirst ? accessibleSeatButton : companionSeatButton}
+    </span>
+  );
+}
+
+function renderSeatButton({
+  displayLabel,
+  displayNumber,
+  isCompanion = false,
+  key,
+  onSeatToggle,
+  pendingSeatIds,
+  seat,
+  selectedSeatIds,
+}: {
+  displayLabel?: string;
+  displayNumber?: number;
+  isCompanion?: boolean;
+  key: string;
+  onSeatToggle?: (seat: SessionSeatMapItem) => void;
+  pendingSeatIds: ReadonlySet<string>;
+  seat: SessionSeatMapItem;
+  selectedSeatIds: ReadonlySet<string>;
+}) {
+  const visualState = getSeatVisualState(seat, selectedSeatIds);
+  const isSelected = visualState === "selected";
+  const isUnavailable =
+    visualState === "reserved" || visualState === "purchased";
+  const isPending = pendingSeatIds.has(seat.session_seat_id);
+  const stateMarker = isCompanion ? "" : seatStateMarkers[visualState];
+
+  return (
+    <button
+      aria-busy={isPending}
+      aria-disabled={isUnavailable || isPending}
+      aria-label={
+        isCompanion
+          ? getCompanionSeatAccessibleLabel(seat, visualState, {
+              displayLabel,
+              displayNumber,
+            })
+          : getSeatAccessibleLabel(seat, visualState, {
+              displayLabel,
+              displayNumber,
+            })
+      }
+      aria-pressed={isSelected}
+      className={[
+        "seat-map__seat",
+        `seat-map__seat--${visualState}`,
+        seat.is_accessible && !isCompanion ? "seat-map__seat--accessible" : "",
+        isCompanion ? "seat-map__seat--companion" : "",
+        isPending ? "seat-map__seat--pending" : "",
+      ]
+        .filter(Boolean)
+        .join(" ")}
+      data-state={visualState}
+      key={key}
+      onClick={() => onSeatToggle?.(seat)}
+      type="button"
+    >
+      <span className="seat-map__seat-number">
+        {displayLabel ?? displayNumber ?? seat.number}
+      </span>
+      {stateMarker ? (
+        <span aria-hidden="true" className="seat-map__seat-marker">
+          {stateMarker}
+        </span>
+      ) : null}
+      {seat.is_accessible && !isCompanion ? (
+        <span aria-hidden="true" className="seat-map__seat-accessible">
+          ♿
+        </span>
+      ) : null}
+    </button>
   );
 }
 
@@ -513,6 +656,11 @@ export function SeatMapLegend() {
       className: "seat-map__legend-swatch--accessible",
       label: "Acessível",
       marker: "♿",
+    },
+    {
+      className: "seat-map__legend-swatch--companion",
+      label: "Acompanhante",
+      marker: "AC",
     },
   ];
 
@@ -552,9 +700,42 @@ export function groupSeatMapRows(
     .map(([rowLabel, rowSeats]) => ({
       rowLabel,
       seats: [...rowSeats].sort((leftSeat, rightSeat) => {
-        return leftSeat.number - rightSeat.number;
+        return compareSeatPositions(leftSeat, rightSeat);
       }),
     }));
+}
+
+export function buildSeatMapLayout(
+  seats: SessionSeatMapItem[]
+): SeatMapLayoutModel {
+  const accessibleSeats = getAccessibleDisplaySeats(seats);
+  const accessibleSeatIds = new Set(
+    accessibleSeats.map((seat) => seat.session_seat_id)
+  );
+  const accessiblePairs = pairAccessibleSeatsWithCompanions(
+    withDisplayNumbers(accessibleSeats),
+    seats,
+    accessibleSeatIds
+  );
+  const companionSeatIds = accessiblePairs
+    .map((pair) => pair.companionSeat?.seat.session_seat_id)
+    .filter((seatId): seatId is string => Boolean(seatId));
+  const reservedFrontSeatIds = new Set([
+    ...accessibleSeats.map((seat) => seat.session_seat_id),
+    ...companionSeatIds,
+  ]);
+  const roomRows = groupSeatMapRows(
+    seats.filter((seat) => !reservedFrontSeatIds.has(seat.session_seat_id))
+  );
+
+  return {
+    accessibleLeftPairs: accessiblePairs.slice(0, ACCESSIBLE_SEATS_PER_SIDE),
+    accessibleRightPairs: accessiblePairs.slice(ACCESSIBLE_SEATS_PER_SIDE),
+    rows: roomRows.map((row) => ({
+      ...row,
+      ...splitRowSeats(withDisplayNumbers(row.seats)),
+    })),
+  };
 }
 
 export function getSeatVisualState(
@@ -581,12 +762,38 @@ export function getSeatVisualState(
 
 export function getSeatAccessibleLabel(
   seat: SessionSeatMapItem,
-  visualState: SeatVisualState
+  visualState: SeatVisualState,
+  options: SeatAccessibleLabelOptions = {}
 ) {
-  const identifier = `${seat.row}${seat.number}`;
+  const displaySeat = getAccessibleLabelDisplaySeat(seat, options);
   const accessibleSuffix = seat.is_accessible ? ", assento acessível" : "";
 
-  return `Assento ${identifier}, fileira ${seat.row}, número ${seat.number}, ${seatStateLabels[visualState]}${accessibleSuffix}.`;
+  return `Assento ${displaySeat.identifier}, fileira ${seat.row}, número ${displaySeat.number}${displaySeat.originalSuffix}, ${seatStateLabels[visualState]}${accessibleSuffix}.`;
+}
+
+export function getCompanionSeatAccessibleLabel(
+  seat: SessionSeatMapItem,
+  visualState: SeatVisualState,
+  options: SeatAccessibleLabelOptions = {}
+) {
+  const displaySeat = getAccessibleLabelDisplaySeat(seat, options);
+
+  return `Assento acompanhante ${displaySeat.identifier}, fileira ${seat.row}, número ${displaySeat.number}${displaySeat.originalSuffix}, ${seatStateLabels[visualState]}.`;
+}
+
+function getAccessibleLabelDisplaySeat(
+  seat: SessionSeatMapItem,
+  { displayLabel, displayNumber }: SeatAccessibleLabelOptions
+) {
+  const displayValue = displayLabel ?? displayNumber ?? seat.number;
+  const displayNumberText = String(displayValue);
+  const isOverridden = displayNumberText !== String(seat.number);
+
+  return {
+    identifier: displayLabel ?? `${seat.row}${displayNumberText}`,
+    number: displayNumberText,
+    originalSuffix: isOverridden ? `, assento original ${seat.row}${seat.number}` : "",
+  };
 }
 
 export function buildReservedSeatsFromReservation(
@@ -687,8 +894,8 @@ function removeFromSet<T>(set: ReadonlySet<T>, value: T) {
   return nextSet;
 }
 
-function shouldAddCenterAisle(seats: SessionSeatMapItem[], seatIndex: number) {
-  return seats.length > 4 && seatIndex === Math.ceil(seats.length / 2) - 1;
+export function getCenterAisleAfterIndex(seatCount: number) {
+  return seatCount > 4 ? Math.ceil(seatCount / 2) - 1 : -1;
 }
 
 function compareRowLabels(leftRow: string, rightRow: string) {
@@ -696,4 +903,192 @@ function compareRowLabels(leftRow: string, rightRow: string) {
     numeric: true,
     sensitivity: "base",
   });
+}
+
+function getAccessibleDisplaySeats(seats: SessionSeatMapItem[]) {
+  const selectedSeatIds = new Set<string>();
+  const selectedSeats: SessionSeatMapItem[] = [];
+
+  for (const seat of seats
+    .filter((seat) => seat.is_accessible)
+    .sort(compareSeatPositions)) {
+    if (selectedSeats.length >= ACCESSIBLE_SEAT_COUNT) {
+      break;
+    }
+
+    selectedSeatIds.add(seat.session_seat_id);
+    selectedSeats.push(seat);
+  }
+
+  for (const seat of getAccessibleFallbackSeats(seats, selectedSeatIds)) {
+    if (selectedSeats.length >= ACCESSIBLE_SEAT_COUNT) {
+      break;
+    }
+
+    selectedSeatIds.add(seat.session_seat_id);
+    selectedSeats.push(seat);
+  }
+
+  return selectedSeats
+    .sort(compareSeatPositions)
+    .map((seat) => ({ ...seat, is_accessible: true }));
+}
+
+function pairAccessibleSeatsWithCompanions(
+  accessibleSeats: SeatMapDisplaySeat[],
+  seats: SessionSeatMapItem[],
+  selectedSeatIds: ReadonlySet<string>
+): SeatMapAccessiblePair[] {
+  const usedSeatIds = new Set(selectedSeatIds);
+
+  return accessibleSeats.map((accessibleSeat) => {
+    const companionSeat =
+      findAdjacentCompanionSeat(accessibleSeat.seat, seats, usedSeatIds) ??
+      findFallbackCompanionSeat(accessibleSeat.seat, seats, usedSeatIds);
+
+    if (companionSeat) {
+      usedSeatIds.add(companionSeat.session_seat_id);
+    }
+
+    return {
+      accessibleSeat,
+      companionSeat: companionSeat
+        ? {
+            displayNumber: companionSeat.number,
+            seat: companionSeat,
+          }
+        : undefined,
+    };
+  });
+}
+
+function findAdjacentCompanionSeat(
+  accessibleSeat: SessionSeatMapItem,
+  seats: SessionSeatMapItem[],
+  usedSeatIds: ReadonlySet<string>
+) {
+  return seats
+    .filter(
+      (seat) =>
+        isCompanionCandidate(seat, usedSeatIds) &&
+        seat.row === accessibleSeat.row &&
+        Math.abs(seat.number - accessibleSeat.number) === 1
+    )
+    .sort(compareSeatPositions)[0];
+}
+
+function findFallbackCompanionSeat(
+  accessibleSeat: SessionSeatMapItem,
+  seats: SessionSeatMapItem[],
+  usedSeatIds: ReadonlySet<string>
+) {
+  const sameRowSeat = seats
+    .filter(
+      (seat) =>
+        isCompanionCandidate(seat, usedSeatIds) &&
+        seat.row === accessibleSeat.row
+    )
+    .sort((leftSeat, rightSeat) => {
+      const distanceComparison =
+        Math.abs(leftSeat.number - accessibleSeat.number) -
+        Math.abs(rightSeat.number - accessibleSeat.number);
+
+      if (distanceComparison !== 0) {
+        return distanceComparison;
+      }
+
+      return compareSeatPositions(leftSeat, rightSeat);
+    })[0];
+
+  if (sameRowSeat) {
+    return sameRowSeat;
+  }
+
+  return getAccessibleFallbackSeats(seats, usedSeatIds).find((seat) =>
+    isCompanionCandidate(seat, usedSeatIds)
+  );
+}
+
+function isCompanionCandidate(
+  seat: SessionSeatMapItem,
+  usedSeatIds: ReadonlySet<string>
+) {
+  return !seat.is_accessible && !usedSeatIds.has(seat.session_seat_id);
+}
+
+function getAccessibleFallbackSeats(
+  seats: SessionSeatMapItem[],
+  selectedSeatIds: ReadonlySet<string>
+) {
+  const rows = groupSeatMapRows(
+    seats.filter((seat) => !selectedSeatIds.has(seat.session_seat_id))
+  ).sort((leftRow, rightRow) => {
+    const widthComparison = rightRow.seats.length - leftRow.seats.length;
+
+    if (widthComparison !== 0) {
+      return widthComparison;
+    }
+
+    return compareRowLabels(rightRow.rowLabel, leftRow.rowLabel);
+  });
+  const fallbackSeats: SessionSeatMapItem[] = [];
+
+  for (const row of rows) {
+    for (const seat of getOuterSeatOrder(row.seats)) {
+      fallbackSeats.push(seat);
+    }
+  }
+
+  return fallbackSeats;
+}
+
+function getOuterSeatOrder(seats: SessionSeatMapItem[]) {
+  const orderedSeats: SessionSeatMapItem[] = [];
+  let leftIndex = 0;
+  let rightIndex = seats.length - 1;
+
+  while (leftIndex <= rightIndex) {
+    orderedSeats.push(seats[leftIndex]);
+
+    if (leftIndex !== rightIndex) {
+      orderedSeats.push(seats[rightIndex]);
+    }
+
+    leftIndex += 1;
+    rightIndex -= 1;
+  }
+
+  return orderedSeats;
+}
+
+function splitRowSeats(seats: SeatMapDisplaySeat[]) {
+  const leftSeatCount = Math.ceil(seats.length / 2);
+
+  return {
+    leftSeats: seats.slice(0, leftSeatCount),
+    rightSeats: seats.slice(leftSeatCount),
+  };
+}
+
+function withDisplayNumbers(
+  seats: SessionSeatMapItem[],
+  startNumber = 1
+): SeatMapDisplaySeat[] {
+  return seats.map((seat, index) => ({
+    displayNumber: startNumber + index,
+    seat,
+  }));
+}
+
+function compareSeatPositions(
+  leftSeat: SessionSeatMapItem,
+  rightSeat: SessionSeatMapItem
+) {
+  const rowComparison = compareRowLabels(leftSeat.row, rightSeat.row);
+
+  if (rowComparison !== 0) {
+    return rowComparison;
+  }
+
+  return leftSeat.number - rightSeat.number;
 }

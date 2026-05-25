@@ -306,7 +306,8 @@ test("mocked integration covers home to confirmation purchase journey", async ()
       );
 
       assert.match(seatHtml, /Mapa de assentos/);
-      assert.match(seatHtml, /Assento B7/);
+      assert.match(seatHtml, /Assento B1/);
+      assert.match(seatHtml, /assento original B7/);
       assert.match(seatHtml, /seat-map__seat--purchased/);
 
       setApiAuthController({

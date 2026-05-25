@@ -818,10 +818,10 @@ h1 {
   display: inline-flex;
   font-size: 12px;
   font-weight: 900;
-  height: 26px;
+  height: 24px;
   justify-content: center;
   line-height: 1;
-  width: 26px;
+  width: 24px;
 }
 
 .seat-map__legend-swatch--available {
@@ -854,6 +854,13 @@ h1 {
   color: #0b57b7;
 }
 
+.seat-map__legend-swatch--companion {
+  background: #143d78;
+  border-color: #143d78;
+  color: #ffffff;
+  font-size: 10px;
+}
+
 .seat-map-scroll {
   border: 1px solid var(--color-border);
   border-radius: 8px;
@@ -866,6 +873,7 @@ h1 {
 }
 
 .seat-map {
+  --seat-size: clamp(32px, 4.5vw, 38px);
   display: grid;
   gap: 18px;
   margin: 0 auto;
@@ -875,22 +883,49 @@ h1 {
 
 .seat-map__screen {
   background: #1f6feb;
-  border-radius: 999px 999px 12px 12px;
+  border-radius: 999px 999px 10px 10px;
   color: #ffffff;
   font-size: 13px;
   font-weight: 900;
   letter-spacing: 0;
   line-height: 1;
-  margin: 0 auto;
-  min-width: 280px;
-  padding: 12px 34px;
+  min-width: 0;
+  padding: 12px 24px;
   text-align: center;
   text-transform: uppercase;
+  width: 100%;
 }
 
 .seat-map__rows {
   display: grid;
   gap: 10px;
+}
+
+.seat-map__accessible-row {
+  align-items: center;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: 28px minmax(0, 1fr) 28px;
+}
+
+.seat-map__accessible-list {
+  align-items: center;
+  display: grid;
+  gap: 20px;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+
+.seat-map__accessible-group {
+  display: flex;
+  gap: 10px;
+}
+
+.seat-map__accessible-group--left {
+  justify-content: flex-end;
+}
+
+.seat-map__accessible-group--right {
+  justify-content: flex-start;
 }
 
 .seat-map__row {
@@ -908,8 +943,33 @@ h1 {
 }
 
 .seat-map__seat-list {
+  align-items: center;
+  display: grid;
+  gap: 0;
+  grid-template-columns: minmax(0, 1fr) 20px minmax(0, 1fr);
+}
+
+.seat-map__seat-group {
   display: flex;
   gap: 8px;
+}
+
+.seat-map__seat-group--left {
+  justify-content: flex-end;
+}
+
+.seat-map__seat-group--right {
+  justify-content: flex-start;
+}
+
+.seat-map__center-aisle {
+  display: block;
+  width: 20px;
+}
+
+.seat-map__accessible-pair {
+  display: inline-flex;
+  gap: 4px;
 }
 
 .seat-map__seat {
@@ -919,14 +979,14 @@ h1 {
   border-radius: 6px;
   color: var(--color-text);
   display: grid;
-  flex: 0 0 42px;
+  flex: 0 0 var(--seat-size);
   gap: 2px;
   grid-template-columns: 1fr auto;
   grid-template-rows: 1fr auto;
-  height: 42px;
+  height: var(--seat-size);
   justify-items: center;
   line-height: 1;
-  min-width: 42px;
+  min-width: var(--seat-size);
   padding: 4px;
   position: relative;
 }
@@ -965,8 +1025,10 @@ h1 {
   box-shadow: inset 0 -4px 0 #1f6feb;
 }
 
-.seat-map__seat--after-aisle {
-  margin-right: 20px;
+.seat-map__seat--companion {
+  background: #143d78;
+  border-color: #143d78;
+  color: #ffffff;
 }
 
 .seat-map__seat-number {
