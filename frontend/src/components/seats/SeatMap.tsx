@@ -81,7 +81,7 @@ const seatStateMarkers: Record<SeatVisualState, string> = {
   available: "",
   purchased: "C",
   reserved: "R",
-  selected: "S",
+  selected: "",
 };
 
 const ACCESSIBLE_SEAT_COUNT = 6;

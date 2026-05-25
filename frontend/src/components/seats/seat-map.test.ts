@@ -125,6 +125,7 @@ test("seat map renders screen, row labels, seat numbers, and semantic states", (
   assert.match(html, />AC</);
   assert.match(html, /Acompanhante/);
   assert.doesNotMatch(html, /seat-map__seat-marker">L/);
+  assert.doesNotMatch(html, /seat-map__seat-marker">S/);
   assert.doesNotMatch(html, /accessible-placeholder/);
 });
 
@@ -248,6 +249,10 @@ test("seat legend explains every state in pt-BR", () => {
   assert.match(html, /Reservado ou indisponível/);
   assert.match(html, /Comprado/);
   assert.match(html, /Acessível/);
+  assert.doesNotMatch(
+    html,
+    /seat-map__legend-swatch seat-map__legend-swatch--selected">S/
+  );
 });
 
 test("seat accessible labels expose row, number, state, and accessible marker", () => {
