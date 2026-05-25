@@ -9,7 +9,9 @@ import { ApiError } from "@/api/client";
 import type { SessionSeatMapItem } from "@/types/reservation";
 
 import {
+  buildSeatMapLayout,
   buildReservedSeatsFromReservation,
+  getCenterAisleAfterIndex,
   getSeatAccessibleLabel,
   getSeatInteractionErrorMessage,
   getSeatVisualState,
@@ -95,12 +97,16 @@ test("seat map renders screen, row labels, seat numbers, and semantic states", (
           row: "B",
           status: "RESERVED",
         }),
+        ...Array.from({ length: 10 }, (_, index) =>
+          seat({ number: index + 1, row: "C" })
+        ),
       ],
     })
   );
 
   assert.match(html, /Tela/);
   assert.match(html, /Fundo da sala/);
+  assert.ok(html.indexOf("Assentos acessíveis") < html.indexOf("Fileira A"));
   assert.match(html, /Fileira A/);
   assert.match(html, /Fileira B/);
   assert.match(html, /tabindex="0"/);
@@ -114,6 +120,122 @@ test("seat map renders screen, row labels, seat numbers, and semantic states", (
   assert.match(html, /aria-disabled="true"/);
   assert.match(html, /aria-pressed="true"/);
   assert.match(html, /Assento A2, fileira A, número 2, Disponível, assento acessível/);
+  assert.equal((html.match(/seat-map__seat--accessible/g) ?? []).length, 6);
+  assert.equal((html.match(/seat-map__seat--companion/g) ?? []).length, 6);
+  assert.match(html, />AC</);
+  assert.match(html, /Acompanhante/);
+  assert.doesNotMatch(html, /seat-map__seat-marker">L/);
+  assert.doesNotMatch(html, /accessible-placeholder/);
+});
+
+test("seat map layout moves accessible seats and companions before the first row", () => {
+  const layout = buildSeatMapLayout([
+    seat({ is_accessible: true, number: 9, row: "C" }),
+    seat({ is_accessible: true, number: 10, row: "C" }),
+    seat({ is_accessible: true, number: 11, row: "C" }),
+    seat({ is_accessible: true, number: 12, row: "C" }),
+    seat({ is_accessible: true, number: 13, row: "C" }),
+    seat({ is_accessible: true, number: 14, row: "C" }),
+    seat({ number: 1, row: "A" }),
+    seat({ number: 2, row: "A" }),
+    ...Array.from({ length: 6 }, (_, index) =>
+      seat({ number: index + 15, row: "C" })
+    ),
+  ]);
+  const accessiblePairs = [
+    ...layout.accessibleLeftPairs,
+    ...layout.accessibleRightPairs,
+  ];
+
+  assert.equal(layout.accessibleLeftPairs.length, 3);
+  assert.equal(layout.accessibleRightPairs.length, 3);
+  assert.deepEqual(
+    accessiblePairs.map(
+      (accessiblePair) => accessiblePair.accessibleSeat.seat.number
+    ),
+    [9, 10, 11, 12, 13, 14]
+  );
+  assert.deepEqual(
+    accessiblePairs.map(
+      (accessiblePair) => accessiblePair.accessibleSeat.displayNumber
+    ),
+    [1, 2, 3, 4, 5, 6]
+  );
+  assert.ok(accessiblePairs.every((accessiblePair) => accessiblePair.companionSeat));
+  assert.deepEqual(
+    layout.rows.map((row) => ({
+      rowLabel: row.rowLabel,
+      seatNumbers: row.seats.map((rowSeat) => rowSeat.number),
+    })),
+    [{ rowLabel: "A", seatNumbers: [1, 2] }]
+  );
+});
+
+test("seat map layout fills missing priority positions with real selectable seats", () => {
+  const layout = buildSeatMapLayout([
+    ...Array.from({ length: 16 }, (_, index) =>
+      seat({ number: index + 1, row: "A" })
+    ),
+    seat({ is_accessible: true, number: 17, row: "A" }),
+  ]);
+  const accessiblePairs = [
+    ...layout.accessibleLeftPairs,
+    ...layout.accessibleRightPairs,
+  ];
+
+  assert.equal(accessiblePairs.length, 6);
+  assert.ok(
+    accessiblePairs.every(
+      (accessiblePair) => accessiblePair.accessibleSeat.seat.seat_id
+    )
+  );
+  assert.ok(
+    accessiblePairs.every(
+      (accessiblePair) => accessiblePair.accessibleSeat.seat.is_accessible
+    )
+  );
+  assert.deepEqual(
+    accessiblePairs.map(
+      (accessiblePair) => accessiblePair.accessibleSeat.displayNumber
+    ),
+    [1, 2, 3, 4, 5, 6]
+  );
+  assert.ok(accessiblePairs.every((accessiblePair) => accessiblePair.companionSeat));
+  assert.equal(layout.rows[0].seats.length, 5);
+});
+
+test("seat map center aisle keeps rows with two extra seats symmetric", () => {
+  assert.equal(getCenterAisleAfterIndex(4), -1);
+  assert.equal(getCenterAisleAfterIndex(10), 4);
+  assert.equal(getCenterAisleAfterIndex(12), 5);
+});
+
+test("seat map row split puts two extra seats one on each side", () => {
+  const layout = buildSeatMapLayout([
+    ...Array.from({ length: 12 }, (_, index) =>
+      seat({ is_accessible: true, number: index + 1, row: "P" })
+    ),
+    ...Array.from({ length: 12 }, (_, index) =>
+      seat({ number: index + 1, row: "Z" })
+    ),
+    ...Array.from({ length: 9 }, (_, index) =>
+      seat({ number: index + 1, row: "A" })
+    ),
+    ...Array.from({ length: 11 }, (_, index) =>
+      seat({ number: index + 1, row: "B" })
+    ),
+  ]);
+  const rowB = layout.rows.find((row) => row.rowLabel === "B");
+
+  assert.ok(rowB);
+  assert.deepEqual(
+    rowB.leftSeats.map((rowSeat) => rowSeat.displayNumber),
+    [1, 2, 3, 4, 5, 6]
+  );
+  assert.deepEqual(
+    rowB.rightSeats.map((rowSeat) => rowSeat.displayNumber),
+    [7, 8, 9, 10, 11]
+  );
 });
 
 test("seat legend explains every state in pt-BR", () => {
