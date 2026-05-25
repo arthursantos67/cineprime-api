@@ -12,6 +12,7 @@ import {
   buildSeatMapLayout,
   buildReservedSeatsFromReservation,
   getCenterAisleAfterIndex,
+  getCompanionSeatAccessibleLabel,
   getSeatAccessibleLabel,
   getSeatInteractionErrorMessage,
   getSeatVisualState,
@@ -89,6 +90,7 @@ test("seat map renders screen, row labels, seat numbers, and semantic states", (
           row: "A",
           status: "AVAILABLE",
         }),
+        seat({ number: 3, row: "A" }),
         seat({ number: 1, row: "B", status: "RESERVED" }),
         seat({ number: 2, row: "B", status: "PURCHASED" }),
         seat({
@@ -119,7 +121,10 @@ test("seat map renders screen, row labels, seat numbers, and semantic states", (
   assert.match(html, /seat-map__seat--selected/);
   assert.match(html, /aria-disabled="true"/);
   assert.match(html, /aria-pressed="true"/);
-  assert.match(html, /Assento A2, fileira A, número 2, Disponível, assento acessível/);
+  assert.match(
+    html,
+    /Assento A1, fileira A, número 1, assento original A2, Disponível, assento acessível/
+  );
   assert.equal((html.match(/seat-map__seat--accessible/g) ?? []).length, 6);
   assert.equal((html.match(/seat-map__seat--companion/g) ?? []).length, 6);
   assert.match(html, />AC</);
@@ -205,6 +210,44 @@ test("seat map layout fills missing priority positions with real selectable seat
   assert.equal(layout.rows[0].seats.length, 5);
 });
 
+test("seat map layout pairs companions with adjacent non-accessible seats", () => {
+  const layout = buildSeatMapLayout([
+    seat({ number: 1, row: "A" }),
+    seat({ is_accessible: true, number: 2, row: "A" }),
+    seat({ number: 3, row: "A" }),
+    seat({ is_accessible: true, number: 4, row: "A" }),
+    seat({ number: 5, row: "A" }),
+    seat({ is_accessible: true, number: 6, row: "A" }),
+    seat({ number: 7, row: "A" }),
+    seat({ number: 1, row: "B" }),
+    seat({ is_accessible: true, number: 2, row: "B" }),
+    seat({ number: 3, row: "B" }),
+    seat({ is_accessible: true, number: 4, row: "B" }),
+    seat({ number: 5, row: "B" }),
+    seat({ is_accessible: true, number: 6, row: "B" }),
+    seat({ number: 7, row: "B" }),
+  ]);
+  const accessiblePairs = [
+    ...layout.accessibleLeftPairs,
+    ...layout.accessibleRightPairs,
+  ];
+
+  assert.equal(accessiblePairs.length, 6);
+  assert.ok(accessiblePairs.every((pair) => pair.companionSeat));
+  assert.ok(
+    accessiblePairs.every((pair) => {
+      const companionSeat = pair.companionSeat?.seat;
+
+      return (
+        companionSeat &&
+        !companionSeat.is_accessible &&
+        companionSeat.row === pair.accessibleSeat.seat.row &&
+        Math.abs(companionSeat.number - pair.accessibleSeat.seat.number) === 1
+      );
+    })
+  );
+});
+
 test("seat map center aisle keeps rows with two extra seats symmetric", () => {
   assert.equal(getCenterAisleAfterIndex(4), -1);
   assert.equal(getCenterAisleAfterIndex(10), 4);
@@ -213,8 +256,11 @@ test("seat map center aisle keeps rows with two extra seats symmetric", () => {
 
 test("seat map row split puts two extra seats one on each side", () => {
   const layout = buildSeatMapLayout([
-    ...Array.from({ length: 12 }, (_, index) =>
+    ...Array.from({ length: 6 }, (_, index) =>
       seat({ is_accessible: true, number: index + 1, row: "P" })
+    ),
+    ...Array.from({ length: 6 }, (_, index) =>
+      seat({ number: index + 7, row: "P" })
     ),
     ...Array.from({ length: 12 }, (_, index) =>
       seat({ number: index + 1, row: "Z" })
@@ -263,9 +309,18 @@ test("seat accessible labels expose row, number, state, and accessible marker", 
   assert.equal(
     getSeatAccessibleLabel(
       seat({ is_accessible: true, number: 8, row: "C" }),
-      "selected"
+      "selected",
+      { displayNumber: 2 }
     ),
-    "Assento C8, fileira C, número 8, Selecionado, assento acessível."
+    "Assento C2, fileira C, número 2, assento original C8, Selecionado, assento acessível."
+  );
+  assert.equal(
+    getCompanionSeatAccessibleLabel(
+      seat({ number: 9, row: "C" }),
+      "available",
+      { displayLabel: "AC" }
+    ),
+    "Assento acompanhante AC, fileira C, número AC, assento original C9, Disponível."
   );
 });
 

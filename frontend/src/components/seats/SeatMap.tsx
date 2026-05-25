@@ -52,6 +52,11 @@ export type SeatVisualState =
   | "reserved"
   | "selected";
 
+type SeatAccessibleLabelOptions = {
+  displayLabel?: string;
+  displayNumber?: number;
+};
+
 type SeatMapProps = {
   sessionId: string;
 };
@@ -580,14 +585,20 @@ function renderSeatButton({
       aria-disabled={isUnavailable || isPending}
       aria-label={
         isCompanion
-          ? getCompanionSeatAccessibleLabel(seat, visualState)
-          : getSeatAccessibleLabel(seat, visualState)
+          ? getCompanionSeatAccessibleLabel(seat, visualState, {
+              displayLabel,
+              displayNumber,
+            })
+          : getSeatAccessibleLabel(seat, visualState, {
+              displayLabel,
+              displayNumber,
+            })
       }
       aria-pressed={isSelected}
       className={[
         "seat-map__seat",
         `seat-map__seat--${visualState}`,
-        seat.is_accessible ? "seat-map__seat--accessible" : "",
+        seat.is_accessible && !isCompanion ? "seat-map__seat--accessible" : "",
         isCompanion ? "seat-map__seat--companion" : "",
         isPending ? "seat-map__seat--pending" : "",
       ]
@@ -701,17 +712,20 @@ export function buildSeatMapLayout(
   const accessibleSeatIds = new Set(
     accessibleSeats.map((seat) => seat.session_seat_id)
   );
-  const companionSeats = getCompanionDisplaySeats(seats, accessibleSeatIds);
+  const accessiblePairs = pairAccessibleSeatsWithCompanions(
+    withDisplayNumbers(accessibleSeats),
+    seats,
+    accessibleSeatIds
+  );
+  const companionSeatIds = accessiblePairs
+    .map((pair) => pair.companionSeat?.seat.session_seat_id)
+    .filter((seatId): seatId is string => Boolean(seatId));
   const reservedFrontSeatIds = new Set([
     ...accessibleSeats.map((seat) => seat.session_seat_id),
-    ...companionSeats.map((seat) => seat.session_seat_id),
+    ...companionSeatIds,
   ]);
   const roomRows = groupSeatMapRows(
     seats.filter((seat) => !reservedFrontSeatIds.has(seat.session_seat_id))
-  );
-  const accessiblePairs = pairAccessibleSeatsWithCompanions(
-    withDisplayNumbers(accessibleSeats),
-    withDisplayNumbers(companionSeats)
   );
 
   return {
@@ -748,21 +762,38 @@ export function getSeatVisualState(
 
 export function getSeatAccessibleLabel(
   seat: SessionSeatMapItem,
-  visualState: SeatVisualState
+  visualState: SeatVisualState,
+  options: SeatAccessibleLabelOptions = {}
 ) {
-  const identifier = `${seat.row}${seat.number}`;
+  const displaySeat = getAccessibleLabelDisplaySeat(seat, options);
   const accessibleSuffix = seat.is_accessible ? ", assento acessível" : "";
 
-  return `Assento ${identifier}, fileira ${seat.row}, número ${seat.number}, ${seatStateLabels[visualState]}${accessibleSuffix}.`;
+  return `Assento ${displaySeat.identifier}, fileira ${seat.row}, número ${displaySeat.number}${displaySeat.originalSuffix}, ${seatStateLabels[visualState]}${accessibleSuffix}.`;
 }
 
 export function getCompanionSeatAccessibleLabel(
   seat: SessionSeatMapItem,
-  visualState: SeatVisualState
+  visualState: SeatVisualState,
+  options: SeatAccessibleLabelOptions = {}
 ) {
-  const identifier = `${seat.row}${seat.number}`;
+  const displaySeat = getAccessibleLabelDisplaySeat(seat, options);
 
-  return `Assento acompanhante ${identifier}, fileira ${seat.row}, número ${seat.number}, ${seatStateLabels[visualState]}.`;
+  return `Assento acompanhante ${displaySeat.identifier}, fileira ${seat.row}, número ${displaySeat.number}${displaySeat.originalSuffix}, ${seatStateLabels[visualState]}.`;
+}
+
+function getAccessibleLabelDisplaySeat(
+  seat: SessionSeatMapItem,
+  { displayLabel, displayNumber }: SeatAccessibleLabelOptions
+) {
+  const displayValue = displayLabel ?? displayNumber ?? seat.number;
+  const displayNumberText = String(displayValue);
+  const isOverridden = displayNumberText !== String(seat.number);
+
+  return {
+    identifier: displayLabel ?? `${seat.row}${displayNumberText}`,
+    number: displayNumberText,
+    originalSuffix: isOverridden ? `, assento original ${seat.row}${seat.number}` : "",
+  };
 }
 
 export function buildReservedSeatsFromReservation(
@@ -903,23 +934,86 @@ function getAccessibleDisplaySeats(seats: SessionSeatMapItem[]) {
     .map((seat) => ({ ...seat, is_accessible: true }));
 }
 
-function getCompanionDisplaySeats(
-  seats: SessionSeatMapItem[],
-  selectedSeatIds: ReadonlySet<string>
-) {
-  return getAccessibleFallbackSeats(seats, selectedSeatIds)
-    .slice(0, ACCESSIBLE_SEAT_COUNT)
-    .sort(compareSeatPositions);
-}
-
 function pairAccessibleSeatsWithCompanions(
   accessibleSeats: SeatMapDisplaySeat[],
-  companionSeats: SeatMapDisplaySeat[]
+  seats: SessionSeatMapItem[],
+  selectedSeatIds: ReadonlySet<string>
 ): SeatMapAccessiblePair[] {
-  return accessibleSeats.map((accessibleSeat, index) => ({
-    accessibleSeat,
-    companionSeat: companionSeats[index],
-  }));
+  const usedSeatIds = new Set(selectedSeatIds);
+
+  return accessibleSeats.map((accessibleSeat) => {
+    const companionSeat =
+      findAdjacentCompanionSeat(accessibleSeat.seat, seats, usedSeatIds) ??
+      findFallbackCompanionSeat(accessibleSeat.seat, seats, usedSeatIds);
+
+    if (companionSeat) {
+      usedSeatIds.add(companionSeat.session_seat_id);
+    }
+
+    return {
+      accessibleSeat,
+      companionSeat: companionSeat
+        ? {
+            displayNumber: companionSeat.number,
+            seat: companionSeat,
+          }
+        : undefined,
+    };
+  });
+}
+
+function findAdjacentCompanionSeat(
+  accessibleSeat: SessionSeatMapItem,
+  seats: SessionSeatMapItem[],
+  usedSeatIds: ReadonlySet<string>
+) {
+  return seats
+    .filter(
+      (seat) =>
+        isCompanionCandidate(seat, usedSeatIds) &&
+        seat.row === accessibleSeat.row &&
+        Math.abs(seat.number - accessibleSeat.number) === 1
+    )
+    .sort(compareSeatPositions)[0];
+}
+
+function findFallbackCompanionSeat(
+  accessibleSeat: SessionSeatMapItem,
+  seats: SessionSeatMapItem[],
+  usedSeatIds: ReadonlySet<string>
+) {
+  const sameRowSeat = seats
+    .filter(
+      (seat) =>
+        isCompanionCandidate(seat, usedSeatIds) &&
+        seat.row === accessibleSeat.row
+    )
+    .sort((leftSeat, rightSeat) => {
+      const distanceComparison =
+        Math.abs(leftSeat.number - accessibleSeat.number) -
+        Math.abs(rightSeat.number - accessibleSeat.number);
+
+      if (distanceComparison !== 0) {
+        return distanceComparison;
+      }
+
+      return compareSeatPositions(leftSeat, rightSeat);
+    })[0];
+
+  if (sameRowSeat) {
+    return sameRowSeat;
+  }
+
+  return getAccessibleFallbackSeats(seats, usedSeatIds).find((seat) =>
+    isCompanionCandidate(seat, usedSeatIds)
+  );
+}
+
+function isCompanionCandidate(
+  seat: SessionSeatMapItem,
+  usedSeatIds: ReadonlySet<string>
+) {
+  return !seat.is_accessible && !usedSeatIds.has(seat.session_seat_id);
 }
 
 function getAccessibleFallbackSeats(
