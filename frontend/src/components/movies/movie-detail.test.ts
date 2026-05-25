@@ -38,6 +38,8 @@ test("movie detail renders backend movie fields with accessible media", () => {
 
   assert.match(html, /A Jornada/);
   assert.match(html, /Poster de A Jornada/);
+  assert.match(html, /rel="preload" as="image"/);
+  assert.match(html, /data-nimg="1"/);
   assert.match(html, /Uma família encontra novas histórias/);
   assert.match(html, /Aventura, Drama/);
   assert.match(html, /2h 5min/);

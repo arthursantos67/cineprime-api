@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { ApiError, getApiErrorUserMessage } from "@/api/client";
 import { catalogApi } from "@/api/catalog";
+import { ResponsiveImage } from "@/components/ui/ResponsiveImage";
 import { StateMessage } from "@/components/ui/StateMessage";
 import type { CatalogMovieDetail, CatalogSession } from "@/types/catalog";
 
@@ -131,16 +132,15 @@ function MovieDetailSuccess({ movie }: { movie: CatalogMovieDetail }) {
     <div className="movie-detail">
       <div className="movie-detail__poster-frame">
         {movie.poster_url ? (
-          <>
-            {/* API poster URLs are arbitrary remote images until image domains are configured. */}
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              alt={`Poster de ${movie.title}`}
-              className="movie-detail__poster"
-              loading="eager"
-              src={movie.poster_url}
-            />
-          </>
+          <ResponsiveImage
+            alt={`Poster de ${movie.title}`}
+            className="movie-detail__poster"
+            height={720}
+            priority
+            src={movie.poster_url}
+            sizes="(max-width: 820px) 100vw, 340px"
+            width={480}
+          />
         ) : (
           <div
             aria-label={`Poster indisponível de ${movie.title}`}
