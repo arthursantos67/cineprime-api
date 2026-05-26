@@ -7,8 +7,8 @@ import { ReservationProvider } from "@/contexts/ReservationContext";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Cinepolis Natal",
-  description: "Frontend web para compra de ingressos do Cinepolis Natal.",
+  title: "CinePrime",
+  description: "Frontend web para compra de ingressos do CinePrime.",
 };
 
 export default function RootLayout({

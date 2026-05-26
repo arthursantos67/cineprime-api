@@ -39,7 +39,7 @@ import {
 export type { AuthUser } from "./auth-state";
 
 export const AUTH_PROTECTED_STATE_RESET_EVENT =
-  "cinepolis:protected-state-reset";
+  "cineprime:protected-state-reset";
 
 type AuthContextValue = {
   accessToken: string | null;

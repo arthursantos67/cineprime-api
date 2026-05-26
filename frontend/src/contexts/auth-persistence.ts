@@ -1,4 +1,4 @@
-const REFRESH_TOKEN_KEY = "cinepolis:refresh_token";
+const REFRESH_TOKEN_KEY = "cineprime:refresh_token";
 
 export function persistRefreshToken(token: string): void {
   if (typeof window === "undefined") return;

@@ -1,9 +1,11 @@
+name: cineprime-api
+
 services:
   backend:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    container_name: cinepolis_natal_backend
+    container_name: cineprime_backend
     volumes:
       - ./backend:/app
     ports:
@@ -18,7 +20,7 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile.dev
-    container_name: cinepolis_natal_frontend
+    container_name: cineprime_frontend
     command: sh -c "npm ci && npm run dev -- -H 0.0.0.0"
     volumes:
       - ./frontend:/app
@@ -32,9 +34,9 @@ services:
 
   db:
     image: postgres:17
-    container_name: cinepolis_natal_db
+    container_name: cineprime_db
     environment:
-      POSTGRES_DB: cinepolis_natal
+      POSTGRES_DB: cineprime
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
     ports:
@@ -44,7 +46,7 @@ services:
 
   redis:
     image: redis:7
-    container_name: cinepolis_natal_redis
+    container_name: cineprime_redis
     ports:
       - "6379:6379"
 
@@ -52,8 +54,8 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    container_name: cinepolis_natal_celery
-    command: celery -A cinepolis_natal_api worker -l info
+    container_name: cineprime_celery
+    command: celery -A cineprime_api worker -l info
     volumes:
       - ./backend:/app
     depends_on:

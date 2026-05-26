@@ -9,7 +9,7 @@ from .logging_context import (
     set_execution_context,
 )
 
-logger = logging.getLogger("cinepolis.observability")
+logger = logging.getLogger("cineprime.observability")
 _task_context_tokens = {}
 
 
