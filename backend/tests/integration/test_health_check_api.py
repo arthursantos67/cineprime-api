@@ -26,15 +26,15 @@ class TestHealthCheckApi:
         monkeypatch,
     ):
         monkeypatch.setattr(
-            "cineprime_natal_api.health.HealthCheckService._check_database",
+            "cineprime_api.health.HealthCheckService._check_database",
             lambda self: "ok",
         )
         monkeypatch.setattr(
-            "cineprime_natal_api.health.HealthCheckService._check_redis",
+            "cineprime_api.health.HealthCheckService._check_redis",
             lambda self: "ok",
         )
         monkeypatch.setattr(
-            "cineprime_natal_api.health.HealthCheckService._check_celery",
+            "cineprime_api.health.HealthCheckService._check_celery",
             lambda self: "unavailable",
         )
 
@@ -55,15 +55,15 @@ class TestHealthCheckApi:
         monkeypatch,
     ):
         monkeypatch.setattr(
-            "cineprime_natal_api.health.HealthCheckService._check_database",
+            "cineprime_api.health.HealthCheckService._check_database",
             lambda self: "ok",
         )
         monkeypatch.setattr(
-            "cineprime_natal_api.health.HealthCheckService._check_redis",
+            "cineprime_api.health.HealthCheckService._check_redis",
             lambda self: "ok",
         )
         monkeypatch.setattr(
-            "cineprime_natal_api.health.HealthCheckService._check_celery",
+            "cineprime_api.health.HealthCheckService._check_celery",
             lambda self: "unavailable",
         )
 
@@ -84,11 +84,11 @@ class TestHealthCheckApi:
         monkeypatch,
     ):
         monkeypatch.setattr(
-            "cineprime_natal_api.health.HealthCheckService._check_database",
+            "cineprime_api.health.HealthCheckService._check_database",
             lambda self: "unavailable",
         )
         monkeypatch.setattr(
-            "cineprime_natal_api.health.HealthCheckService._check_redis",
+            "cineprime_api.health.HealthCheckService._check_redis",
             lambda self: "ok",
         )
 
@@ -109,11 +109,11 @@ class TestHealthCheckApi:
         monkeypatch,
     ):
         monkeypatch.setattr(
-            "cineprime_natal_api.health.HealthCheckService._check_database",
+            "cineprime_api.health.HealthCheckService._check_database",
             lambda self: "ok",
         )
         monkeypatch.setattr(
-            "cineprime_natal_api.health.HealthCheckService._check_redis",
+            "cineprime_api.health.HealthCheckService._check_redis",
             lambda self: "unavailable",
         )
 
@@ -134,15 +134,15 @@ class TestHealthCheckApi:
         monkeypatch,
     ):
         monkeypatch.setattr(
-            "cineprime_natal_api.health.HealthCheckService._check_database",
+            "cineprime_api.health.HealthCheckService._check_database",
             lambda self: "ok",
         )
         monkeypatch.setattr(
-            "cineprime_natal_api.health.HealthCheckService._check_redis",
+            "cineprime_api.health.HealthCheckService._check_redis",
             lambda self: "ok",
         )
         monkeypatch.setattr(
-            "cineprime_natal_api.health.HealthCheckService._check_celery",
+            "cineprime_api.health.HealthCheckService._check_celery",
             lambda self: "unavailable",
         )
 
@@ -164,15 +164,15 @@ class TestHealthCheckApi:
         monkeypatch,
     ):
         monkeypatch.setattr(
-            "cineprime_natal_api.health.HealthCheckService._check_database",
+            "cineprime_api.health.HealthCheckService._check_database",
             lambda self: "ok",
         )
         monkeypatch.setattr(
-            "cineprime_natal_api.health.HealthCheckService._check_redis",
+            "cineprime_api.health.HealthCheckService._check_redis",
             lambda self: "ok",
         )
         monkeypatch.setattr(
-            "cineprime_natal_api.health.HealthCheckService._check_celery",
+            "cineprime_api.health.HealthCheckService._check_celery",
             lambda self: "ok",
         )
 

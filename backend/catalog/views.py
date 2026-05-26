@@ -8,7 +8,7 @@ from rest_framework.exceptions import ValidationError
 from rest_framework.generics import ListCreateAPIView, RetrieveUpdateDestroyAPIView
 from rest_framework.response import Response
 
-from cineprime_natal_api.permissions import IsAdminUserOrReadOnly
+from cineprime_api.permissions import IsAdminUserOrReadOnly
 from catalog.models import Genre, Movie, MovieStatus, Room, Session
 from catalog.serializers import (
     GenreSerializer,

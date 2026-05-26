@@ -23,7 +23,7 @@ REST_FRAMEWORK_OVERRIDE = {
     "PAGE_SIZE": 10,
     "DEFAULT_THROTTLE_CLASSES": [],
     "DEFAULT_THROTTLE_RATES": {},
-    "EXCEPTION_HANDLER": "cineprime_natal_api.throttling.throttling_exception_handler",
+    "EXCEPTION_HANDLER": "cineprime_api.throttling.throttling_exception_handler",
 }
 
 

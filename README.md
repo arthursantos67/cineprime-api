@@ -1,4 +1,4 @@
-# Cineprime Natal
+# CinePrime
 
 Full-stack cinema reservation system with a Django/DRF backend and a browser-based SPA frontend.
 
@@ -36,7 +36,7 @@ migrations before starting the development server.
   volume initialization, so recreate the local DB volume or create the new
   database manually before reusing an older volume.
 - After the remote repository is renamed, collaborators should point `origin` to
-  `git@github.com:arthursantos67/cineprime-natal-api.git`.
+  `git@github.com:arthursantos67/cineprime-api.git`.
 
 Services:
 
@@ -59,7 +59,7 @@ Common root-level Docker commands:
 ```bash
 docker compose exec backend python manage.py migrate
 docker compose exec backend pytest -q
-docker compose exec celery celery -A cineprime_natal_api inspect ping
+docker compose exec celery celery -A cineprime_api inspect ping
 ```
 
 ## Frontend

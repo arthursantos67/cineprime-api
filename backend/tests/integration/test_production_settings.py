@@ -38,7 +38,7 @@ def _run_settings_import(overrides, script=None):
         [
             sys.executable,
             "-c",
-            script or "import cineprime_natal_api.settings",
+            script or "import cineprime_api.settings",
         ],
         cwd=BACKEND_DIR,
         env=env,
@@ -119,7 +119,7 @@ def test_production_rejects_insecure_cors_origins_by_default():
 def test_valid_production_settings_enable_security_headers():
     script = """
 import json
-import cineprime_natal_api.settings as settings
+import cineprime_api.settings as settings
 
 print(json.dumps({
     "DEBUG": settings.DEBUG,

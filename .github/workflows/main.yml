@@ -27,7 +27,7 @@ jobs:
           DEBUG=False
           ALLOWED_HOSTS=127.0.0.1,localhost,backend
           CORS_ALLOWED_ORIGINS=http://localhost:3000
-          POSTGRES_DB=cineprime_natal
+          POSTGRES_DB=cineprime
           POSTGRES_USER=postgres
           POSTGRES_PASSWORD=postgres
           POSTGRES_HOST=db
@@ -113,7 +113,7 @@ jobs:
           DEBUG=False
           ALLOWED_HOSTS=127.0.0.1,localhost,backend
           CORS_ALLOWED_ORIGINS=http://localhost:3000
-          POSTGRES_DB=cineprime_natal
+          POSTGRES_DB=cineprime
           POSTGRES_USER=postgres
           POSTGRES_PASSWORD=postgres
           POSTGRES_HOST=db
@@ -131,7 +131,7 @@ jobs:
         run: docker compose -f docker-compose.yml config
 
       - name: Build backend image
-        run: docker build -t cineprime-natal-backend:ci backend
+        run: docker build -t cineprime-backend:ci backend
 
       - name: Build frontend image
-        run: docker build --build-arg NEXT_PUBLIC_API_BASE_URL=http://localhost:8000 -t cineprime-natal-frontend:ci frontend
+        run: docker build --build-arg NEXT_PUBLIC_API_BASE_URL=http://localhost:8000 -t cineprime-frontend:ci frontend

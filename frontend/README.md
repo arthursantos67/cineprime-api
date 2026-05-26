@@ -1,6 +1,6 @@
-# Cineprime Natal Frontend
+# CinePrime Frontend
 
-Next.js App Router frontend for the full-stack Cineprime Natal cinema ticket reservation platform.
+Next.js App Router frontend for the full-stack CinePrime cinema ticket reservation platform.
 
 ## Stack
 
@@ -205,14 +205,14 @@ time:
 docker build \
   --build-arg NEXT_PUBLIC_API_BASE_URL=https://api.example.com \
   --build-arg NEXT_IMAGE_REMOTE_HOSTNAMES=cdn.example.com \
-  -t cineprime-natal-frontend:prod \
+  -t cineprime-frontend:prod \
   frontend
 ```
 
 Run the production container:
 
 ```bash
-docker run --rm -p 3000:3000 cineprime-natal-frontend:prod
+docker run --rm -p 3000:3000 cineprime-frontend:prod
 ```
 
 Static CDN or Nginx-only hosting should not be assumed for this app. Use that

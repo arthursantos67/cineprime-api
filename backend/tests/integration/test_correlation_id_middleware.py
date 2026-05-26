@@ -13,15 +13,15 @@ class TestCorrelationIdMiddleware:
         self, api_client, monkeypatch
     ):
         monkeypatch.setattr(
-            "cineprime_natal_api.health.HealthCheckService._check_database",
+            "cineprime_api.health.HealthCheckService._check_database",
             lambda self: "ok",
         )
         monkeypatch.setattr(
-            "cineprime_natal_api.health.HealthCheckService._check_redis",
+            "cineprime_api.health.HealthCheckService._check_redis",
             lambda self: "ok",
         )
         monkeypatch.setattr(
-            "cineprime_natal_api.health.HealthCheckService._check_celery",
+            "cineprime_api.health.HealthCheckService._check_celery",
             lambda self: "ok",
         )
 
@@ -33,15 +33,15 @@ class TestCorrelationIdMiddleware:
 
     def test_reuses_incoming_correlation_id_header(self, api_client, monkeypatch):
         monkeypatch.setattr(
-            "cineprime_natal_api.health.HealthCheckService._check_database",
+            "cineprime_api.health.HealthCheckService._check_database",
             lambda self: "ok",
         )
         monkeypatch.setattr(
-            "cineprime_natal_api.health.HealthCheckService._check_redis",
+            "cineprime_api.health.HealthCheckService._check_redis",
             lambda self: "ok",
         )
         monkeypatch.setattr(
-            "cineprime_natal_api.health.HealthCheckService._check_celery",
+            "cineprime_api.health.HealthCheckService._check_celery",
             lambda self: "ok",
         )
 
