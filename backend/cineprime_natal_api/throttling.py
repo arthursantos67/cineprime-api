@@ -7,7 +7,7 @@ from rest_framework.throttling import (
 )
 from rest_framework.exceptions import APIException
 
-from cinepolis_natal_api.exception_handler import standardized_exception_handler
+from cineprime_natal_api.exception_handler import standardized_exception_handler
 
 
 class GlobalAnonRateThrottle(AnonRateThrottle):

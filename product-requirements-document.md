@@ -1,8 +1,8 @@
-# Cinepolis Natal — Product Requirements Document (Full-Stack)
+# Cineprime Natal — Product Requirements Document (Full-Stack)
 
 ## Software Requirements Specification & Frontend Specification
 
-**Project:** cinepolis-natal  
+**Project:** cineprime-natal
 **Document type:** Product Requirements Document (PRD) — Full-Stack  
 **Version:** 2.0  
 **Last update:** 2026-05-13  
@@ -31,7 +31,7 @@
 
 ## 1. Purpose and Scope
 
-The Cinepolis Natal platform is a full-stack cinema reservation system composed of a production-oriented REST backend (Django/DRF) and a browser-based frontend application.
+The Cineprime Natal platform is a full-stack cinema reservation system composed of a production-oriented REST backend (Django/DRF) and a browser-based frontend application.
 
 **Scope covered by this document:**
 
@@ -591,8 +591,8 @@ GitHub Actions pipeline validates:
 | FR-08 | `reservations.views.CheckoutView`, `reservations.services.CheckoutService`, `reservations.models.Ticket` |
 | FR-08a | `catalog.models.Session` (`base_price`), `reservations.services.CheckoutService` (pricing logic) |
 | FR-09 | `users.views.MyTicketsView` |
-| FR-10 | `cinepolis_natal_api.urls` (`/api/schema/`, `/api/docs/`) |
-| FR-11 | `cinepolis_natal_api.health.HealthCheckService`, `/health/` |
+| FR-10 | `cineprime_natal_api.urls` (`/api/schema/`, `/api/docs/`) |
+| FR-11 | `cineprime_natal_api.health.HealthCheckService`, `/health/` |
 | FE-01 | `pages/HomePage`, `components/FeaturedBanner`, `components/MovieGrid` |
 | FE-02 | `pages/MovieDetailPage`, `components/SessionPicker`, `components/DateSelector` |
 | FE-03 | `pages/SeatSelectionPage`, `components/SeatMap`, `components/CountdownTimer` |
@@ -610,6 +610,6 @@ Not implemented in this project scope:
 - Native mobile applications (iOS / Android)
 - Seat and row CRUD API endpoints
 - Role-based administration workflows beyond Django admin
-- Club Cinépolis membership management, cashback, or discount processing beyond the voucher code input field
+- Club Cineprime membership management, cashback, or discount processing beyond the voucher code input field
 - Concession / bomboniére ordering
 - Real QR code validation at the physical entrance

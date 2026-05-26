@@ -3,7 +3,7 @@ from decimal import Decimal
 from django.db import transaction
 from django.utils import timezone
 
-from cinepolis_natal_api.logging_context import get_correlation_id
+from cineprime_natal_api.logging_context import get_correlation_id
 from reservations.locks import SeatLockManager
 from reservations.models import SessionSeat, SessionSeatStatus, Ticket
 

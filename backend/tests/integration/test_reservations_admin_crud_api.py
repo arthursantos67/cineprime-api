@@ -32,7 +32,7 @@ REST_FRAMEWORK_OVERRIDE = {
     "PAGE_SIZE": 10,
     "DEFAULT_THROTTLE_CLASSES": [],
     "DEFAULT_THROTTLE_RATES": {},
-    "EXCEPTION_HANDLER": "cinepolis_natal_api.exception_handler.standardized_exception_handler",
+    "EXCEPTION_HANDLER": "cineprime_natal_api.exception_handler.standardized_exception_handler",
 }
 
 

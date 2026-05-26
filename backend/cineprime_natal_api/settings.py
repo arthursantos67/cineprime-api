@@ -154,7 +154,7 @@ INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
 MIDDLEWARE = [
     "corsheaders.middleware.CorsMiddleware",
     "django.middleware.security.SecurityMiddleware",
-    "cinepolis_natal_api.middleware.CorrelationIdMiddleware",
+    "cineprime_natal_api.middleware.CorrelationIdMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -167,8 +167,8 @@ MIDDLEWARE = [
 # URLs and WSGI
 # -------------------------------------------------------------------
 
-ROOT_URLCONF = "cinepolis_natal_api.urls"
-WSGI_APPLICATION = "cinepolis_natal_api.wsgi.application"
+ROOT_URLCONF = "cineprime_natal_api.urls"
+WSGI_APPLICATION = "cineprime_natal_api.wsgi.application"
 
 # -------------------------------------------------------------------
 # CORS
@@ -228,7 +228,7 @@ TEMPLATES = [
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
-        "NAME": os.getenv("POSTGRES_DB", "cinepolis_natal"),
+        "NAME": os.getenv("POSTGRES_DB", "cineprime_natal"),
         "USER": os.getenv("POSTGRES_USER", "postgres"),
         "PASSWORD": os.getenv("POSTGRES_PASSWORD", "postgres"),
         "HOST": os.getenv("POSTGRES_HOST", "db"),
@@ -248,7 +248,7 @@ AUTH_USER_MODEL = "users.User"
 # -------------------------------------------------------------------
 
 REDIS_URL = os.getenv("REDIS_URL", "redis://redis:6379/1")
-CACHE_KEY_PREFIX = os.getenv("CACHE_KEY_PREFIX", "cinepolis_natal_api")
+CACHE_KEY_PREFIX = os.getenv("CACHE_KEY_PREFIX", "cineprime_natal_api")
 CACHE_DEFAULT_TIMEOUT = 300
 
 CACHES = {
@@ -330,7 +330,7 @@ EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD", "")
 EMAIL_USE_TLS = os.getenv("EMAIL_USE_TLS", "True") == "True"
 EMAIL_USE_SSL = os.getenv("EMAIL_USE_SSL", "False") == "True"
 EMAIL_TIMEOUT = int(os.getenv("EMAIL_TIMEOUT", "10"))
-DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", "no-reply@cinepolisnatal.local")
+DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", "no-reply@cineprimenatal.local")
 TICKET_CONFIRMATION_EMAIL_SENT_TTL_SECONDS = int(
     os.getenv("TICKET_CONFIRMATION_EMAIL_SENT_TTL_SECONDS", "604800")
 )
@@ -350,8 +350,8 @@ REST_FRAMEWORK = {
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
     "PAGE_SIZE": 10,
     "DEFAULT_THROTTLE_CLASSES": [
-        "cinepolis_natal_api.throttling.GlobalAnonRateThrottle",
-        "cinepolis_natal_api.throttling.GlobalUserRateThrottle",
+        "cineprime_natal_api.throttling.GlobalAnonRateThrottle",
+        "cineprime_natal_api.throttling.GlobalUserRateThrottle",
     ],
     "DEFAULT_THROTTLE_RATES": {
         "anon": os.getenv("THROTTLE_ANON_RATE", "60/minute"),
@@ -359,11 +359,11 @@ REST_FRAMEWORK = {
         "login": os.getenv("THROTTLE_LOGIN_RATE", "5/minute"),
         "reservation": os.getenv("THROTTLE_RESERVATION_RATE", "10/minute"),
     },
-    "EXCEPTION_HANDLER": "cinepolis_natal_api.exception_handler.standardized_exception_handler",
+    "EXCEPTION_HANDLER": "cineprime_natal_api.exception_handler.standardized_exception_handler",
 }
 
 SPECTACULAR_SETTINGS = {
-    "TITLE": "Cinepolis Natal API",
+    "TITLE": "Cineprime Natal API",
     "DESCRIPTION": "Production-oriented REST API for cinema reservation operations.",
     "VERSION": "1.0.0",
     "SERVE_INCLUDE_SCHEMA": False,
@@ -419,12 +419,12 @@ LOGGING = {
     "disable_existing_loggers": False,
     "filters": {
         "request_context": {
-            "()": "cinepolis_natal_api.logging.RequestContextFilter",
+            "()": "cineprime_natal_api.logging.RequestContextFilter",
         },
     },
     "formatters": {
         "json": {
-            "()": "cinepolis_natal_api.logging.JsonFormatter",
+            "()": "cineprime_natal_api.logging.JsonFormatter",
         },
     },
     "handlers": {
@@ -435,12 +435,12 @@ LOGGING = {
         },
     },
     "loggers": {
-        "cinepolis": {
+        "cineprime": {
             "handlers": ["console"],
             "level": LOG_LEVEL,
             "propagate": False,
         },
-        "cinepolis.observability": {
+        "cineprime.observability": {
             "handlers": ["console"],
             "level": LOG_LEVEL,
             "propagate": False,

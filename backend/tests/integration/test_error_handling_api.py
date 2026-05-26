@@ -26,7 +26,7 @@ REST_FRAMEWORK_OVERRIDE = {
     "PAGE_SIZE": 10,
     "DEFAULT_THROTTLE_CLASSES": [],
     "DEFAULT_THROTTLE_RATES": {},
-    "EXCEPTION_HANDLER": "cinepolis_natal_api.exception_handler.standardized_exception_handler",
+    "EXCEPTION_HANDLER": "cineprime_natal_api.exception_handler.standardized_exception_handler",
 }
 
 
@@ -232,8 +232,8 @@ def test_error_schema_for_409_conflict(api_client):
         "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
         "PAGE_SIZE": 10,
         "DEFAULT_THROTTLE_CLASSES": [
-            "cinepolis_natal_api.throttling.GlobalAnonRateThrottle",
-            "cinepolis_natal_api.throttling.GlobalUserRateThrottle",
+            "cineprime_natal_api.throttling.GlobalAnonRateThrottle",
+            "cineprime_natal_api.throttling.GlobalUserRateThrottle",
         ],
         "DEFAULT_THROTTLE_RATES": {
             "anon": "2/minute",
@@ -241,7 +241,7 @@ def test_error_schema_for_409_conflict(api_client):
             "login": "5/minute",
             "reservation": "10/minute",
         },
-        "EXCEPTION_HANDLER": "cinepolis_natal_api.exception_handler.standardized_exception_handler",
+        "EXCEPTION_HANDLER": "cineprime_natal_api.exception_handler.standardized_exception_handler",
     }
 )
 def test_error_schema_for_429_throttled(api_client):
@@ -281,7 +281,7 @@ def test_error_schema_for_500_internal_server_error(api_client, monkeypatch):
 
 @pytest.mark.django_db
 def test_unexpected_500_logs_structured_context(api_client, monkeypatch):
-    from cinepolis_natal_api import exception_handler as handler_module
+    from cineprime_natal_api import exception_handler as handler_module
     from catalog.views import GenreListCreateView
 
     def raise_unexpected_error(*args, **kwargs):

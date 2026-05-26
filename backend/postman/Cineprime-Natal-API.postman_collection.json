@@ -1,9 +1,9 @@
 {
   "info": {
-    "_postman_id": "d0a34dd8-8e26-4d33-b9fd-cinepolis-natal-api",
-    "name": "Cinepolis Natal API",
+    "_postman_id": "d0a34dd8-8e26-4d33-b9fd-cineprime-natal-api",
+    "name": "Cineprime Natal API",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-    "description": "Colecao para validar manualmente os fluxos principais da Cinepolis Natal API."
+    "description": "Colecao para validar manualmente os fluxos principais da Cineprime Natal API."
   },
   "item": [
     {

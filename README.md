@@ -1,4 +1,4 @@
-# Cinepolis Natal
+# Cineprime Natal
 
 Full-stack cinema reservation system with a Django/DRF backend and a browser-based SPA frontend.
 
@@ -26,6 +26,18 @@ docker compose up --build
 The backend container uses its Dockerfile startup command, which applies Django
 migrations before starting the development server.
 
+## Rename Compatibility Notes
+
+- The tracked project files do not intentionally retain legacy project branding.
+- Historical Git refs and untracked local planning files are outside this branch
+  content and were left untouched.
+- Existing local PostgreSQL Docker volumes may already contain a database
+  created before the rename. PostgreSQL only applies `POSTGRES_DB` on first
+  volume initialization, so recreate the local DB volume or create the new
+  database manually before reusing an older volume.
+- After the remote repository is renamed, collaborators should point `origin` to
+  `git@github.com:arthursantos67/cineprime-natal-api.git`.
+
 Services:
 
 - Backend API: `http://localhost:8000`
@@ -47,7 +59,7 @@ Common root-level Docker commands:
 ```bash
 docker compose exec backend python manage.py migrate
 docker compose exec backend pytest -q
-docker compose exec celery celery -A cinepolis_natal_api inspect ping
+docker compose exec celery celery -A cineprime_natal_api inspect ping
 ```
 
 ## Frontend

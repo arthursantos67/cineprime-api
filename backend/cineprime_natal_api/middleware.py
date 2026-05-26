@@ -10,7 +10,7 @@ from .logging_context import (
 
 CORRELATION_ID_HEADER = "X-Correlation-ID"
 
-logger = logging.getLogger("cinepolis.observability")
+logger = logging.getLogger("cineprime.observability")
 
 
 class CorrelationIdMiddleware:

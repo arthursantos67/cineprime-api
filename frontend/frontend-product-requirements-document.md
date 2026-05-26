@@ -1,8 +1,8 @@
-# Cinepolis Natal - Frontend Product Requirements Document
+# Cineprime Natal - Frontend Product Requirements Document
 
 ## Frontend Software Requirements Specification
 
-**Project:** cinepolis-natal  
+**Project:** cineprime-natal
 **Document type:** Product Requirements Document (PRD) - Frontend only  
 **Version:** 1.1  
 **Last update:** 2026-05-21  
@@ -32,7 +32,7 @@
 
 ## 1. Purpose and Scope
 
-This document defines the frontend requirements for **Cinepolis Natal**, a browser-based cinema ticket reservation platform. The frontend is a Next.js web application that consumes the Django/DRF REST API to support the complete purchase journey: movie discovery, session selection, seat selection, ticket type selection, checkout, order confirmation, and access to purchased tickets.
+This document defines the frontend requirements for **Cineprime Natal**, a browser-based cinema ticket reservation platform. The frontend is a Next.js web application that consumes the Django/DRF REST API to support the complete purchase journey: movie discovery, session selection, seat selection, ticket type selection, checkout, order confirmation, and access to purchased tickets.
 
 This PRD is derived from the full-stack PRD and focuses only on frontend behavior, user experience, API integration, client-side state, accessibility, quality requirements, and operational expectations. Backend models, server infrastructure, Redis, Celery, and database concerns are documented in the full-stack PRD and backend README.
 
@@ -382,7 +382,7 @@ These routes reflect the current scaffold in `frontend/src/app`. If the product 
 
 #### Navigation Bar
 
-- Shows the Cinepolis Natal brand.
+- Shows the Cineprime Natal brand.
 - Provides links for the main movie programming areas.
 - Shows "Log in" and "Register" actions for visitors.
 - Shows "My Tickets" and "Log out" actions for authenticated users.

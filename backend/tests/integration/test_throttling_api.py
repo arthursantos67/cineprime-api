@@ -26,7 +26,7 @@ def _sync_throttle_rates_from_settings():
 @pytest.fixture(autouse=True)
 def isolate_throttling_state():
     from catalog.views import GenreListCreateView
-    from cinepolis_natal_api.throttling import (
+    from cineprime_natal_api.throttling import (
         GlobalAnonRateThrottle,
         GlobalUserRateThrottle,
         LoginRateThrottle,
@@ -142,8 +142,8 @@ class TestApiThrottling:
             "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
             "PAGE_SIZE": 10,
             "DEFAULT_THROTTLE_CLASSES": [
-                "cinepolis_natal_api.throttling.GlobalAnonRateThrottle",
-                "cinepolis_natal_api.throttling.GlobalUserRateThrottle",
+                "cineprime_natal_api.throttling.GlobalAnonRateThrottle",
+                "cineprime_natal_api.throttling.GlobalUserRateThrottle",
             ],
             "DEFAULT_THROTTLE_RATES": {
                 "anon": "2/minute",
@@ -151,7 +151,7 @@ class TestApiThrottling:
                 "login": "1/minute",
                 "reservation": "1/minute",
             },
-            "EXCEPTION_HANDLER": "cinepolis_natal_api.throttling.throttling_exception_handler",
+            "EXCEPTION_HANDLER": "cineprime_natal_api.throttling.throttling_exception_handler",
         }
     )
     def test_global_anonymous_throttling_blocks_after_limit(
@@ -182,8 +182,8 @@ class TestApiThrottling:
             "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
             "PAGE_SIZE": 10,
             "DEFAULT_THROTTLE_CLASSES": [
-                "cinepolis_natal_api.throttling.GlobalAnonRateThrottle",
-                "cinepolis_natal_api.throttling.GlobalUserRateThrottle",
+                "cineprime_natal_api.throttling.GlobalAnonRateThrottle",
+                "cineprime_natal_api.throttling.GlobalUserRateThrottle",
             ],
             "DEFAULT_THROTTLE_RATES": {
                 "anon": "10/minute",
@@ -191,7 +191,7 @@ class TestApiThrottling:
                 "login": "1/minute",
                 "reservation": "10/minute",
             },
-            "EXCEPTION_HANDLER": "cinepolis_natal_api.throttling.throttling_exception_handler",
+            "EXCEPTION_HANDLER": "cineprime_natal_api.throttling.throttling_exception_handler",
         }
     )
     def test_login_endpoint_is_throttled_faster_than_global_limit(self, api_client):
@@ -226,8 +226,8 @@ class TestApiThrottling:
             "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
             "PAGE_SIZE": 10,
             "DEFAULT_THROTTLE_CLASSES": [
-                "cinepolis_natal_api.throttling.GlobalAnonRateThrottle",
-                "cinepolis_natal_api.throttling.GlobalUserRateThrottle",
+                "cineprime_natal_api.throttling.GlobalAnonRateThrottle",
+                "cineprime_natal_api.throttling.GlobalUserRateThrottle",
             ],
             "DEFAULT_THROTTLE_RATES": {
                 "anon": "10/minute",
@@ -235,7 +235,7 @@ class TestApiThrottling:
                 "login": "10/minute",
                 "reservation": "1/minute",
             },
-            "EXCEPTION_HANDLER": "cinepolis_natal_api.throttling.throttling_exception_handler",
+            "EXCEPTION_HANDLER": "cineprime_natal_api.throttling.throttling_exception_handler",
         }
     )
     def test_reservation_endpoint_is_throttled_with_specific_limit(
@@ -275,7 +275,7 @@ class TestApiThrottling:
         assert "Request limit exceeded" in body["error"]["message"]
 
     def test_login_throttle_key_combines_ip_with_normalized_email(self):
-        from cinepolis_natal_api.throttling import LoginRateThrottle
+        from cineprime_natal_api.throttling import LoginRateThrottle
 
         factory = APIRequestFactory()
         throttle = LoginRateThrottle()
@@ -316,7 +316,7 @@ class TestApiThrottling:
         assert "user@example.com" not in first_key
 
     def test_reservation_throttle_key_uses_authenticated_user(self, user):
-        from cinepolis_natal_api.throttling import ReservationRateThrottle
+        from cineprime_natal_api.throttling import ReservationRateThrottle
 
         factory = APIRequestFactory()
         throttle = ReservationRateThrottle()
@@ -334,7 +334,7 @@ class TestApiThrottling:
         assert "198.51.100.10" not in key
 
     def test_reservation_throttle_key_falls_back_to_ip_for_anonymous_requests(self):
-        from cinepolis_natal_api.throttling import ReservationRateThrottle
+        from cineprime_natal_api.throttling import ReservationRateThrottle
 
         factory = APIRequestFactory()
         throttle = ReservationRateThrottle()
