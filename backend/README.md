@@ -526,7 +526,7 @@ Expected: `200 OK` paginated ticket list. Optional filters:
 | `GET` | `{{BASE_URL}}/api/v1/catalog/genres/{genre_id}/` | No | none |
 | `PATCH` | `{{BASE_URL}}/api/v1/catalog/genres/{genre_id}/` | Admin | `{"name":"Science Fiction"}` |
 | `DELETE` | `{{BASE_URL}}/api/v1/catalog/genres/{genre_id}/` | Admin | none |
-| `GET` | `{{BASE_URL}}/api/v1/catalog/movies/` | No | none |
+| `GET` | `{{BASE_URL}}/api/v1/catalog/movies/` | No | Optional query: `status=em_cartaz\|pre_venda\|em_breve`, `is_featured=true\|false` |
 | `POST` | `{{BASE_URL}}/api/v1/catalog/movies/` | Admin | `{"title":"Interstellar","genres":["{genre_id}"],"synopsis":"Space exploration.","duration_minutes":169,"release_date":"2014-11-07","poster_url":"https://example.com/interstellar.jpg"}` |
 | `GET` | `{{BASE_URL}}/api/v1/catalog/movies/{movie_id}/` | No | none |
 | `PATCH` | `{{BASE_URL}}/api/v1/catalog/movies/{movie_id}/` | Admin | `{"title":"Interstellar Remastered"}` |
@@ -541,6 +541,9 @@ Expected: `200 OK` paginated ticket list. Optional filters:
 | `GET` | `{{BASE_URL}}/api/v1/catalog/sessions/{session_id}/` | No | none |
 | `PATCH` | `{{BASE_URL}}/api/v1/catalog/sessions/{session_id}/` | Admin | `{"end_time":"2026-03-23T21:10:00Z"}` |
 | `DELETE` | `{{BASE_URL}}/api/v1/catalog/sessions/{session_id}/` | Admin | none |
+
+Movie `status` accepts `em_cartaz` (now showing), `pre_venda` (pre-sale), and
+`em_breve` (upcoming).
 
 Notes:
 

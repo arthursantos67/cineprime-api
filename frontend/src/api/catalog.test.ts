@@ -24,8 +24,19 @@ const paginatedMoviesResponse = {
   results: [],
 };
 
+const upcomingMovieSummary = {
+  duration_minutes: 112,
+  genres: [{ id: "genre-2", name: "Drama" }],
+  id: "movie-789",
+  is_featured: false,
+  poster_url: "https://cdn.example.com/movie3.jpg",
+  release_date: "2026-12-18",
+  status: "em_breve",
+  title: "Em Breve",
+};
+
 const paginatedMoviesWithReleaseDateResponse = {
-  count: 2,
+  count: 3,
   next: null,
   previous: null,
   results: [
@@ -49,6 +60,7 @@ const paginatedMoviesWithReleaseDateResponse = {
       status: "pre_venda",
       title: "Sem Data",
     },
+    upcomingMovieSummary,
   ],
 };
 
@@ -155,6 +167,7 @@ test("catalogApi builds supported movie filters", async () => {
     await catalogApi.listFeaturedMovies();
     await catalogApi.listNowShowingMovies();
     await catalogApi.listPreSaleMovies();
+    await catalogApi.listUpcomingMovies();
     await catalogApi.listMovies({
       is_featured: true,
       page: 2,
@@ -165,8 +178,41 @@ test("catalogApi builds supported movie filters", async () => {
       "http://localhost:8000/api/v1/catalog/movies/?is_featured=true",
       "http://localhost:8000/api/v1/catalog/movies/?status=em_cartaz",
       "http://localhost:8000/api/v1/catalog/movies/?status=pre_venda",
+      "http://localhost:8000/api/v1/catalog/movies/?status=em_breve",
       "http://localhost:8000/api/v1/catalog/movies/?status=em_cartaz&is_featured=true&page=2",
     ]);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("catalogApi accepts upcoming movie status in movie responses", async () => {
+  const originalFetch = globalThis.fetch;
+
+  try {
+    globalThis.fetch = async (input) => {
+      if (String(input).endsWith("/api/v1/catalog/movies/movie-789/")) {
+        return Response.json({
+          ...movieDetailResponse,
+          id: "movie-789",
+          status: "em_breve",
+          title: "Em Breve",
+        });
+      }
+
+      return Response.json({
+        count: 1,
+        next: null,
+        previous: null,
+        results: [upcomingMovieSummary],
+      });
+    };
+
+    const listResponse = await catalogApi.listUpcomingMovies();
+    const detailResponse = await catalogApi.getMovie("movie-789");
+
+    assert.equal(listResponse.results[0].status, "em_breve");
+    assert.equal(detailResponse.status, "em_breve");
   } finally {
     globalThis.fetch = originalFetch;
   }
@@ -262,6 +308,32 @@ test("catalogApi rejects movie list results with invalid movie objects", async (
         next: null,
         previous: null,
         results: [{ id: "movie-bad" }],
+      });
+
+    await assert.rejects(
+      catalogApi.listMovies(),
+      /Unexpected catalog movie list response/
+    );
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("catalogApi rejects movie list results with invalid movie status", async () => {
+  const originalFetch = globalThis.fetch;
+
+  try {
+    globalThis.fetch = async () =>
+      Response.json({
+        count: 1,
+        next: null,
+        previous: null,
+        results: [
+          {
+            ...paginatedMoviesWithReleaseDateResponse.results[0],
+            status: "fora_de_catalogo",
+          },
+        ],
       });
 
     await assert.rejects(

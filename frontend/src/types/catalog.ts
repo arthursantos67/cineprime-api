@@ -1,4 +1,4 @@
-export type MovieStatus = "em_cartaz" | "pre_venda";
+export type MovieStatus = "em_cartaz" | "pre_venda" | "em_breve";
 
 export type CatalogGenre = {
   id: string;

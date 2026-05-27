@@ -58,6 +58,10 @@ export const catalogApi = {
   listPreSaleMovies() {
     return listMovies({ status: "pre_venda" });
   },
+
+  listUpcomingMovies() {
+    return listMovies({ status: "em_breve" });
+  },
 };
 
 async function getMovie(movieId: string) {
@@ -130,7 +134,7 @@ function isCatalogMovieDetail(value: unknown): value is CatalogMovieDetail {
     value.genres.every(isCatalogGenre) &&
     typeof value.duration_minutes === "number" &&
     typeof value.poster_url === "string" &&
-    (value.status === "em_cartaz" || value.status === "pre_venda") &&
+    isMovieStatus(value.status) &&
     typeof value.is_featured === "boolean" &&
     typeof value.synopsis === "string" &&
     (typeof value.release_date === "string" ||
@@ -151,7 +155,7 @@ function isCatalogMovie(value: unknown): value is CatalogMovie {
       value.release_date === null ||
       value.release_date === undefined) &&
     typeof value.poster_url === "string" &&
-    (value.status === "em_cartaz" || value.status === "pre_venda") &&
+    isMovieStatus(value.status) &&
     typeof value.is_featured === "boolean"
   );
 }
@@ -162,6 +166,10 @@ function isCatalogGenre(value: unknown): value is CatalogGenre {
     typeof value.id === "string" &&
     typeof value.name === "string"
   );
+}
+
+function isMovieStatus(value: unknown): value is MovieStatus {
+  return value === "em_cartaz" || value === "pre_venda" || value === "em_breve";
 }
 
 function isCatalogRoom(value: unknown): value is CatalogRoomSummary {
