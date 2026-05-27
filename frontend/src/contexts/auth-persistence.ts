@@ -4,8 +4,10 @@ export function persistRefreshToken(token: string, persistent: boolean): void {
   if (typeof window === "undefined") return;
   if (persistent) {
     localStorage.setItem(REFRESH_TOKEN_KEY, token);
+    sessionStorage.removeItem(REFRESH_TOKEN_KEY);
   } else {
     sessionStorage.setItem(REFRESH_TOKEN_KEY, token);
+    localStorage.removeItem(REFRESH_TOKEN_KEY);
   }
 }
 

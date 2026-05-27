@@ -31,6 +31,8 @@ test("login form view renders accessible email and password fields with labels",
   assert.match(html, /<input[^>]*id="password"/);
   assert.match(html, /type="password"/);
   assert.match(html, /Entrar/);
+  assert.match(html, /Continuar conectado/);
+  assert.match(html, /<input[^>]*id="stayLoggedIn"/);
   assert.doesNotMatch(html, /role="alert"/);
   assert.doesNotMatch(html, /aria-invalid/);
 });

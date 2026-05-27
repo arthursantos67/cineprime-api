@@ -78,6 +78,15 @@ test("auth persistence module uses sessionStorage by default and localStorage on
     LOCAL_STORAGE,
     "auth-persistence.ts must use localStorage when persistent flag is true"
   );
+  // Assert the exact conditional relationship:
+  // if (persistent) { localStorage.setItem ... } else { sessionStorage.setItem ... }
+  // This prevents regressions where localStorage is written unconditionally or the
+  // branches are swapped.
+  assert.match(
+    source,
+    /if\s*\(\s*persistent\s*\)[\s\S]*?localStorage\.setItem[\s\S]*?else[\s\S]*?sessionStorage\.setItem/,
+    "auth-persistence.ts must use if(persistent) → localStorage.setItem and else → sessionStorage.setItem"
+  );
 });
 
 test("auth persistence module does not store access tokens", () => {

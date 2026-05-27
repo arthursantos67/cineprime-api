@@ -67,13 +67,13 @@ export function LoginFormView({
           />
         </div>
         <div className="form-field form-field-checkbox">
+          <label htmlFor="stayLoggedIn">Continuar conectado</label>
           <input
             disabled={isSubmitting}
             id="stayLoggedIn"
             name="stayLoggedIn"
             type="checkbox"
           />
-          <label htmlFor="stayLoggedIn">Continuar conectado</label>
         </div>
         {errorMessage ? (
           <p className="form-error" id="login-form-error" role="alert">

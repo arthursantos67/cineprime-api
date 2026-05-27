@@ -339,6 +339,26 @@ h1 {
   border-color: var(--color-error);
 }
 
+.form-field-checkbox {
+  align-items: center;
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+}
+
+.form-field-checkbox input[type="checkbox"] {
+  cursor: pointer;
+  flex-shrink: 0;
+  height: 18px;
+  min-height: unset;
+  width: 18px;
+}
+
+.form-field-checkbox label {
+  cursor: pointer;
+  font-weight: 400;
+}
+
 .form-error {
   color: var(--color-error);
   font-size: 14px;
