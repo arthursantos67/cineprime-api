@@ -30,11 +30,11 @@ export function AppHeader() {
   return (
     <header className="site-header">
       <div className="shell-container header-container">
-        <Link className="brand-link" href="/" aria-label="Cinepolis Natal, início">
+        <Link className="brand-link" href="/" aria-label="CinePrime, início">
           <span className="brand-mark" aria-hidden="true">
-            CN
+            CP
           </span>
-          <span>Cinepolis Natal</span>
+          <span>CinePrime</span>
         </Link>
 
         <nav className="primary-nav" aria-label="Navegação principal">

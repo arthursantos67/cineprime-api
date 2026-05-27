@@ -6,7 +6,7 @@ const apiBaseUrl =
 export const fixedNow = new Date("2026-05-24T12:00:00-03:00");
 
 const posterDataUrl =
-  "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='320' height='480' viewBox='0 0 320 480'%3E%3Crect width='320' height='480' fill='%2314141f'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' fill='%23ffffff' font-family='Arial' font-size='28'%3ECinepolis%3C/text%3E%3C/svg%3E";
+  "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='320' height='480' viewBox='0 0 320 480'%3E%3Crect width='320' height='480' fill='%2314141f'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' fill='%23ffffff' font-family='Arial' font-size='28'%3ECinePrime%3C/text%3E%3C/svg%3E";
 
 type SessionSeat = {
   is_accessible: boolean;
@@ -139,6 +139,10 @@ async function handleApiRoute(route: Route, state: ApiRouteState) {
   if (method === "GET" && url.pathname === "/api/v1/catalog/movies/") {
     if (url.searchParams.get("status") === "pre_venda") {
       return json(route, paginated([preSaleMovie]));
+    }
+
+    if (url.searchParams.get("status") === "em_breve") {
+      return json(route, paginated([upcomingMovie]));
     }
 
     return json(route, paginated([movie]));
@@ -297,6 +301,14 @@ const preSaleMovie = {
   is_featured: false,
   status: "pre_venda",
   title: "Estreia da Semana",
+};
+
+const upcomingMovie = {
+  ...movie,
+  id: "movie-upcoming",
+  is_featured: false,
+  status: "em_breve",
+  title: "Em Breve em Natal",
 };
 
 const session = {

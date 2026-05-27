@@ -18,7 +18,7 @@ export default function HomePage() {
       }
       description="Encontre sessões em Natal, escolha seus assentos e avance para a compra de ingressos com uma experiência preparada para celular e desktop."
       eyebrow="Catálogo"
-      title="Cinepolis Natal"
+      title="CinePrime"
     >
       <HomeCatalog />
     </PageSection>

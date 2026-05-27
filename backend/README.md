@@ -1,4 +1,4 @@
-# Cinepolis Natal Backend
+# CinePrime Backend
 
 Production-oriented REST API for a movie ticket reservation system. The platform allows users to register, authenticate with JWT, browse movie sessions, inspect real-time seat availability, reserve seats temporarily with distributed locking, complete checkout, and access personal tickets.
 
@@ -47,8 +47,8 @@ The table below maps implemented requirements to concrete endpoints/components.
 | Temporary reservation | Authenticated seat lock with expiration metadata | `POST /api/v1/reservation/sessions/{session_id}/reservations/` |
 | Checkout | Transactional purchase and ticket creation | `POST /api/v1/reservation/checkout/` + `reservations.services.checkout_service` |
 | My tickets | Authenticated ticket list + `type=upcoming|past` filter | `GET /api/v1/users/me/tickets/` |
-| Standardized errors | Unified error envelope for 4xx/5xx | `cinepolis_natal_api.exception_handler.standardized_exception_handler` |
-| Rate limiting | Global + login + reservation throttles | `cinepolis_natal_api.throttling` + DRF settings |
+| Standardized errors | Unified error envelope for 4xx/5xx | `cineprime_api.exception_handler.standardized_exception_handler` |
+| Rate limiting | Global + login + reservation throttles | `cineprime_api.throttling` + DRF settings |
 | Redis cache | Caching for movies/sessions list endpoints + invalidation on create/update/delete | `catalog.views.MovieListCreateView` / `SessionListCreateView` |
 | Async jobs | Expiration release + ticket email notification | `reservations.tasks` + Celery worker |
 | Health check | Liveness, readiness, and deep dependency health status | `GET /health/live/`, `GET /health/ready/`, `GET /health/deep/` |
@@ -152,7 +152,7 @@ Common backend commands:
 docker compose exec backend python manage.py check
 docker compose exec backend python manage.py migrate
 docker compose exec backend pytest -q
-docker compose exec celery celery -A cinepolis_natal_api inspect ping
+docker compose exec celery celery -A cineprime_api inspect ping
 ```
 
 ---
@@ -526,7 +526,7 @@ Expected: `200 OK` paginated ticket list. Optional filters:
 | `GET` | `{{BASE_URL}}/api/v1/catalog/genres/{genre_id}/` | No | none |
 | `PATCH` | `{{BASE_URL}}/api/v1/catalog/genres/{genre_id}/` | Admin | `{"name":"Science Fiction"}` |
 | `DELETE` | `{{BASE_URL}}/api/v1/catalog/genres/{genre_id}/` | Admin | none |
-| `GET` | `{{BASE_URL}}/api/v1/catalog/movies/` | No | none |
+| `GET` | `{{BASE_URL}}/api/v1/catalog/movies/` | No | Optional query: `status=em_cartaz\|pre_venda\|em_breve`, `is_featured=true\|false` |
 | `POST` | `{{BASE_URL}}/api/v1/catalog/movies/` | Admin | `{"title":"Interstellar","genres":["{genre_id}"],"synopsis":"Space exploration.","duration_minutes":169,"release_date":"2014-11-07","poster_url":"https://example.com/interstellar.jpg"}` |
 | `GET` | `{{BASE_URL}}/api/v1/catalog/movies/{movie_id}/` | No | none |
 | `PATCH` | `{{BASE_URL}}/api/v1/catalog/movies/{movie_id}/` | Admin | `{"title":"Interstellar Remastered"}` |
@@ -541,6 +541,9 @@ Expected: `200 OK` paginated ticket list. Optional filters:
 | `GET` | `{{BASE_URL}}/api/v1/catalog/sessions/{session_id}/` | No | none |
 | `PATCH` | `{{BASE_URL}}/api/v1/catalog/sessions/{session_id}/` | Admin | `{"end_time":"2026-03-23T21:10:00Z"}` |
 | `DELETE` | `{{BASE_URL}}/api/v1/catalog/sessions/{session_id}/` | Admin | none |
+
+Movie `status` accepts `em_cartaz` (now showing), `pre_venda` (pre-sale), and
+`em_breve` (upcoming).
 
 Notes:
 

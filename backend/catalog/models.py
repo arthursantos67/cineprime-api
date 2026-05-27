@@ -13,6 +13,7 @@ from django.db.models import F, Func
 class MovieStatus(models.TextChoices):
     EM_CARTAZ = "em_cartaz", "Em cartaz"
     PRE_VENDA = "pre_venda", "Pre-venda"
+    EM_BREVE = "em_breve", "Em breve"
 
 
 class Movie(models.Model):

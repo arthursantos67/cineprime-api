@@ -1,8 +1,8 @@
-# Cinepolis Natal - Frontend Product Requirements Document
+# CinePrime - Frontend Product Requirements Document
 
 ## Frontend Software Requirements Specification
 
-**Project:** cinepolis-natal  
+**Project:** cineprime
 **Document type:** Product Requirements Document (PRD) - Frontend only  
 **Version:** 1.1  
 **Last update:** 2026-05-21  
@@ -32,7 +32,7 @@
 
 ## 1. Purpose and Scope
 
-This document defines the frontend requirements for **Cinepolis Natal**, a browser-based cinema ticket reservation platform. The frontend is a Next.js web application that consumes the Django/DRF REST API to support the complete purchase journey: movie discovery, session selection, seat selection, ticket type selection, checkout, order confirmation, and access to purchased tickets.
+This document defines the frontend requirements for **CinePrime**, a browser-based cinema ticket reservation platform. The frontend is a Next.js web application that consumes the Django/DRF REST API to support the complete purchase journey: movie discovery, session selection, seat selection, ticket type selection, checkout, order confirmation, and access to purchased tickets.
 
 This PRD is derived from the full-stack PRD and focuses only on frontend behavior, user experience, API integration, client-side state, accessibility, quality requirements, and operational expectations. Backend models, server infrastructure, Redis, Celery, and database concerns are documented in the full-stack PRD and backend README.
 
@@ -174,10 +174,11 @@ Responsibilities:
 
 The home page must display a featured movie banner using movies where `is_featured = true`.
 
-Below the banner, the page must show two catalog sections:
+Below the banner, catalog sections are populated by movie lifecycle status:
 
 - **Now Showing**: movies with `status = em_cartaz`
 - **Pre-Sale**: movies with `status = pre_venda`
+- **Upcoming**: movies with `status = em_breve` when an upcoming rail or view is displayed
 
 Each movie card must show poster, title, genres, and duration. Clicking a movie card must navigate to `/movies/{movieId}`.
 
@@ -382,7 +383,7 @@ These routes reflect the current scaffold in `frontend/src/app`. If the product 
 
 #### Navigation Bar
 
-- Shows the Cinepolis Natal brand.
+- Shows the CinePrime brand.
 - Provides links for the main movie programming areas.
 - Shows "Log in" and "Register" actions for visitors.
 - Shows "My Tickets" and "Log out" actions for authenticated users.
@@ -541,6 +542,7 @@ Important contract notes:
 
 - The session movie filter is named `movie`, not `movie_id`.
 - `movie` expects a UUID.
+- Movie `status` values are `em_cartaz`, `pre_venda`, and `em_breve`.
 - The current backend does not expose `age_rating`, `room_type`, or `audio_format`.
 - `genres` is a list of `{ id, name }`.
 

@@ -39,7 +39,7 @@ def build_ticket_confirmation_email(*, user, tickets):
     footer_lines = [
         "Present the ticket codes at entry.",
         "",
-        "Thank you for choosing Cinepolis Natal.",
+        "Thank you for choosing CinePrime.",
     ]
 
     subject = f"Ticket confirmation - {len(sorted_tickets)} ticket(s)"

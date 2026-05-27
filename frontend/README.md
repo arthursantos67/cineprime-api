@@ -1,6 +1,6 @@
-# Cinepolis Natal Frontend
+# CinePrime Frontend
 
-Next.js App Router frontend for the full-stack Cinepolis Natal cinema ticket reservation platform.
+Next.js App Router frontend for the full-stack CinePrime cinema ticket reservation platform.
 
 ## Stack
 
@@ -77,6 +77,9 @@ to `/login`.
 ## API Configuration
 
 The API client boundary lives at [`src/api/client.ts`](./src/api/client.ts).
+Catalog helpers in [`src/api/catalog.ts`](./src/api/catalog.ts) expose typed
+movie filters for `em_cartaz`, `pre_venda`, and `em_breve` through
+`listNowShowingMovies()`, `listPreSaleMovies()`, and `listUpcomingMovies()`.
 
 The frontend requires `NEXT_PUBLIC_API_BASE_URL`, an absolute `http` or `https`
 URL for the Django/DRF API. Because this is a `NEXT_PUBLIC_*` variable, it is
@@ -103,6 +106,12 @@ Production deployments should set the public API URL to the deployed backend
 origin, for example `https://api.example.com`, while the backend separately
 allows the frontend origin through CORS configuration. Do not commit secrets to
 frontend env files; public frontend variables are visible to users.
+
+`NEXT_IMAGE_REMOTE_HOSTNAMES` may be set at build time with a comma-separated
+list of trusted HTTPS poster/CDN hostnames for Next.js image configuration. The
+movie poster surfaces intentionally pass externally supplied `poster_url` values
+through `next/image` with optimization disabled, so arbitrary API data is not
+fetched server-side by the Next.js image optimizer.
 
 The production build validates this required variable with:
 
@@ -198,14 +207,15 @@ time:
 ```bash
 docker build \
   --build-arg NEXT_PUBLIC_API_BASE_URL=https://api.example.com \
-  -t cinepolis-natal-frontend:prod \
+  --build-arg NEXT_IMAGE_REMOTE_HOSTNAMES=cdn.example.com \
+  -t cineprime-frontend:prod \
   frontend
 ```
 
 Run the production container:
 
 ```bash
-docker run --rm -p 3000:3000 cinepolis-natal-frontend:prod
+docker run --rm -p 3000:3000 cineprime-frontend:prod
 ```
 
 Static CDN or Nginx-only hosting should not be assumed for this app. Use that
