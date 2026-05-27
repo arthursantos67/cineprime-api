@@ -22,7 +22,9 @@ type HomeCatalogSectionsProps = {
   onRetryFeatured?: () => void;
   onRetryNowShowing?: () => void;
   onRetryPreSale?: () => void;
+  onRetryUpcoming?: () => void;
   preSale: MovieSectionState;
+  upcoming: MovieSectionState;
 };
 
 const loadingSectionState: MovieSectionState = {
@@ -36,6 +38,7 @@ export function HomeCatalog() {
   const [nowShowing, setNowShowing] =
     useState<MovieSectionState>(loadingSectionState);
   const [preSale, setPreSale] = useState<MovieSectionState>(loadingSectionState);
+  const [upcoming, setUpcoming] = useState<MovieSectionState>(loadingSectionState);
 
   const loadFeatured = useCallback(async () => {
     await loadMovieSection(
@@ -55,11 +58,16 @@ export function HomeCatalog() {
     await loadMovieSection(() => catalogApi.listPreSaleMovies(), setPreSale);
   }, []);
 
+  const loadUpcoming = useCallback(async () => {
+    await loadMovieSection(() => catalogApi.listUpcomingMovies(), setUpcoming);
+  }, []);
+
   useEffect(() => {
     void loadFeatured();
     void loadNowShowing();
     void loadPreSale();
-  }, [loadFeatured, loadNowShowing, loadPreSale]);
+    void loadUpcoming();
+  }, [loadFeatured, loadNowShowing, loadPreSale, loadUpcoming]);
 
   return (
     <HomeCatalogSections
@@ -68,7 +76,9 @@ export function HomeCatalog() {
       onRetryFeatured={() => void loadFeatured()}
       onRetryNowShowing={() => void loadNowShowing()}
       onRetryPreSale={() => void loadPreSale()}
+      onRetryUpcoming={() => void loadUpcoming()}
       preSale={preSale}
+      upcoming={upcoming}
     />
   );
 }
@@ -79,7 +89,9 @@ export function HomeCatalogSections({
   onRetryFeatured,
   onRetryNowShowing,
   onRetryPreSale,
+  onRetryUpcoming,
   preSale,
+  upcoming,
 }: HomeCatalogSectionsProps) {
   const featuredMovie = featured.movies[0];
 
@@ -149,6 +161,26 @@ export function HomeCatalogSections({
           loadingLabel="Carregando filmes em pré-venda..."
           movies={preSale.movies}
           title="Pré-venda"
+        />
+      )}
+
+      {upcoming.status === "error" ? (
+        <CatalogErrorState
+          message={
+            upcoming.errorMessage ??
+            "Não foi possível carregar os filmes em breve. Tente novamente."
+          }
+          onRetry={onRetryUpcoming}
+          title="Em breve indisponível"
+        />
+      ) : (
+        <MovieGrid
+          emptyDescription="Ainda não há filmes em breve no catálogo."
+          emptyTitle="Nenhum filme em breve"
+          isLoading={upcoming.status === "loading"}
+          loadingLabel="Carregando filmes em breve..."
+          movies={upcoming.movies}
+          title="Em breve"
         />
       )}
     </div>
