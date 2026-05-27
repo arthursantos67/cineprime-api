@@ -40,6 +40,7 @@ test("home catalog renders featured, now showing, and pre-sale movie sections", 
       featured: success([featuredMovie]),
       nowShowing: success([featuredMovie]),
       preSale: success([preSaleMovie]),
+      upcoming: success([]),
     })
   );
 
@@ -57,6 +58,7 @@ test("home catalog renders pt-BR loading and empty states", () => {
       featured: { movies: [], status: "loading" },
       nowShowing: success([]),
       preSale: success([]),
+      upcoming: success([]),
     })
   );
 
@@ -79,7 +81,9 @@ test("home catalog renders retry-oriented error states", () => {
       onRetryFeatured: () => undefined,
       onRetryNowShowing: () => undefined,
       onRetryPreSale: () => undefined,
+      onRetryUpcoming: () => undefined,
       preSale: errorState,
+      upcoming: errorState,
     })
   );
 
