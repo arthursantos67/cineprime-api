@@ -465,6 +465,50 @@ h1 {
   gap: 28px;
 }
 
+.catalog-discovery {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  box-shadow: var(--shadow-soft);
+  display: grid;
+  gap: 18px;
+  padding: 20px;
+}
+
+.catalog-discovery__header {
+  align-items: start;
+  display: grid;
+  gap: 16px;
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.catalog-discovery__header h2 {
+  font-size: 22px;
+  line-height: 1.25;
+  margin: 0;
+}
+
+.catalog-discovery__controls {
+  align-items: end;
+  display: grid;
+  gap: 14px;
+  grid-template-columns: minmax(220px, 1.2fr) minmax(240px, auto) minmax(180px, 0.8fr);
+}
+
+.catalog-filter-group {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.catalog-filter-help {
+  color: var(--color-muted);
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
 .movie-grid-section {
   display: grid;
   gap: 16px;
@@ -544,6 +588,31 @@ h1 {
 .movie-card__duration {
   color: var(--color-text);
   font-weight: 800;
+}
+
+.movie-card__availability {
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.35;
+  margin: 2px 0 0;
+  padding: 7px 9px;
+}
+
+.movie-card__availability--available {
+  background: #e8f5ee;
+  color: var(--color-success);
+}
+
+.movie-card__availability--loading,
+.movie-card__availability--unknown {
+  background: #eaf2ff;
+  color: #0b57b7;
+}
+
+.movie-card__availability--unavailable {
+  background: #f4f5f7;
+  color: var(--color-muted);
 }
 
 .movie-grid-loading {
@@ -1934,6 +2003,15 @@ h1 {
     padding: 24px;
   }
 
+  .catalog-discovery__header,
+  .catalog-discovery__controls {
+    grid-template-columns: 1fr;
+  }
+
+  .catalog-discovery__header .button {
+    justify-self: start;
+  }
+
   .movie-detail,
   .movie-detail-loading {
     grid-template-columns: 1fr;
@@ -2033,6 +2111,14 @@ h1 {
 
   .featured-movie__media {
     min-height: 320px;
+  }
+
+  .catalog-discovery {
+    padding: 18px;
+  }
+
+  .catalog-filter-group .button {
+    flex: 1 1 132px;
   }
 
   .movie-grid {

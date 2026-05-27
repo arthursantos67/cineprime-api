@@ -1,7 +1,9 @@
 import Link from "next/link";
+import { Suspense } from "react";
 
 import { HomeCatalog } from "./HomeCatalog";
 import { PageSection } from "@/components/ui/PageSection";
+import { StateMessage } from "@/components/ui/StateMessage";
 
 export default function HomePage() {
   return (
@@ -20,7 +22,15 @@ export default function HomePage() {
       eyebrow="Catálogo"
       title="CinePrime"
     >
-      <HomeCatalog />
+      <Suspense
+        fallback={
+          <StateMessage title="Carregando catálogo" tone="loading">
+            Preparando filtros e filmes disponíveis.
+          </StateMessage>
+        }
+      >
+        <HomeCatalog />
+      </Suspense>
     </PageSection>
   );
 }

@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 import { ResponsiveImage } from "@/components/ui/ResponsiveImage";
-import type { CatalogMovie } from "@/types/catalog";
+import type { CatalogMovie, MovieAvailabilityHint } from "@/types/catalog";
 
 import {
   formatMovieDuration,
@@ -10,10 +10,18 @@ import {
 } from "./movie-formatters";
 
 type MovieCardProps = {
+  availabilityHint?: MovieAvailabilityHint;
   movie: CatalogMovie;
 };
 
-export function MovieCard({ movie }: MovieCardProps) {
+const availabilityLabels: Record<MovieAvailabilityHint, string> = {
+  available: "Há sessões hoje ou nos próximos dias",
+  loading: "Consultando sessões próximas",
+  unavailable: "Sem sessões hoje ou nos próximos dias",
+  unknown: "Sessões próximas não confirmadas",
+};
+
+export function MovieCard({ availabilityHint, movie }: MovieCardProps) {
   const genres = formatMovieGenres(movie.genres);
   const duration = formatMovieDuration(movie.duration_minutes);
 
@@ -38,6 +46,13 @@ export function MovieCard({ movie }: MovieCardProps) {
           <h2 className="movie-card__title">{movie.title}</h2>
           <p className="movie-card__genres">{genres}</p>
           <p className="movie-card__duration">{duration}</p>
+          {availabilityHint ? (
+            <p
+              className={`movie-card__availability movie-card__availability--${availabilityHint}`}
+            >
+              {availabilityLabels[availabilityHint]}
+            </p>
+          ) : null}
         </div>
       </Link>
     </article>

@@ -1,5 +1,11 @@
 export type MovieStatus = "em_cartaz" | "pre_venda" | "em_breve";
 
+export type MovieAvailabilityHint =
+  | "available"
+  | "loading"
+  | "unavailable"
+  | "unknown";
+
 export type CatalogGenre = {
   id: string;
   name: string;

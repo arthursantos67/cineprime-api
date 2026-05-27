@@ -130,6 +130,21 @@ class MovieListCreateView(ListCreateAPIView):
         filters = {}
         status = self.request.query_params.get("status")
         is_featured = self.request.query_params.get("is_featured")
+        title = self.request.query_params.get("title")
+        genre = self.request.query_params.get("genre")
+
+        if title is not None:
+            normalized_title = title.strip()
+            if normalized_title:
+                filters["title"] = normalized_title
+
+        if genre is not None:
+            try:
+                filters["genre"] = uuid.UUID(genre)
+            except ValueError as exc:
+                raise ValidationError(
+                    {"genre": ["Invalid genre filter. Expected a valid UUID."]}
+                ) from exc
 
         if status is not None:
             if status not in MovieStatus.values:
@@ -169,6 +184,12 @@ class MovieListCreateView(ListCreateAPIView):
 
         if "is_featured" in filters:
             queryset = queryset.filter(is_featured=filters["is_featured"])
+
+        if "title" in filters:
+            queryset = queryset.filter(title__icontains=filters["title"])
+
+        if "genre" in filters:
+            queryset = queryset.filter(genres__id=filters["genre"]).distinct()
 
         return queryset
 

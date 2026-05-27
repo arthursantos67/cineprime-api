@@ -10,13 +10,16 @@ import type {
 import {
   apiRequest,
   isPaginatedResponse,
+  type ApiRequestOptions,
   type PaginatedResponse,
 } from "./client";
 
 export type ListMoviesParams = {
+  genre?: string;
   is_featured?: boolean;
   page?: number;
   status?: MovieStatus;
+  title?: string;
 };
 
 export type GetSessionsParams = {
@@ -27,10 +30,17 @@ export type GetSessionsParams = {
   start_to?: string;
 };
 
+type CatalogRequestOptions = Pick<ApiRequestOptions, "signal">;
+
+const GENRES_PATH = "/api/v1/catalog/genres/";
 const MOVIES_PATH = "/api/v1/catalog/movies/";
 const SESSIONS_PATH = "/api/v1/catalog/sessions/";
 
 export const catalogApi = {
+  listGenres(options: CatalogRequestOptions = {}) {
+    return listGenres(options);
+  },
+
   getMovie(movieId: string) {
     return getMovie(movieId);
   },
@@ -39,12 +49,12 @@ export const catalogApi = {
     return getSession(sessionId);
   },
 
-  getSessions(params: GetSessionsParams = {}) {
-    return getSessions(params);
+  getSessions(params: GetSessionsParams = {}, options: CatalogRequestOptions = {}) {
+    return getSessions(params, options);
   },
 
-  listMovies(params: ListMoviesParams = {}) {
-    return listMovies(params);
+  listMovies(params: ListMoviesParams = {}, options: CatalogRequestOptions = {}) {
+    return listMovies(params, options);
   },
 
   listFeaturedMovies() {
@@ -63,6 +73,23 @@ export const catalogApi = {
     return listMovies({ status: "em_breve" });
   },
 };
+
+async function listGenres(options: CatalogRequestOptions) {
+  const response = await apiRequest<unknown>(GENRES_PATH, {
+    ...options,
+    auth: "none",
+    method: "GET",
+  });
+
+  if (
+    !isPaginatedResponse<CatalogGenre>(response) ||
+    !response.results.every(isCatalogGenre)
+  ) {
+    throw new Error("Unexpected catalog genre list response.");
+  }
+
+  return response satisfies PaginatedResponse<CatalogGenre>;
+}
 
 async function getMovie(movieId: string) {
   const response = await apiRequest<unknown>(`${MOVIES_PATH}${movieId}/`, {
@@ -90,8 +117,12 @@ async function getSession(sessionId: string) {
   return response satisfies CatalogSession;
 }
 
-async function listMovies(params: ListMoviesParams) {
+async function listMovies(
+  params: ListMoviesParams,
+  options: CatalogRequestOptions = {}
+) {
   const response = await apiRequest<unknown>(buildMoviesPath(params), {
+    ...options,
     auth: "none",
     method: "GET",
   });
@@ -106,8 +137,12 @@ async function listMovies(params: ListMoviesParams) {
   return response satisfies PaginatedResponse<CatalogMovie>;
 }
 
-async function getSessions(params: GetSessionsParams) {
+async function getSessions(
+  params: GetSessionsParams,
+  options: CatalogRequestOptions = {}
+) {
   const response = await apiRequest<unknown>(buildSessionsPath(params), {
+    ...options,
     auth: "none",
     method: "GET",
   });
@@ -197,11 +232,25 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
 }
 
-function buildMoviesPath({ is_featured, page, status }: ListMoviesParams) {
+function buildMoviesPath({
+  genre,
+  is_featured,
+  page,
+  status,
+  title,
+}: ListMoviesParams) {
   const searchParams = new URLSearchParams();
 
   if (status) {
     searchParams.set("status", status);
+  }
+
+  if (genre) {
+    searchParams.set("genre", genre);
+  }
+
+  if (title) {
+    searchParams.set("title", title);
   }
 
   if (is_featured !== undefined) {
