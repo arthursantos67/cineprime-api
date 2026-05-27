@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 
 import { catalogApi } from "@/api/catalog";
 import { FeaturedMovieBanner } from "@/components/movies";
-import { MovieGrid } from "@/components/movies";
+import { MovieCarousel } from "@/components/movies";
 import { StateMessage } from "@/components/ui/StateMessage";
 import type { CatalogMovie } from "@/types/catalog";
 
@@ -93,8 +93,6 @@ export function HomeCatalogSections({
   preSale,
   upcoming,
 }: HomeCatalogSectionsProps) {
-  const featuredMovie = featured.movies[0];
-
   return (
     <div className="home-catalog" id="catalogo">
       {featured.status === "loading" ? (
@@ -114,14 +112,17 @@ export function HomeCatalogSections({
         />
       ) : null}
 
-      {featured.status === "success" && !featuredMovie ? (
+      {featured.status === "success" && featured.movies.length === 0 ? (
         <StateMessage title="Nenhum destaque disponível">
           Ainda não há filme marcado como destaque no catálogo.
         </StateMessage>
       ) : null}
 
-      {featured.status === "success" && featuredMovie ? (
-        <FeaturedMovieBanner movie={featuredMovie} primaryActionLabel="Ver detalhes" />
+      {featured.status === "success" && featured.movies.length > 0 ? (
+        <FeaturedMovieBanner
+          movies={featured.movies}
+          primaryActionLabel="Ver detalhes"
+        />
       ) : null}
 
       {nowShowing.status === "error" ? (
@@ -134,7 +135,7 @@ export function HomeCatalogSections({
           title="Em cartaz indisponível"
         />
       ) : (
-        <MovieGrid
+        <MovieCarousel
           emptyDescription="Ainda não há filmes em cartaz no catálogo."
           emptyTitle="Nenhum filme em cartaz"
           isLoading={nowShowing.status === "loading"}
@@ -154,7 +155,7 @@ export function HomeCatalogSections({
           title="Pré-venda indisponível"
         />
       ) : (
-        <MovieGrid
+        <MovieCarousel
           emptyDescription="Ainda não há filmes em pré-venda no catálogo."
           emptyTitle="Nenhum filme em pré-venda"
           isLoading={preSale.status === "loading"}
@@ -174,7 +175,7 @@ export function HomeCatalogSections({
           title="Em breve indisponível"
         />
       ) : (
-        <MovieGrid
+        <MovieCarousel
           emptyDescription="Ainda não há filmes em breve no catálogo."
           emptyTitle="Nenhum filme em breve"
           isLoading={upcoming.status === "loading"}
