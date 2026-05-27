@@ -66,17 +66,26 @@ test("auth API module does not persist tokens in browser storage", () => {
   );
 });
 
-test("auth persistence module uses sessionStorage only (not localStorage)", () => {
+test("auth persistence module uses sessionStorage by default and localStorage only when persistent flag is set", () => {
   const source = readSrc("auth-persistence.ts");
-  assert.doesNotMatch(
-    source,
-    LOCAL_STORAGE,
-    "auth-persistence.ts must not use localStorage — refresh tokens go in sessionStorage only"
-  );
   assert.match(
     source,
     SESSION_STORAGE,
-    "auth-persistence.ts must use sessionStorage for refresh token persistence"
+    "auth-persistence.ts must use sessionStorage for non-persistent refresh token storage"
+  );
+  assert.match(
+    source,
+    LOCAL_STORAGE,
+    "auth-persistence.ts must use localStorage when persistent flag is true"
+  );
+  // Assert the exact conditional relationship:
+  // if (persistent) { localStorage.setItem ... } else { sessionStorage.setItem ... }
+  // This prevents regressions where localStorage is written unconditionally or the
+  // branches are swapped.
+  assert.match(
+    source,
+    /if\s*\(\s*persistent\s*\)[\s\S]*?localStorage\.setItem[\s\S]*?else[\s\S]*?sessionStorage\.setItem/,
+    "auth-persistence.ts must use if(persistent) → localStorage.setItem and else → sessionStorage.setItem"
   );
 });
 

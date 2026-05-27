@@ -66,6 +66,15 @@ export function LoginFormView({
             type="password"
           />
         </div>
+        <div className="form-field form-field-checkbox">
+          <label htmlFor="stayLoggedIn">Continuar conectado</label>
+          <input
+            disabled={isSubmitting}
+            id="stayLoggedIn"
+            name="stayLoggedIn"
+            type="checkbox"
+          />
+        </div>
         {errorMessage ? (
           <p className="form-error" id="login-form-error" role="alert">
             {errorMessage}
@@ -94,9 +103,10 @@ export function LoginForm() {
     const formData = new FormData(event.currentTarget);
     const email = String(formData.get("email") ?? "");
     const password = String(formData.get("password") ?? "");
+    const stayLoggedIn = formData.get("stayLoggedIn") === "on";
 
     try {
-      await login({ email, password });
+      await login({ email, password }, { stayLoggedIn });
       const search = typeof window === "undefined" ? "" : window.location.search;
       router.replace(getSafeRedirectFromSearch(search));
     } catch (error) {
