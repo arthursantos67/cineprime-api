@@ -24,16 +24,6 @@ const paginatedMoviesResponse = {
   results: [],
 };
 
-const paginatedGenresResponse = {
-  count: 2,
-  next: null,
-  previous: null,
-  results: [
-    { id: "genre-1", name: "Aventura" },
-    { id: "genre-2", name: "Drama" },
-  ],
-};
-
 const upcomingMovieSummary = {
   duration_minutes: 112,
   genres: [{ id: "genre-2", name: "Drama" }],
@@ -141,25 +131,6 @@ test("catalogApi lists movies through the public catalog endpoint", async () => 
   }
 });
 
-test("catalogApi lists genres through the public catalog endpoint", async () => {
-  const originalFetch = globalThis.fetch;
-
-  try {
-    globalThis.fetch = async (input, init) => {
-      assert.equal(input, "http://localhost:8000/api/v1/catalog/genres/");
-      assert.equal(init?.method, "GET");
-
-      return Response.json(paginatedGenresResponse);
-    };
-
-    const response = await catalogApi.listGenres();
-
-    assert.deepEqual(response, paginatedGenresResponse);
-  } finally {
-    globalThis.fetch = originalFetch;
-  }
-});
-
 test("catalogApi gets a session through the public catalog detail endpoint", async () => {
   const originalFetch = globalThis.fetch;
   const sessionDetailResponse = sessionResponse.results[0];
@@ -198,11 +169,9 @@ test("catalogApi builds supported movie filters", async () => {
     await catalogApi.listPreSaleMovies();
     await catalogApi.listUpcomingMovies();
     await catalogApi.listMovies({
-      genre: "genre-1",
       is_featured: true,
       page: 2,
       status: "em_cartaz",
-      title: "jornada",
     });
 
     assert.deepEqual(requestedUrls, [
@@ -210,7 +179,7 @@ test("catalogApi builds supported movie filters", async () => {
       "http://localhost:8000/api/v1/catalog/movies/?status=em_cartaz",
       "http://localhost:8000/api/v1/catalog/movies/?status=pre_venda",
       "http://localhost:8000/api/v1/catalog/movies/?status=em_breve",
-      "http://localhost:8000/api/v1/catalog/movies/?status=em_cartaz&genre=genre-1&title=jornada&is_featured=true&page=2",
+      "http://localhost:8000/api/v1/catalog/movies/?status=em_cartaz&is_featured=true&page=2",
     ]);
   } finally {
     globalThis.fetch = originalFetch;
@@ -415,22 +384,6 @@ test("catalogApi rejects unexpected non-paginated movie responses", async () => 
     await assert.rejects(
       catalogApi.listMovies(),
       /Unexpected catalog movie list response/
-    );
-  } finally {
-    globalThis.fetch = originalFetch;
-  }
-});
-
-test("catalogApi rejects unexpected genre list responses", async () => {
-  const originalFetch = globalThis.fetch;
-
-  try {
-    globalThis.fetch = async () =>
-      Response.json({ count: 1, next: null, previous: null, results: [{ id: 1 }] });
-
-    await assert.rejects(
-      catalogApi.listGenres(),
-      /Unexpected catalog genre list response/
     );
   } finally {
     globalThis.fetch = originalFetch;

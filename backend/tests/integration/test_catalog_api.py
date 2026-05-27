@@ -494,58 +494,6 @@ class TestCatalogApi:
         assert response.data["results"][0]["id"] == str(featured_movie.id)
         assert response.data["results"][0]["is_featured"] is True
 
-    def test_list_movies_can_search_by_partial_title(self, api_client, genre):
-        searched_movie = self.create_movie(title="The Hidden Harbor", genre=genre)
-        self.create_movie(title="Night Session", genre=genre)
-
-        response = api_client.get("/api/v1/catalog/movies/?title=hidden")
-
-        assert response.status_code == status.HTTP_200_OK
-        assert response.data["count"] == 1
-        assert response.data["results"][0]["id"] == str(searched_movie.id)
-
-    def test_list_movies_can_filter_by_genre(self, api_client, genre, second_genre):
-        genre_movie = self.create_movie(title="Crime Story", genre=second_genre)
-        self.create_movie(title="Drama Story", genre=genre)
-
-        response = api_client.get(f"/api/v1/catalog/movies/?genre={second_genre.id}")
-
-        assert response.status_code == status.HTTP_200_OK
-        assert response.data["count"] == 1
-        assert response.data["results"][0]["id"] == str(genre_movie.id)
-        assert response.data["results"][0]["genres"][0]["id"] == str(second_genre.id)
-
-    def test_list_movies_can_combine_title_genre_and_status_filters(
-        self,
-        api_client,
-        genre,
-        second_genre,
-    ):
-        matching_movie = self.create_movie(
-            title="Solar Crime",
-            genre=second_genre,
-            status=MovieStatus.PRE_VENDA,
-        )
-        self.create_movie(
-            title="Solar Drama",
-            genre=genre,
-            status=MovieStatus.PRE_VENDA,
-        )
-        self.create_movie(
-            title="Crime Archive",
-            genre=second_genre,
-            status=MovieStatus.EM_CARTAZ,
-        )
-
-        response = api_client.get(
-            "/api/v1/catalog/movies/"
-            f"?title=solar&genre={second_genre.id}&status={MovieStatus.PRE_VENDA}"
-        )
-
-        assert response.status_code == status.HTTP_200_OK
-        assert response.data["count"] == 1
-        assert response.data["results"][0]["id"] == str(matching_movie.id)
-
     def test_list_movies_rejects_invalid_status_filter(self, api_client, genre):
         self.create_movie(title="Current Movie", genre=genre)
 
@@ -564,15 +512,6 @@ class TestCatalogApi:
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert response.data["error"]["code"] == "VALIDATION_FAILED"
         assert "is_featured" in response.data["error"]["details"]
-
-    def test_list_movies_rejects_invalid_genre_filter(self, api_client, genre):
-        self.create_movie(title="Current Movie", genre=genre)
-
-        response = api_client.get("/api/v1/catalog/movies/?genre=not-a-uuid")
-
-        assert response.status_code == status.HTTP_400_BAD_REQUEST
-        assert response.data["error"]["code"] == "VALIDATION_FAILED"
-        assert "genre" in response.data["error"]["details"]
 
     def test_invalid_movie_filter_should_not_return_cached_response(self, api_client):
         cache.set(

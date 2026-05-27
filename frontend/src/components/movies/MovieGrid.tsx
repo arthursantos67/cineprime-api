@@ -1,4 +1,4 @@
-import type { CatalogMovie, MovieAvailabilityHint } from "@/types/catalog";
+import type { CatalogMovie } from "@/types/catalog";
 
 import { StateMessage } from "@/components/ui/StateMessage";
 
@@ -6,7 +6,6 @@ import { MovieCard } from "./MovieCard";
 
 type MovieGridProps = {
   ariaLabel?: string;
-  availabilityByMovieId?: Record<string, MovieAvailabilityHint>;
   emptyDescription?: string;
   emptyTitle?: string;
   isLoading?: boolean;
@@ -18,7 +17,6 @@ type MovieGridProps = {
 
 export function MovieGrid({
   ariaLabel,
-  availabilityByMovieId = {},
   emptyDescription = "Nenhum filme foi encontrado para esta seção.",
   emptyTitle = "Nenhum filme disponível",
   isLoading = false,
@@ -70,10 +68,7 @@ export function MovieGrid({
         <ul className="movie-grid" role="list">
           {movies.map((movie) => (
             <li className="movie-grid__item" key={movie.id}>
-              <MovieCard
-                availabilityHint={availabilityByMovieId[movie.id]}
-                movie={movie}
-              />
+              <MovieCard movie={movie} />
             </li>
           ))}
         </ul>

@@ -439,8 +439,6 @@ return `404` and are not documented in OpenAPI.
 
 | Parameter | Type | Description |
 |---|---|---|
-| `title` | string | Case-insensitive partial title search |
-| `genre` | UUID | Filter by an existing genre id |
 | `status` | string | Filter by `em_cartaz`, `pre_venda`, or `em_breve` |
 | `is_featured` | boolean | Filter featured movies for the home banner |
 

@@ -141,6 +141,10 @@ async function handleApiRoute(route: Route, state: ApiRouteState) {
       return json(route, paginated([preSaleMovie]));
     }
 
+    if (url.searchParams.get("status") === "em_breve") {
+      return json(route, paginated([upcomingMovie]));
+    }
+
     return json(route, paginated([movie]));
   }
 
@@ -297,6 +301,14 @@ const preSaleMovie = {
   is_featured: false,
   status: "pre_venda",
   title: "Estreia da Semana",
+};
+
+const upcomingMovie = {
+  ...movie,
+  id: "movie-upcoming",
+  is_featured: false,
+  status: "em_breve",
+  title: "Em Breve em Natal",
 };
 
 const session = {

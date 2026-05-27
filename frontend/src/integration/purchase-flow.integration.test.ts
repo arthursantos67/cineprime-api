@@ -85,6 +85,16 @@ const preSaleMovie: CatalogMovie = {
   title: "Estreia da Semana",
 };
 
+const upcomingMovie: CatalogMovie = {
+  duration_minutes: 96,
+  genres: [{ id: "genre-family", name: "Família" }],
+  id: "movie-789",
+  is_featured: false,
+  poster_url: "https://cdn.example.com/em-breve.jpg",
+  status: "em_breve",
+  title: "Em Breve na Tela",
+};
+
 const session: CatalogSession = {
   base_price: "42.50",
   created_at: "2026-05-21T10:00:00-03:00",
@@ -250,24 +260,9 @@ test("mocked integration covers home to confirmation purchase journey", async ()
   await withMockedFetch(
     [
       route("GET", "/api/v1/catalog/movies/?is_featured=true", paginated([movie])),
-      route(
-        "GET",
-        "/api/v1/catalog/genres/",
-        paginated([
-          { id: "genre-adventure", name: "Aventura" },
-          { id: "genre-drama", name: "Drama" },
-        ])
-      ),
-      route(
-        "GET",
-        "/api/v1/catalog/movies/?status=em_cartaz&genre=genre-adventure&title=jornada",
-        paginated([movie])
-      ),
-      route(
-        "GET",
-        "/api/v1/catalog/sessions/?movie=movie-123&start_from=2026-05-25T00%3A00%3A00-03%3A00&start_to=2026-05-28T00%3A00%3A00-03%3A00",
-        paginated([session])
-      ),
+      route("GET", "/api/v1/catalog/movies/?status=em_cartaz", paginated([movie])),
+      route("GET", "/api/v1/catalog/movies/?status=pre_venda", paginated([preSaleMovie])),
+      route("GET", "/api/v1/catalog/movies/?status=em_breve", paginated([upcomingMovie])),
       route("GET", "/api/v1/catalog/movies/movie-123/", movie),
       route("GET", "/api/v1/catalog/sessions/?movie=movie-123&date=2026-05-25", paginated([session])),
       route("GET", "/api/v1/reservation/sessions/session-123/seats/", seatMap),
@@ -278,41 +273,22 @@ test("mocked integration covers home to confirmation purchase journey", async ()
     requests,
     async () => {
       const featured = await catalogApi.listFeaturedMovies();
-      const genres = await catalogApi.listGenres();
-      const discovery = await catalogApi.listMovies({
-        genre: "genre-adventure",
-        status: "em_cartaz",
-        title: "jornada",
-      });
-      const availability = await catalogApi.getSessions({
-        movie: "movie-123",
-        start_from: "2026-05-25T00:00:00-03:00",
-        start_to: "2026-05-28T00:00:00-03:00",
-      });
+      const nowShowing = await catalogApi.listNowShowingMovies();
+      const preSale = await catalogApi.listPreSaleMovies();
+      const upcoming = await catalogApi.listUpcomingMovies();
       const homeHtml = renderToStaticMarkup(
         createElement(HomeCatalogSections, {
-          discovery: {
-            availabilityByMovieId: {
-              "movie-123": availability.count > 0 ? "available" : "unavailable",
-            },
-            movies: discovery.results,
-            status: "success",
-          },
           featured: { movies: featured.results, status: "success" },
-          filters: {
-            genre: "genre-adventure",
-            status: "em_cartaz",
-            title: "jornada",
-          },
-          genres: { genres: genres.results, status: "success" },
-          searchValue: "jornada",
+          nowShowing: { movies: nowShowing.results, status: "success" },
+          preSale: { movies: preSale.results, status: "success" },
+          upcoming: { movies: upcoming.results, status: "success" },
         })
       );
 
       assert.match(homeHtml, /Filme em destaque: A Jornada/);
       assert.match(homeHtml, /href="\/movies\/movie-123"/);
-      assert.match(homeHtml, /Encontrar filmes/);
-      assert.match(homeHtml, /Há sessões hoje ou nos próximos dias/);
+      assert.match(homeHtml, /Pré-venda/);
+      assert.match(homeHtml, /Em breve/);
 
       const movieDetail = await catalogApi.getMovie("movie-123");
       const movieHtml = renderToStaticMarkup(
@@ -434,19 +410,9 @@ test("mocked integration covers home to confirmation purchase journey", async ()
     requests.map(({ body, method, path }) => ({ body, method, path })),
     [
       { body: undefined, method: "GET", path: "/api/v1/catalog/movies/?is_featured=true" },
-      { body: undefined, method: "GET", path: "/api/v1/catalog/genres/" },
-      {
-        body: undefined,
-        method: "GET",
-        path:
-          "/api/v1/catalog/movies/?status=em_cartaz&genre=genre-adventure&title=jornada",
-      },
-      {
-        body: undefined,
-        method: "GET",
-        path:
-          "/api/v1/catalog/sessions/?movie=movie-123&start_from=2026-05-25T00%3A00%3A00-03%3A00&start_to=2026-05-28T00%3A00%3A00-03%3A00",
-      },
+      { body: undefined, method: "GET", path: "/api/v1/catalog/movies/?status=em_cartaz" },
+      { body: undefined, method: "GET", path: "/api/v1/catalog/movies/?status=pre_venda" },
+      { body: undefined, method: "GET", path: "/api/v1/catalog/movies/?status=em_breve" },
       { body: undefined, method: "GET", path: "/api/v1/catalog/movies/movie-123/" },
       {
         body: undefined,

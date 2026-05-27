@@ -7,14 +7,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 
 import type { CatalogMovie } from "@/types/catalog";
 
-import {
-  getMovieDiscoveryFiltersFromSearchParams,
-  HomeCatalogSections,
-  type GenreFilterState,
-  type MovieDiscoveryFilters,
-  type MovieDiscoveryState,
-  type MovieSectionState,
-} from "./HomeCatalog";
+import { HomeCatalogSections, type MovieSectionState } from "./HomeCatalog";
 
 (globalThis as typeof globalThis & { React: typeof React }).React = React;
 
@@ -36,18 +29,12 @@ const preSaleMovie: CatalogMovie = {
   title: "Estreia da Semana",
 };
 
-const emptyFilters: MovieDiscoveryFilters = {
-  genre: null,
-  status: null,
-  title: "",
-};
-
-const genres: GenreFilterState = {
-  genres: [
-    { id: "genre-1", name: "Aventura" },
-    { id: "genre-2", name: "Drama" },
-  ],
-  status: "success",
+const upcomingMovie: CatalogMovie = {
+  ...featuredMovie,
+  id: "upcoming-1",
+  is_featured: false,
+  status: "em_breve",
+  title: "Em Breve na Tela",
 };
 
 const success = (movies: CatalogMovie[]): MovieSectionState => ({
@@ -55,78 +42,63 @@ const success = (movies: CatalogMovie[]): MovieSectionState => ({
   status: "success",
 });
 
-const discoverySuccess = (
-  movies: CatalogMovie[],
-  availabilityByMovieId: MovieDiscoveryState["availabilityByMovieId"] = {}
-): MovieDiscoveryState => ({
-  availabilityByMovieId,
-  movies,
-  status: "success",
-});
-
-function renderHomeCatalog(
-  overrides: Partial<React.ComponentProps<typeof HomeCatalogSections>> = {}
-) {
-  return renderToStaticMarkup(
+test("home catalog renders featured, now showing, pre-sale, and upcoming movie sections", () => {
+  const html = renderToStaticMarkup(
     createElement(HomeCatalogSections, {
-      discovery: discoverySuccess([featuredMovie, preSaleMovie], {
-        "featured-1": "available",
-        "pre-sale-1": "unavailable",
-      }),
       featured: success([featuredMovie]),
-      filters: emptyFilters,
-      genres,
-      searchValue: "",
-      ...overrides,
+      nowShowing: success([featuredMovie]),
+      preSale: success([preSaleMovie]),
+      upcoming: success([upcomingMovie]),
     })
   );
-}
-
-test("home catalog renders featured movie, search controls, filters, and results", () => {
-  const html = renderHomeCatalog();
 
   assert.match(html, /Filme em destaque: A Jornada/);
   assert.match(html, /href="\/movies\/featured-1"/);
-  assert.match(html, /Encontrar filmes/);
-  assert.match(html, /Ex.: A Jornada/);
-  assert.match(html, /Todos/);
   assert.match(html, /Em cartaz/);
   assert.match(html, /Pré-venda/);
-  assert.match(html, /Em breve/);
-  assert.match(html, /Todos os gêneros/);
-  assert.match(html, /Drama/);
   assert.match(html, /Estreia da Semana/);
-  assert.match(html, /Há sessões hoje ou nos próximos dias/);
-  assert.match(html, /Sem sessões hoje ou nos próximos dias/);
+  assert.match(html, /Em breve/);
+  assert.match(html, /Em Breve na Tela/);
   assert.doesNotMatch(html, /age_rating|room_type|audio_format/i);
 });
 
-test("home catalog renders pt-BR loading and empty states with clear filters action", () => {
-  const loadingHtml = renderHomeCatalog({
-    discovery: {
-      availabilityByMovieId: {},
-      movies: [],
-      status: "loading",
-    },
-    featured: { movies: [], status: "loading" },
-  });
+test("home catalog renders controls for multiple featured movies", () => {
+  const secondFeaturedMovie: CatalogMovie = {
+    ...featuredMovie,
+    id: "featured-2",
+    title: "Outra Jornada",
+  };
 
-  assert.match(loadingHtml, /Carregando filme em destaque/);
-  assert.match(loadingHtml, /Buscando filmes/);
+  const html = renderToStaticMarkup(
+    createElement(HomeCatalogSections, {
+      featured: success([featuredMovie, secondFeaturedMovie]),
+      nowShowing: success([]),
+      preSale: success([]),
+      upcoming: success([]),
+    })
+  );
 
-  const emptyHtml = renderHomeCatalog({
-    discovery: discoverySuccess([]),
-    filters: {
-      genre: "genre-2",
-      status: "pre_venda",
-      title: "inexistente",
-    },
-    onClearFilters: () => undefined,
-    searchValue: "inexistente",
-  });
+  assert.match(html, /Filme em destaque: A Jornada/);
+  assert.match(html, /Filme em destaque: Outra Jornada/);
+  assert.match(html, /Mostrar destaque anterior/);
+  assert.match(html, /Mostrar próximo destaque/);
+  assert.match(html, /href="\/movies\/featured-2"/);
+});
 
-  assert.match(emptyHtml, /Nenhum filme encontrado/);
-  assert.match(emptyHtml, /Limpar filtros/);
+test("home catalog renders pt-BR loading and empty states", () => {
+  const html = renderToStaticMarkup(
+    createElement(HomeCatalogSections, {
+      featured: { movies: [], status: "loading" },
+      nowShowing: success([]),
+      preSale: success([]),
+      upcoming: success([]),
+    })
+  );
+
+  assert.match(html, /Carregando filme em destaque/);
+  assert.match(html, /Nenhum filme em cartaz/);
+  assert.match(html, /Ainda não há filmes em pré-venda no catálogo./);
+  assert.match(html, /Nenhum filme em breve/);
 });
 
 test("home catalog renders retry-oriented error states", () => {
@@ -136,37 +108,43 @@ test("home catalog renders retry-oriented error states", () => {
     status: "error",
   };
 
-  const html = renderHomeCatalog({
-    discovery: {
-      availabilityByMovieId: {},
-      errorMessage: "Não foi possível buscar filmes agora.",
-      movies: [],
-      status: "error",
-    },
-    featured: errorState,
-    onRetryDiscovery: () => undefined,
-    onRetryFeatured: () => undefined,
-  });
+  const html = renderToStaticMarkup(
+    createElement(HomeCatalogSections, {
+      featured: errorState,
+      nowShowing: errorState,
+      onRetryFeatured: () => undefined,
+      onRetryNowShowing: () => undefined,
+      onRetryPreSale: () => undefined,
+      onRetryUpcoming: () => undefined,
+      preSale: errorState,
+      upcoming: errorState,
+    })
+  );
 
   assert.match(html, /Destaque indisponível/);
-  assert.match(html, /Busca indisponível/);
+  assert.match(html, /Em cartaz indisponível/);
+  assert.match(html, /Pré-venda indisponível/);
+  assert.match(html, /Em breve indisponível/);
   assert.match(html, /Tentar novamente/);
 });
 
-test("home catalog URL parser keeps only supported status values", () => {
-  const validParams = new URLSearchParams(
-    "q=jornada&status=em_breve&genre=genre-1"
-  );
-  const invalidParams = new URLSearchParams("q=x&status=fora&genre=");
+test("home catalog keeps successful sections visible when another section errors", () => {
+  const errorState: MovieSectionState = {
+    errorMessage: "Falha localizada.",
+    movies: [],
+    status: "error",
+  };
 
-  assert.deepEqual(getMovieDiscoveryFiltersFromSearchParams(validParams), {
-    genre: "genre-1",
-    status: "em_breve",
-    title: "jornada",
-  });
-  assert.deepEqual(getMovieDiscoveryFiltersFromSearchParams(invalidParams), {
-    genre: null,
-    status: null,
-    title: "x",
-  });
+  const html = renderToStaticMarkup(
+    createElement(HomeCatalogSections, {
+      featured: success([featuredMovie]),
+      nowShowing: errorState,
+      preSale: success([preSaleMovie]),
+      upcoming: success([upcomingMovie]),
+    })
+  );
+
+  assert.match(html, /Em cartaz indisponível/);
+  assert.match(html, /Estreia da Semana/);
+  assert.match(html, /Em Breve na Tela/);
 });

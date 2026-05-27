@@ -508,7 +508,7 @@ Login response:
 
 | Operation | Method | Endpoint | Auth | Query Parameters |
 |---|---|---|---|---|
-| List movies | `GET` | `/api/v1/catalog/movies/` | No | `title`, `genre`, `status`, `is_featured` |
+| List movies | `GET` | `/api/v1/catalog/movies/` | No | `status`, `is_featured` |
 | Get movie | `GET` | `/api/v1/catalog/movies/{id}/` | No | none |
 | List sessions | `GET` | `/api/v1/catalog/sessions/` | No | `movie`, `date`, `start_from`, `start_to` |
 | Get session | `GET` | `/api/v1/catalog/sessions/{id}/` | No | none |
@@ -542,8 +542,6 @@ Important contract notes:
 
 - The session movie filter is named `movie`, not `movie_id`.
 - `movie` expects a UUID.
-- The movie genre filter is named `genre` and expects a genre UUID.
-- The movie title filter is named `title` and supports partial matches.
 - Movie `status` values are `em_cartaz`, `pre_venda`, and `em_breve`.
 - The current backend does not expose `age_rating`, `room_type`, or `audio_format`.
 - `genres` is a list of `{ id, name }`.
