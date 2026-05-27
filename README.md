@@ -1,4 +1,4 @@
-# Cinepolis Natal
+# Cineprime
 
 Full-stack cinema reservation system with a Django/DRF backend and a browser-based SPA frontend.
 
@@ -47,7 +47,7 @@ Common root-level Docker commands:
 ```bash
 docker compose exec backend python manage.py migrate
 docker compose exec backend pytest -q
-docker compose exec celery celery -A cinepolis_natal_api inspect ping
+docker compose exec celery celery -A cineprime_api inspect ping
 ```
 
 ## Frontend

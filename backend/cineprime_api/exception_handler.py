@@ -13,7 +13,7 @@ from rest_framework.exceptions import (
 from rest_framework.response import Response
 from rest_framework.views import exception_handler as drf_exception_handler
 
-logger = logging.getLogger("cinepolis.api.errors")
+logger = logging.getLogger("cineprime.api.errors")
 
 
 def _extract_correlation_id(request):

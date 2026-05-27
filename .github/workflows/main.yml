@@ -26,7 +26,7 @@ jobs:
           SECRET_KEY=ci-secret-key
           DEBUG=False
           ALLOWED_HOSTS=127.0.0.1,localhost,backend
-          POSTGRES_DB=cinepolis_natal
+          POSTGRES_DB=cineprime
           POSTGRES_USER=postgres
           POSTGRES_PASSWORD=postgres
           POSTGRES_HOST=db
@@ -110,7 +110,7 @@ jobs:
           cat << 'EOF' > .env
           SECRET_KEY=ci-secret-key
           DEBUG=False
-          POSTGRES_DB=cinepolis_natal
+          POSTGRES_DB=cineprime
           POSTGRES_USER=postgres
           POSTGRES_PASSWORD=postgres
           POSTGRES_HOST=db
@@ -124,7 +124,7 @@ jobs:
         run: docker compose -f docker-compose.yml config
 
       - name: Build backend image
-        run: docker build -t cinepolis-natal-backend:ci backend
+        run: docker build -t cineprime-backend:ci backend
 
       - name: Build frontend image
-        run: docker build --build-arg NEXT_PUBLIC_API_BASE_URL=http://localhost:8000 -t cinepolis-natal-frontend:ci frontend
+        run: docker build --build-arg NEXT_PUBLIC_API_BASE_URL=http://localhost:8000 -t cineprime-frontend:ci frontend
