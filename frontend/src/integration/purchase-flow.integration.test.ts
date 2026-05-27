@@ -85,6 +85,16 @@ const preSaleMovie: CatalogMovie = {
   title: "Estreia da Semana",
 };
 
+const upcomingMovie: CatalogMovie = {
+  duration_minutes: 96,
+  genres: [{ id: "genre-family", name: "Família" }],
+  id: "movie-789",
+  is_featured: false,
+  poster_url: "https://cdn.example.com/em-breve.jpg",
+  status: "em_breve",
+  title: "Em Breve na Tela",
+};
+
 const session: CatalogSession = {
   base_price: "42.50",
   created_at: "2026-05-21T10:00:00-03:00",
@@ -252,6 +262,7 @@ test("mocked integration covers home to confirmation purchase journey", async ()
       route("GET", "/api/v1/catalog/movies/?is_featured=true", paginated([movie])),
       route("GET", "/api/v1/catalog/movies/?status=em_cartaz", paginated([movie])),
       route("GET", "/api/v1/catalog/movies/?status=pre_venda", paginated([preSaleMovie])),
+      route("GET", "/api/v1/catalog/movies/?status=em_breve", paginated([upcomingMovie])),
       route("GET", "/api/v1/catalog/movies/movie-123/", movie),
       route("GET", "/api/v1/catalog/sessions/?movie=movie-123&date=2026-05-25", paginated([session])),
       route("GET", "/api/v1/reservation/sessions/session-123/seats/", seatMap),
@@ -264,18 +275,20 @@ test("mocked integration covers home to confirmation purchase journey", async ()
       const featured = await catalogApi.listFeaturedMovies();
       const nowShowing = await catalogApi.listNowShowingMovies();
       const preSale = await catalogApi.listPreSaleMovies();
+      const upcoming = await catalogApi.listUpcomingMovies();
       const homeHtml = renderToStaticMarkup(
         createElement(HomeCatalogSections, {
           featured: { movies: featured.results, status: "success" },
           nowShowing: { movies: nowShowing.results, status: "success" },
           preSale: { movies: preSale.results, status: "success" },
-          upcoming: { movies: [], status: "success" },
+          upcoming: { movies: upcoming.results, status: "success" },
         })
       );
 
       assert.match(homeHtml, /Filme em destaque: A Jornada/);
       assert.match(homeHtml, /href="\/movies\/movie-123"/);
       assert.match(homeHtml, /Pré-venda/);
+      assert.match(homeHtml, /Em breve/);
 
       const movieDetail = await catalogApi.getMovie("movie-123");
       const movieHtml = renderToStaticMarkup(
@@ -399,6 +412,7 @@ test("mocked integration covers home to confirmation purchase journey", async ()
       { body: undefined, method: "GET", path: "/api/v1/catalog/movies/?is_featured=true" },
       { body: undefined, method: "GET", path: "/api/v1/catalog/movies/?status=em_cartaz" },
       { body: undefined, method: "GET", path: "/api/v1/catalog/movies/?status=pre_venda" },
+      { body: undefined, method: "GET", path: "/api/v1/catalog/movies/?status=em_breve" },
       { body: undefined, method: "GET", path: "/api/v1/catalog/movies/movie-123/" },
       {
         body: undefined,

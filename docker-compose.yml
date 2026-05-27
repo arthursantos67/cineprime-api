@@ -29,6 +29,7 @@ services:
       - "3000:3000"
     environment:
       NEXT_PUBLIC_API_BASE_URL: http://localhost:8000
+      NEXT_IMAGE_REMOTE_HOSTNAMES: image.tmdb.org,m.media-amazon.com,encrypted-tbn0.gstatic.com,img1.ibxk.com.br
     depends_on:
       - backend
 
