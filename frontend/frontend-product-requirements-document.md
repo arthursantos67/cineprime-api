@@ -174,10 +174,11 @@ Responsibilities:
 
 The home page must display a featured movie banner using movies where `is_featured = true`.
 
-Below the banner, the page must show two catalog sections:
+Below the banner, catalog sections are populated by movie lifecycle status:
 
 - **Now Showing**: movies with `status = em_cartaz`
 - **Pre-Sale**: movies with `status = pre_venda`
+- **Upcoming**: movies with `status = em_breve` when an upcoming rail or view is displayed
 
 Each movie card must show poster, title, genres, and duration. Clicking a movie card must navigate to `/movies/{movieId}`.
 
@@ -541,6 +542,7 @@ Important contract notes:
 
 - The session movie filter is named `movie`, not `movie_id`.
 - `movie` expects a UUID.
+- Movie `status` values are `em_cartaz`, `pre_venda`, and `em_breve`.
 - The current backend does not expose `age_rating`, `room_type`, or `audio_format`.
 - `genres` is a list of `{ id, name }`.
 

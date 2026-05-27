@@ -127,7 +127,7 @@ The system shall provide endpoints for genres, movies, rooms, and sessions with 
 
 ### FR-04a Movie Status and Featured Flag
 
-The Movie model shall include a `status` field (enumeration: `em_cartaz`, `pre_venda`) to support frontend catalog filtering. It shall also include an `is_featured` boolean field to designate films for the home page banner. The catalog list endpoint shall accept a `status` query parameter for filtering and shall include `is_featured` in its response payload.
+The Movie model shall include a `status` field (enumeration: `em_cartaz`, `pre_venda`, `em_breve`) to support frontend catalog filtering across now-showing, pre-sale, and upcoming movies. It shall also include an `is_featured` boolean field to designate films for the home page banner. The catalog list endpoint shall accept a `status` query parameter for filtering and shall include `is_featured` in its response payload.
 
 ### FR-05 Seat Map Visualization
 
@@ -167,7 +167,7 @@ The system shall expose a health endpoint verifying database, Redis, and Celery 
 
 ### FE-01 Home Page
 
-The home page shall display a featured-film banner driven by movies where `is_featured = true`. Below the banner, the page shall present two categorized sections — "Em Cartaz" and "Pré-venda" — populated by filtering the catalog by `status`. Each film card shall display the movie poster and title and shall navigate to the movie detail page on interaction.
+The home page shall display a featured-film banner driven by movies where `is_featured = true`. Below the banner, catalog sections shall be populated by filtering by `status`: "Em Cartaz" (`em_cartaz`), "Pré-venda" (`pre_venda`), and upcoming/movie-announcement surfaces using "Em breve" (`em_breve`). Each film card shall display the movie poster and title and shall navigate to the movie detail page on interaction.
 
 ### FE-02 Movie Detail and Session Selection Page
 
@@ -214,7 +214,7 @@ The frontend shall provide registration and login forms. On successful login, JW
 ### UC-3 Browse Home Page
 
 **Actor:** Visitor or Authenticated User  
-**Main flow:** load home page; frontend fetches featured movies (`is_featured=true`) for the banner and fetches `em_cartaz` and `pre_venda` catalog sections; results are displayed.
+**Main flow:** load home page; frontend fetches featured movies (`is_featured=true`) for the banner and fetches catalog sections by lifecycle status (`em_cartaz`, `pre_venda`, and `em_breve` where an upcoming section is displayed); results are displayed.
 
 ### UC-4 View Movie Detail and Select Session
 
@@ -336,7 +336,7 @@ The frontend shall provide registration and login forms. On successful login, JW
 
 | Field | Type | Notes |
 |---|---|---|
-| `status` | CharField (enum) | `em_cartaz` \| `pre_venda`; default `em_cartaz` |
+| `status` | CharField (enum) | `em_cartaz` \| `pre_venda` \| `em_breve`; default `em_cartaz` |
 | `is_featured` | BooleanField | `default=False`; controls banner placement on home page |
 
 #### Session (amended)
@@ -439,7 +439,7 @@ return `404` and are not documented in OpenAPI.
 
 | Parameter | Type | Description |
 |---|---|---|
-| `status` | string | Filter by `em_cartaz` or `pre_venda` |
+| `status` | string | Filter by `em_cartaz`, `pre_venda`, or `em_breve` |
 | `is_featured` | boolean | Filter featured movies for the home banner |
 
 ### 9.3 Checkout Payload (amended)

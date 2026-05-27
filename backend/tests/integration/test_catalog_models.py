@@ -57,6 +57,18 @@ class TestCatalogModels:
         with pytest.raises(ValidationError):
             movie.full_clean()
 
+    def test_movie_status_accepts_upcoming_choice(self):
+        movie = Movie(
+            title="Future Release",
+            synopsis="Coming soon",
+            duration_minutes=110,
+            release_date="2026-12-18",
+            poster_url="https://example.com/future-release.jpg",
+            status=MovieStatus.EM_BREVE,
+        )
+
+        movie.full_clean()
+
     def test_movie_unique_title_and_release_date(self):
         Movie.objects.create(
             title="Interstellar",
