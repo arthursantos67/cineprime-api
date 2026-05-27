@@ -1,7 +1,7 @@
 "use client";
 
-import type { KeyboardEvent } from "react";
-import { useRef } from "react";
+import type { KeyboardEvent, MouseEvent } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import type { CatalogMovie } from "@/types/catalog";
 
@@ -35,21 +35,69 @@ export function MovieCarousel({
   title,
 }: MovieCarouselProps) {
   const railRef = useRef<HTMLUListElement>(null);
+  const [canScroll, setCanScroll] = useState(movies.length > 1);
+  const isDragging = useRef(false);
+  const dragStartX = useRef(0);
+  const dragScrollLeft = useRef(0);
   const headingId = `movie-carousel-${slugify(title)}`;
-  const hasMultipleMovies = movies.length > 1;
+
+  useEffect(() => {
+    const rail = railRef.current;
+    if (!rail) return;
+    const check = () => setCanScroll(rail.scrollWidth > rail.clientWidth + 1);
+    check();
+    const ro = new ResizeObserver(check);
+    ro.observe(rail);
+    return () => ro.disconnect();
+  }, [movies.length]);
 
   function scrollRail(direction: "next" | "previous") {
     const rail = railRef.current;
+    if (!rail) return;
 
-    if (!rail) {
-      return;
+    const { scrollLeft, clientWidth, scrollWidth } = rail;
+    const maxScroll = scrollWidth - clientWidth;
+    const scrollDistance = Math.max(clientWidth * 0.85, 220);
+
+    if (direction === "next") {
+      rail.scrollTo({
+        behavior: "smooth",
+        left: scrollLeft + 10 >= maxScroll ? 0 : scrollLeft + scrollDistance,
+      });
+    } else {
+      rail.scrollTo({
+        behavior: "smooth",
+        left: scrollLeft <= 10 ? maxScroll : scrollLeft - scrollDistance,
+      });
     }
+  }
 
-    const scrollDistance = Math.max(rail.clientWidth * 0.85, 220);
-    rail.scrollBy({
-      behavior: "smooth",
-      left: direction === "next" ? scrollDistance : -scrollDistance,
-    });
+  function handleMouseDown(e: MouseEvent<HTMLUListElement>) {
+    isDragging.current = true;
+    dragStartX.current = e.pageX;
+    dragScrollLeft.current = railRef.current?.scrollLeft ?? 0;
+    const rail = railRef.current;
+    if (rail) {
+      rail.style.cursor = "grabbing";
+      rail.style.userSelect = "none";
+    }
+  }
+
+  function handleMouseMove(e: MouseEvent<HTMLUListElement>) {
+    if (!isDragging.current || !railRef.current) return;
+    e.preventDefault();
+    railRef.current.scrollLeft =
+      dragScrollLeft.current - (e.pageX - dragStartX.current);
+  }
+
+  function handleDragEnd() {
+    if (!isDragging.current) return;
+    isDragging.current = false;
+    const rail = railRef.current;
+    if (rail) {
+      rail.style.cursor = "";
+      rail.style.userSelect = "";
+    }
   }
 
   return (
@@ -61,32 +109,6 @@ export function MovieCarousel({
     >
       <div className="movie-carousel-section__header">
         <h2 id={headingId}>{title}</h2>
-        {hasMultipleMovies ? (
-          <div
-            aria-label={`Controles do carrossel ${title}`}
-            className="movie-carousel-controls"
-            role="group"
-          >
-            <button
-              aria-label={previousButtonLabel ?? `Filme anterior em ${title}`}
-              className="carousel-button"
-              onClick={() => scrollRail("previous")}
-              title={previousButtonLabel ?? `Filme anterior em ${title}`}
-              type="button"
-            >
-              <span aria-hidden="true">{"<"}</span>
-            </button>
-            <button
-              aria-label={nextButtonLabel ?? `Próximo filme em ${title}`}
-              className="carousel-button"
-              onClick={() => scrollRail("next")}
-              title={nextButtonLabel ?? `Próximo filme em ${title}`}
-              type="button"
-            >
-              <span aria-hidden="true">{">"}</span>
-            </button>
-          </div>
-        ) : null}
       </div>
 
       {isLoading ? (
@@ -114,19 +136,48 @@ export function MovieCarousel({
       ) : null}
 
       {!isLoading && movies.length > 0 ? (
-        <ul
-          aria-label={`${title}: carrossel de filmes`}
-          className="movie-carousel"
-          onKeyDown={handleCarouselKeyDown}
-          ref={railRef}
-          role="list"
-        >
-          {movies.map((movie) => (
-            <li className="movie-carousel__item" key={movie.id}>
-              <MovieCard movie={movie} />
-            </li>
-          ))}
-        </ul>
+        <div className="movie-carousel-outer">
+          {canScroll ? (
+            <button
+              aria-label={previousButtonLabel ?? `Filme anterior em ${title}`}
+              className="carousel-button carousel-button--side carousel-button--prev"
+              onClick={() => scrollRail("previous")}
+              title={previousButtonLabel ?? `Filme anterior em ${title}`}
+              type="button"
+            >
+              <span aria-hidden="true">{"<"}</span>
+            </button>
+          ) : null}
+          <ul
+            aria-label={`${title}: carrossel de filmes`}
+            className="movie-carousel"
+            onDragStart={(e) => e.preventDefault()}
+            onKeyDown={handleCarouselKeyDown}
+            onMouseDown={handleMouseDown}
+            onMouseLeave={handleDragEnd}
+            onMouseMove={handleMouseMove}
+            onMouseUp={handleDragEnd}
+            ref={railRef}
+            role="list"
+          >
+            {movies.map((movie) => (
+              <li className="movie-carousel__item" key={movie.id}>
+                <MovieCard movie={movie} />
+              </li>
+            ))}
+          </ul>
+          {canScroll ? (
+            <button
+              aria-label={nextButtonLabel ?? `Próximo filme em ${title}`}
+              className="carousel-button carousel-button--side carousel-button--next"
+              onClick={() => scrollRail("next")}
+              title={nextButtonLabel ?? `Próximo filme em ${title}`}
+              type="button"
+            >
+              <span aria-hidden="true">{">"}</span>
+            </button>
+          ) : null}
+        </div>
       ) : null}
     </section>
   );
@@ -182,7 +233,7 @@ function handleCarouselKeyDown(event: KeyboardEvent<HTMLUListElement>) {
 function slugify(value: string) {
   return value
     .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[̀-ͯ]/g, "")
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/(^-|-$)/g, "");
