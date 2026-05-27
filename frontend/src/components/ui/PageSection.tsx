@@ -1,5 +1,7 @@
 import type { ReactNode } from "react";
 
+import { SectionHeading } from "./SectionHeading";
+
 type PageSectionProps = {
   actions?: ReactNode;
   children?: ReactNode;
@@ -16,18 +18,14 @@ export function PageSection({
   title,
 }: PageSectionProps) {
   return (
-    <section className="page-section">
-      <div className="content-stack">
-        <p className="eyebrow">{eyebrow}</p>
-        <div className="page-heading">
-          <div>
-            <h1>{title}</h1>
-            {description ? <p className="lede">{description}</p> : null}
-          </div>
-          {actions ? <div className="page-actions">{actions}</div> : null}
-        </div>
-        {children}
-      </div>
+    <section className="grid gap-6">
+      <SectionHeading
+        actions={actions}
+        description={description}
+        eyebrow={eyebrow}
+        title={title}
+      />
+      {children}
     </section>
   );
 }
