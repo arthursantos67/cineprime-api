@@ -269,6 +269,7 @@ test("mocked integration covers home to confirmation purchase journey", async ()
           featured: { movies: featured.results, status: "success" },
           nowShowing: { movies: nowShowing.results, status: "success" },
           preSale: { movies: preSale.results, status: "success" },
+          upcoming: { movies: [], status: "success" },
         })
       );
 
