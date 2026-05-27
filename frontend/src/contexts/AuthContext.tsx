@@ -45,7 +45,7 @@ type AuthContextValue = {
   accessToken: string | null;
   isAuthenticated: boolean;
   loading: boolean;
-  login: (credentials: LoginCredentials) => Promise<AuthUser>;
+  login: (credentials: LoginCredentials, options?: { stayLoggedIn?: boolean }) => Promise<AuthUser>;
   logout: (options?: { redirectToLogin?: boolean }) => void;
   refreshAccessToken: () => Promise<string | null>;
   refreshToken: string | null;
@@ -160,7 +160,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return refreshPromiseRef.current;
   }, [clearAuthState]);
 
-  const login = useCallback(async (credentials: LoginCredentials) => {
+  const login = useCallback(async (credentials: LoginCredentials, options?: { stayLoggedIn?: boolean }) => {
     const generationAtStart = authGenerationRef.current + 1;
     authGenerationRef.current = generationAtStart;
     refreshPromiseRef.current = null;
@@ -175,7 +175,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       accessTokenRef.current = tokens.access;
       refreshTokenRef.current = tokens.refresh;
-      persistRefreshToken(tokens.refresh);
+      persistRefreshToken(tokens.refresh, options?.stayLoggedIn ?? false);
       setState((currentState) => applyLogin(currentState, tokens));
 
       const user = await authApi.currentUser(tokens.access);

@@ -1,16 +1,23 @@
 const REFRESH_TOKEN_KEY = "cineprime:refresh_token";
 
-export function persistRefreshToken(token: string): void {
+export function persistRefreshToken(token: string, persistent: boolean): void {
   if (typeof window === "undefined") return;
-  sessionStorage.setItem(REFRESH_TOKEN_KEY, token);
+  if (persistent) {
+    localStorage.setItem(REFRESH_TOKEN_KEY, token);
+    sessionStorage.removeItem(REFRESH_TOKEN_KEY);
+  } else {
+    sessionStorage.setItem(REFRESH_TOKEN_KEY, token);
+    localStorage.removeItem(REFRESH_TOKEN_KEY);
+  }
 }
 
 export function getPersistedRefreshToken(): string | null {
   if (typeof window === "undefined") return null;
-  return sessionStorage.getItem(REFRESH_TOKEN_KEY);
+  return localStorage.getItem(REFRESH_TOKEN_KEY) ?? sessionStorage.getItem(REFRESH_TOKEN_KEY);
 }
 
 export function clearPersistedRefreshToken(): void {
   if (typeof window === "undefined") return;
+  localStorage.removeItem(REFRESH_TOKEN_KEY);
   sessionStorage.removeItem(REFRESH_TOKEN_KEY);
 }
