@@ -10,6 +10,8 @@ import {
   formatSessionFullDate,
   formatSessionPrice,
   formatSessionTime,
+  getRoomDisplayName,
+  getSessionBadges,
   getSessionSeatsHref,
   groupSessionsByRoom,
 } from "./session-selection";
@@ -26,7 +28,7 @@ const movie = {
 
 function session(
   id: string,
-  room: { id: string; name: string },
+  room: CatalogSession["room"],
   start_time: string,
   base_price = "42.50"
 ): CatalogSession {
@@ -65,9 +67,31 @@ test("session date options keep stable YYYY-MM-DD values", () => {
 
 test("groupSessionsByRoom groups by room and orders sessions by time", () => {
   const groups = groupSessionsByRoom([
-    session("late-room-2", { id: "room-2", name: "Sala 2" }, "2026-05-22T21:00:00-03:00"),
-    session("late-room-1", { id: "room-1", name: "Sala 1" }, "2026-05-22T20:00:00-03:00"),
-    session("early-room-1", { id: "room-1", name: "Sala 1" }, "2026-05-22T18:30:00-03:00"),
+    session(
+      "late-room-2",
+      { capacity: 80, id: "room-2", name: "Sala A" },
+      "2026-05-22T21:00:00-03:00"
+    ),
+    session(
+      "late-room-1",
+      {
+        capacity: 80,
+        display_name: "Sala VIP",
+        id: "room-1",
+        name: "Sala 1",
+      },
+      "2026-05-22T20:00:00-03:00"
+    ),
+    session(
+      "early-room-1",
+      {
+        capacity: 80,
+        display_name: "Sala VIP",
+        id: "room-1",
+        name: "Sala 1",
+      },
+      "2026-05-22T18:30:00-03:00"
+    ),
   ]);
 
   assert.deepEqual(
@@ -76,9 +100,47 @@ test("groupSessionsByRoom groups by room and orders sessions by time", () => {
       sessionIds: group.sessions.map((groupedSession) => groupedSession.id),
     })),
     [
-      { roomName: "Sala 1", sessionIds: ["early-room-1", "late-room-1"] },
-      { roomName: "Sala 2", sessionIds: ["late-room-2"] },
+      { roomName: "Sala A", sessionIds: ["late-room-2"] },
+      { roomName: "Sala VIP", sessionIds: ["early-room-1", "late-room-1"] },
     ]
+  );
+});
+
+test("room display names and session badges use optional metadata", () => {
+  const premiumSession = session(
+    "premium-session",
+    {
+      capacity: 48,
+      display_name: "Sala VIP Prime",
+      experience_type: "vip",
+      id: "room-vip",
+      name: "Room VIP",
+    },
+    "2026-05-22T18:30:00-03:00"
+  );
+
+  premiumSession.audio_format = "legendado";
+  premiumSession.projection_format = "3d";
+  premiumSession.session_type = "preview";
+
+  assert.equal(getRoomDisplayName(premiumSession.room), "Sala VIP Prime");
+  assert.deepEqual(
+    getSessionBadges(premiumSession).map((badge) => badge.label),
+    ["VIP", "3D", "Legendado", "Pré-estreia"]
+  );
+  assert.deepEqual(
+    getSessionBadges(
+      session(
+        "plain",
+        {
+          capacity: 80,
+          id: "room-plain",
+          name: "Sala 1",
+        },
+        "2026-05-22T18:30:00-03:00"
+      )
+    ),
+    []
   );
 });
 

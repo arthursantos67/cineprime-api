@@ -27,7 +27,16 @@ class GenreSummarySerializer(serializers.ModelSerializer):
 class RoomSerializer(serializers.ModelSerializer):
     class Meta:
         model = Room
-        fields = ["id", "name", "capacity", "created_at", "updated_at"]
+        fields = [
+            "id",
+            "name",
+            "capacity",
+            "experience_type",
+            "display_name",
+            "description",
+            "created_at",
+            "updated_at",
+        ]
         read_only_fields = ["id", "created_at", "updated_at"]
 
     def validate_capacity(self, value):
@@ -67,7 +76,14 @@ class RoomSerializer(serializers.ModelSerializer):
 class RoomSummarySerializer(serializers.ModelSerializer):
     class Meta:
         model = Room
-        fields = ["id", "name", "capacity"]
+        fields = [
+            "id",
+            "name",
+            "capacity",
+            "experience_type",
+            "display_name",
+            "description",
+        ]
 
 
 class MovieWriteSerializer(serializers.ModelSerializer):
@@ -141,6 +157,9 @@ class SessionWriteSerializer(serializers.ModelSerializer):
             "start_time",
             "end_time",
             "base_price",
+            "audio_format",
+            "projection_format",
+            "session_type",
             "created_at",
             "updated_at",
         ]
@@ -235,6 +254,9 @@ class SessionReadSerializer(serializers.ModelSerializer):
             "start_time",
             "end_time",
             "base_price",
+            "audio_format",
+            "projection_format",
+            "session_type",
             "created_at",
             "updated_at",
         ]

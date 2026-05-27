@@ -1,9 +1,13 @@
 import type {
+  CatalogAudioFormat,
   CatalogGenre,
   CatalogMovie,
   CatalogMovieDetail,
+  CatalogProjectionFormat,
   CatalogRoomSummary,
+  CatalogRoomExperienceType,
   CatalogSession,
+  CatalogSessionType,
   MovieStatus,
 } from "@/types/catalog";
 
@@ -20,9 +24,13 @@ export type ListMoviesParams = {
 };
 
 export type GetSessionsParams = {
+  audio_format?: CatalogAudioFormat;
   date?: string;
+  experience_type?: CatalogRoomExperienceType;
   movie?: string;
   page?: number;
+  projection_format?: CatalogProjectionFormat;
+  session_type?: CatalogSessionType;
   start_from?: string;
   start_to?: string;
 };
@@ -172,12 +180,68 @@ function isMovieStatus(value: unknown): value is MovieStatus {
   return value === "em_cartaz" || value === "pre_venda" || value === "em_breve";
 }
 
+function isCatalogRoomExperienceType(
+  value: unknown
+): value is CatalogRoomExperienceType | null | undefined {
+  return (
+    value === undefined ||
+    value === null ||
+    value === "" ||
+    value === "standard" ||
+    value === "vip" ||
+    value === "premium" ||
+    value === "imax"
+  );
+}
+
+function isCatalogAudioFormat(
+  value: unknown
+): value is CatalogAudioFormat | null | undefined {
+  return (
+    value === undefined ||
+    value === null ||
+    value === "" ||
+    value === "original" ||
+    value === "legendado" ||
+    value === "dublado"
+  );
+}
+
+function isCatalogProjectionFormat(
+  value: unknown
+): value is CatalogProjectionFormat | null | undefined {
+  return (
+    value === undefined ||
+    value === null ||
+    value === "" ||
+    value === "2d" ||
+    value === "3d" ||
+    value === "imax"
+  );
+}
+
+function isCatalogSessionType(
+  value: unknown
+): value is CatalogSessionType | null | undefined {
+  return (
+    value === undefined ||
+    value === null ||
+    value === "" ||
+    value === "regular" ||
+    value === "preview" ||
+    value === "special_event"
+  );
+}
+
 function isCatalogRoom(value: unknown): value is CatalogRoomSummary {
   return (
     isRecord(value) &&
     typeof value.id === "string" &&
     typeof value.name === "string" &&
-    typeof value.capacity === "number"
+    typeof value.capacity === "number" &&
+    isCatalogRoomExperienceType(value.experience_type) &&
+    isOptionalText(value.display_name) &&
+    isOptionalText(value.description)
   );
 }
 
@@ -189,12 +253,19 @@ function isCatalogSession(value: unknown): value is CatalogSession {
     isCatalogRoom(value.room) &&
     typeof value.start_time === "string" &&
     typeof value.end_time === "string" &&
-    typeof value.base_price === "string"
+    typeof value.base_price === "string" &&
+    isCatalogAudioFormat(value.audio_format) &&
+    isCatalogProjectionFormat(value.projection_format) &&
+    isCatalogSessionType(value.session_type)
   );
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
+}
+
+function isOptionalText(value: unknown) {
+  return value === undefined || value === null || typeof value === "string";
 }
 
 function buildMoviesPath({ is_featured, page, status }: ListMoviesParams) {
@@ -217,9 +288,13 @@ function buildMoviesPath({ is_featured, page, status }: ListMoviesParams) {
 }
 
 function buildSessionsPath({
+  audio_format,
   date,
+  experience_type,
   movie,
   page,
+  projection_format,
+  session_type,
   start_from,
   start_to,
 }: GetSessionsParams) {
@@ -231,6 +306,22 @@ function buildSessionsPath({
 
   if (date) {
     searchParams.set("date", date);
+  }
+
+  if (experience_type) {
+    searchParams.set("experience_type", experience_type);
+  }
+
+  if (audio_format) {
+    searchParams.set("audio_format", audio_format);
+  }
+
+  if (projection_format) {
+    searchParams.set("projection_format", projection_format);
+  }
+
+  if (session_type) {
+    searchParams.set("session_type", session_type);
   }
 
   if (start_from) {

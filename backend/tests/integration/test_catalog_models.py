@@ -6,7 +6,17 @@ from django.core.exceptions import ValidationError
 from django.db import IntegrityError
 from django.utils import timezone
 
-from catalog.models import Genre, Movie, MovieStatus, Room, Session
+from catalog.models import (
+    AudioFormat,
+    Genre,
+    Movie,
+    MovieStatus,
+    ProjectionFormat,
+    Room,
+    RoomExperienceType,
+    Session,
+    SessionType,
+)
 from reservations.models import SeatRow, Seat, SessionSeat, SessionSeatStatus
 
 
@@ -92,6 +102,26 @@ class TestCatalogModels:
 
         assert room.id is not None
         assert room.capacity == 100
+        assert room.experience_type == ""
+        assert room.display_name == ""
+        assert room.description == ""
+
+    def test_room_experience_metadata_accepts_allowed_choices(self):
+        room = Room(
+            name="Room VIP",
+            capacity=50,
+            experience_type=RoomExperienceType.VIP,
+            display_name="Sala VIP",
+            description="Poltronas reclinaveis e atendimento premium.",
+        )
+
+        room.full_clean()
+
+    def test_room_experience_type_must_use_allowed_choices(self):
+        room = Room(name="Room Mystery", capacity=50, experience_type="mystery")
+
+        with pytest.raises(ValidationError):
+            room.full_clean()
 
     def test_room_capacity_must_be_positive(self):
         room = Room(
@@ -130,6 +160,70 @@ class TestCatalogModels:
         assert session.id is not None
         session.refresh_from_db()
         assert session.base_price == Decimal("30.00")
+        assert session.audio_format == ""
+        assert session.projection_format == ""
+        assert session.session_type == ""
+
+    def test_session_metadata_accepts_allowed_choices(self):
+        genre = Genre.objects.create(name="Action")
+        movie = Movie.objects.create(
+            title="Interstellar",
+            synopsis="Space exploration",
+            duration_minutes=169,
+            release_date="2014-11-07",
+            poster_url="https://example.com/poster.jpg",
+        )
+        movie.genres.add(genre)
+
+        room = Room.objects.create(
+            name="Room VIP",
+            capacity=100,
+            experience_type=RoomExperienceType.VIP,
+        )
+
+        start_time = timezone.now() + timedelta(days=1)
+        end_time = start_time + timedelta(minutes=120)
+
+        session = Session(
+            movie=movie,
+            room=room,
+            start_time=start_time,
+            end_time=end_time,
+            base_price="45.00",
+            audio_format=AudioFormat.SUBTITLED,
+            projection_format=ProjectionFormat.THREE_D,
+            session_type=SessionType.PREVIEW,
+        )
+
+        session.full_clean()
+
+    def test_session_metadata_must_use_allowed_choices(self):
+        genre = Genre.objects.create(name="Action")
+        movie = Movie.objects.create(
+            title="Interstellar",
+            synopsis="Space exploration",
+            duration_minutes=169,
+            release_date="2014-11-07",
+            poster_url="https://example.com/poster.jpg",
+        )
+        movie.genres.add(genre)
+
+        room = Room.objects.create(name="Room 1", capacity=100)
+        start_time = timezone.now() + timedelta(days=1)
+
+        session = Session(
+            movie=movie,
+            room=room,
+            start_time=start_time,
+            end_time=start_time + timedelta(minutes=120),
+            base_price="45.00",
+            audio_format="karaoke",
+            projection_format="hologram",
+            session_type="secret",
+        )
+
+        with pytest.raises(ValidationError):
+            session.full_clean()
 
     def test_session_base_price_is_required(self):
         genre = Genre.objects.create(name="Action")

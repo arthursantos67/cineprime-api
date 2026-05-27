@@ -984,6 +984,27 @@ h1 {
   font-weight: 750;
 }
 
+.session-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  list-style: none;
+  margin: 2px 0;
+  padding: 0;
+}
+
+.session-badge {
+  background: #eaf2ff;
+  border: 1px solid #b8d4ff;
+  border-radius: 999px;
+  color: #0b57b7;
+  font-size: 12px;
+  font-weight: 850;
+  line-height: 1;
+  padding: 5px 7px;
+  white-space: nowrap;
+}
+
 .seat-map-section {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
@@ -1759,6 +1780,11 @@ h1 {
   text-align: right;
 }
 
+.checkout-review__badges {
+  justify-content: flex-end;
+  margin: 0;
+}
+
 .checkout-review__items,
 .confirmation-tickets__list {
   display: grid;
@@ -2295,5 +2321,9 @@ h1 {
   .checkout-review__session dd,
   .order-summary__details dd {
     text-align: left;
+  }
+
+  .checkout-review__badges {
+    justify-content: flex-start;
   }
 }

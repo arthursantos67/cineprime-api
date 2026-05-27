@@ -312,15 +312,21 @@ const upcomingMovie = {
 };
 
 const session = {
+  audio_format: "legendado",
   base_price: "36.00",
   end_time: "2026-05-24T17:10:00-03:00",
   id: "session-morning",
   movie,
+  projection_format: "3d",
   room: {
     capacity: 4,
+    description: "",
+    display_name: "",
+    experience_type: "vip",
     id: "room-1",
     name: "Sala 1",
   },
+  session_type: "preview",
   start_time: "2026-05-24T15:00:00-03:00",
 };
 

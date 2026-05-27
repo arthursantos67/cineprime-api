@@ -14,12 +14,14 @@ import {
   formatMovieGenres,
   formatMovieReleaseDate,
 } from "./movie-formatters";
+import { SessionBadgeList } from "./SessionBadges";
 import {
   buildSessionDateOptions,
   formatSessionFullDate,
   formatSessionPrice,
   formatSessionTime,
   getSessionSeatsHref,
+  getSessionBadges,
   groupSessionsByRoom,
 } from "./session-selection";
 
@@ -302,7 +304,7 @@ function MovieSessionSelector({ movieId }: { movieId: string }) {
   );
 }
 
-function SessionList({
+export function SessionList({
   date,
   onRetry,
   state,
@@ -353,22 +355,31 @@ function SessionList({
         <section className="session-room-group" key={group.roomId}>
           <h3>{group.roomName}</h3>
           <div className="session-time-grid">
-            {group.sessions.map((session) => (
-              <Link
-                aria-label={`Selecionar sessão das ${formatSessionTime(
-                  session.start_time
-                )}, sala ${group.roomName}, valor ${formatSessionPrice(
-                  session.base_price
-                )}`}
-                className="session-option"
-                href={getSessionSeatsHref(session.id)}
-                key={session.id}
-              >
-                <strong>{formatSessionTime(session.start_time)}</strong>
-                <span>até {formatSessionTime(session.end_time)}</span>
-                <span>{formatSessionPrice(session.base_price)}</span>
-              </Link>
-            ))}
+            {group.sessions.map((session) => {
+              const badges = getSessionBadges(session);
+              const badgeText = badges.map((badge) => badge.label).join(", ");
+              const badgeDescription = badgeText
+                ? `, formatos ${badgeText}`
+                : "";
+
+              return (
+                <Link
+                  aria-label={`Selecionar sessão das ${formatSessionTime(
+                    session.start_time
+                  )}, sala ${group.roomName}${badgeDescription}, valor ${formatSessionPrice(
+                    session.base_price
+                  )}`}
+                  className="session-option"
+                  href={getSessionSeatsHref(session.id)}
+                  key={session.id}
+                >
+                  <strong>{formatSessionTime(session.start_time)}</strong>
+                  <span>até {formatSessionTime(session.end_time)}</span>
+                  <SessionBadgeList badges={badges} />
+                  <span>{formatSessionPrice(session.base_price)}</span>
+                </Link>
+              );
+            })}
           </div>
         </section>
       ))}

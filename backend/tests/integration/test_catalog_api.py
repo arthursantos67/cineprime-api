@@ -10,7 +10,17 @@ from rest_framework import status
 from rest_framework.test import APIClient
 
 import catalog.views as catalog_views
-from catalog.models import Genre, Movie, MovieStatus, Room, Session
+from catalog.models import (
+    AudioFormat,
+    Genre,
+    Movie,
+    MovieStatus,
+    ProjectionFormat,
+    Room,
+    RoomExperienceType,
+    Session,
+    SessionType,
+)
 from users.models import User
 
 
@@ -532,6 +542,9 @@ class TestCatalogApi:
         assert response.data["count"] == 1
         assert len(response.data["results"]) == 1
         assert response.data["results"][0]["name"] == room.name
+        assert response.data["results"][0]["experience_type"] == ""
+        assert response.data["results"][0]["display_name"] == ""
+        assert response.data["results"][0]["description"] == ""
 
     def test_create_room_returns_201(self, api_client):
         response = api_client.post(
@@ -546,6 +559,30 @@ class TestCatalogApi:
         assert response.status_code == status.HTTP_201_CREATED
         assert response.data["name"] == "Room 2"
         assert Room.objects.filter(name="Room 2").exists()
+
+    def test_create_room_accepts_experience_metadata(self, api_client):
+        response = api_client.post(
+            "/api/v1/catalog/rooms/",
+            {
+                "name": "Room VIP 1",
+                "capacity": 48,
+                "experience_type": RoomExperienceType.VIP,
+                "display_name": "Sala VIP Prime",
+                "description": "Poltronas reclinaveis e atendimento dedicado.",
+            },
+            format="json",
+        )
+
+        assert response.status_code == status.HTTP_201_CREATED
+        assert response.data["experience_type"] == RoomExperienceType.VIP
+        assert response.data["display_name"] == "Sala VIP Prime"
+        assert response.data["description"] == (
+            "Poltronas reclinaveis e atendimento dedicado."
+        )
+
+        room = Room.objects.get(name="Room VIP 1")
+        assert room.experience_type == RoomExperienceType.VIP
+        assert room.display_name == "Sala VIP Prime"
 
     def test_list_sessions_returns_200_with_nested_movie_and_room(
         self,
@@ -562,6 +599,11 @@ class TestCatalogApi:
         assert response.data["results"][0]["movie"]["is_featured"] is False
         assert response.data["results"][0]["room"]["name"] == session.room.name
         assert response.data["results"][0]["base_price"] == "30.00"
+        assert response.data["results"][0]["room"]["experience_type"] == ""
+        assert response.data["results"][0]["room"]["display_name"] == ""
+        assert response.data["results"][0]["audio_format"] == ""
+        assert response.data["results"][0]["projection_format"] == ""
+        assert response.data["results"][0]["session_type"] == ""
 
     def test_retrieve_session_returns_base_price_and_nested_data(
         self,
@@ -574,6 +616,9 @@ class TestCatalogApi:
         assert response.data["movie"]["title"] == session.movie.title
         assert response.data["room"]["name"] == session.room.name
         assert response.data["base_price"] == "30.00"
+        assert response.data["audio_format"] == ""
+        assert response.data["projection_format"] == ""
+        assert response.data["session_type"] == ""
 
     def test_create_session_returns_201(self, api_client, movie, room):
         response = api_client.post(
@@ -592,6 +637,32 @@ class TestCatalogApi:
         assert response.data["base_price"] == "42.50"
         assert Session.objects.count() == 1
         assert Session.objects.get().base_price == Decimal("42.50")
+
+    def test_create_session_accepts_format_metadata(self, api_client, movie, room):
+        response = api_client.post(
+            "/api/v1/catalog/sessions/",
+            {
+                "movie": str(movie.id),
+                "room": str(room.id),
+                "start_time": "2026-03-23T18:00:00Z",
+                "end_time": "2026-03-23T20:55:00Z",
+                "base_price": "54.00",
+                "audio_format": AudioFormat.SUBTITLED,
+                "projection_format": ProjectionFormat.THREE_D,
+                "session_type": SessionType.PREVIEW,
+            },
+            format="json",
+        )
+
+        assert response.status_code == status.HTTP_201_CREATED
+        assert response.data["audio_format"] == AudioFormat.SUBTITLED
+        assert response.data["projection_format"] == ProjectionFormat.THREE_D
+        assert response.data["session_type"] == SessionType.PREVIEW
+
+        session = Session.objects.get()
+        assert session.audio_format == AudioFormat.SUBTITLED
+        assert session.projection_format == ProjectionFormat.THREE_D
+        assert session.session_type == SessionType.PREVIEW
 
     def test_create_session_requires_base_price(self, api_client, movie, room):
         response = api_client.post(
@@ -684,6 +755,79 @@ class TestCatalogApi:
         assert response.data["count"] == 1
         assert response.data["results"][0]["id"] == str(first_session.id)
 
+    def test_list_sessions_can_filter_by_experience_and_format_metadata(
+        self,
+        api_client,
+        movie,
+    ):
+        vip_room = Room.objects.create(
+            name="Room VIP",
+            capacity=48,
+            experience_type=RoomExperienceType.VIP,
+            display_name="Sala VIP",
+        )
+        standard_room = Room.objects.create(name="Room Standard", capacity=70)
+        start_time = timezone.make_aware(datetime(2026, 3, 25, 18, 0))
+        matching_session = Session.objects.create(
+            movie=movie,
+            room=vip_room,
+            start_time=start_time,
+            end_time=start_time + timedelta(hours=2),
+            base_price="54.00",
+            audio_format=AudioFormat.SUBTITLED,
+            projection_format=ProjectionFormat.THREE_D,
+            session_type=SessionType.PREVIEW,
+        )
+        Session.objects.create(
+            movie=movie,
+            room=standard_room,
+            start_time=start_time,
+            end_time=start_time + timedelta(hours=2),
+            base_price="30.00",
+            audio_format=AudioFormat.DUBBED,
+            projection_format=ProjectionFormat.TWO_D,
+            session_type=SessionType.REGULAR,
+        )
+
+        response = api_client.get(
+            "/api/v1/catalog/sessions/"
+            f"?experience_type={RoomExperienceType.VIP}"
+            f"&audio_format={AudioFormat.SUBTITLED}"
+            f"&projection_format={ProjectionFormat.THREE_D}"
+            f"&session_type={SessionType.PREVIEW}"
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["count"] == 1
+        result = response.data["results"][0]
+        assert result["id"] == str(matching_session.id)
+        assert result["room"]["experience_type"] == RoomExperienceType.VIP
+        assert result["room"]["display_name"] == "Sala VIP"
+        assert result["audio_format"] == AudioFormat.SUBTITLED
+        assert result["projection_format"] == ProjectionFormat.THREE_D
+        assert result["session_type"] == SessionType.PREVIEW
+
+    @pytest.mark.parametrize(
+        ("query", "field"),
+        [
+            ("experience_type=mystery", "experience_type"),
+            ("audio_format=karaoke", "audio_format"),
+            ("projection_format=hologram", "projection_format"),
+            ("session_type=secret", "session_type"),
+        ],
+    )
+    def test_list_sessions_rejects_invalid_metadata_filters(
+        self,
+        api_client,
+        query,
+        field,
+    ):
+        response = api_client.get(f"/api/v1/catalog/sessions/?{query}")
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert response.data["error"]["code"] == "VALIDATION_FAILED"
+        assert field in response.data["error"]["details"]
+
     def test_invalid_session_filter_should_not_return_cached_response(
         self,
         api_client,
@@ -741,16 +885,26 @@ class TestCatalogApi:
     def test_update_room_returns_200(self, api_client, room):
         response = api_client.patch(
             f"/api/v1/catalog/rooms/{room.id}/",
-            {"name": "Room Prime", "capacity": 90},
+            {
+                "name": "Room Prime",
+                "capacity": 90,
+                "experience_type": RoomExperienceType.PREMIUM,
+                "display_name": "Sala Prime",
+                "description": "Sala com experiencia premium.",
+            },
             format="json",
         )
 
         assert response.status_code == status.HTTP_200_OK
         assert response.data["name"] == "Room Prime"
         assert response.data["capacity"] == 90
+        assert response.data["experience_type"] == RoomExperienceType.PREMIUM
+        assert response.data["display_name"] == "Sala Prime"
         room.refresh_from_db()
         assert room.name == "Room Prime"
         assert room.capacity == 90
+        assert room.experience_type == RoomExperienceType.PREMIUM
+        assert room.display_name == "Sala Prime"
 
     def test_update_session_returns_200(self, api_client, session):
         new_end_time = (
@@ -764,15 +918,26 @@ class TestCatalogApi:
 
         response = api_client.patch(
             f"/api/v1/catalog/sessions/{session.id}/",
-            {"end_time": new_end_time},
+            {
+                "end_time": new_end_time,
+                "audio_format": AudioFormat.DUBBED,
+                "projection_format": ProjectionFormat.TWO_D,
+                "session_type": SessionType.REGULAR,
+            },
             format="json",
         )
 
         assert response.status_code == status.HTTP_200_OK
+        assert response.data["audio_format"] == AudioFormat.DUBBED
+        assert response.data["projection_format"] == ProjectionFormat.TWO_D
+        assert response.data["session_type"] == SessionType.REGULAR
         session.refresh_from_db()
         assert session.end_time == timezone.datetime.fromisoformat(
             new_end_time.replace("Z", "+00:00")
         )
+        assert session.audio_format == AudioFormat.DUBBED
+        assert session.projection_format == ProjectionFormat.TWO_D
+        assert session.session_type == SessionType.REGULAR
 
     def test_update_session_should_reject_room_change(self, api_client, session):
         other_room = Room.objects.create(name="Room 2", capacity=80)

@@ -16,6 +16,31 @@ class MovieStatus(models.TextChoices):
     EM_BREVE = "em_breve", "Em breve"
 
 
+class RoomExperienceType(models.TextChoices):
+    STANDARD = "standard", "Traditional"
+    VIP = "vip", "VIP"
+    PREMIUM = "premium", "Premium"
+    IMAX = "imax", "IMAX"
+
+
+class AudioFormat(models.TextChoices):
+    ORIGINAL = "original", "Original"
+    SUBTITLED = "legendado", "Subtitled"
+    DUBBED = "dublado", "Dubbed"
+
+
+class ProjectionFormat(models.TextChoices):
+    TWO_D = "2d", "2D"
+    THREE_D = "3d", "3D"
+    IMAX = "imax", "IMAX"
+
+
+class SessionType(models.TextChoices):
+    REGULAR = "regular", "Regular"
+    PREVIEW = "preview", "Preview"
+    SPECIAL_EVENT = "special_event", "Special event"
+
+
 class Movie(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     title = models.CharField(max_length=255)
@@ -58,6 +83,14 @@ class Room(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     name = models.CharField(max_length=100, unique=True)
     capacity = models.PositiveIntegerField()
+    experience_type = models.CharField(
+        max_length=30,
+        choices=RoomExperienceType.choices,
+        blank=True,
+        default="",
+    )
+    display_name = models.CharField(max_length=120, blank=True, default="")
+    description = models.TextField(blank=True, default="")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -115,6 +148,24 @@ class Session(models.Model):
         max_digits=8,
         decimal_places=2,
         validators=[MinValueValidator(Decimal("0.01"))],
+    )
+    audio_format = models.CharField(
+        max_length=30,
+        choices=AudioFormat.choices,
+        blank=True,
+        default="",
+    )
+    projection_format = models.CharField(
+        max_length=30,
+        choices=ProjectionFormat.choices,
+        blank=True,
+        default="",
+    )
+    session_type = models.CharField(
+        max_length=30,
+        choices=SessionType.choices,
+        blank=True,
+        default="",
     )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

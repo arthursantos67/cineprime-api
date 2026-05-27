@@ -4,9 +4,9 @@
 
 **Project:** cineprime
 **Document type:** Product Requirements Document (PRD) - Frontend only  
-**Version:** 1.1  
-**Last update:** 2026-05-21  
-**Derived from:** Full-Stack PRD v2.0 (2026-05-13)  
+**Version:** 1.2
+**Last update:** 2026-05-27
+**Derived from:** Full-Stack PRD v2.1 (2026-05-27)
 **Audited against:** current Next.js scaffold, backend serializers/views, README files, Docker configuration, and CI workflow
 
 ---
@@ -65,7 +65,7 @@ This document describes the intended complete frontend product, while keeping ro
 - Backend business logic, data models, and infrastructure internals.
 - Celery, Redis, PostgreSQL, and backend deployment details.
 - Real payment gateway integration.
-- Backend fields that do not currently exist, such as `age_rating`, `room_type`, and `audio_format`, except where explicitly listed as future evolution.
+- Backend fields that do not currently exist, such as `age_rating` and `trailer_url`, except where explicitly listed as future evolution.
 
 ---
 
@@ -200,7 +200,7 @@ The page must provide a date selector. When a date is selected, the frontend mus
 GET /api/v1/catalog/sessions/?movie=<movieId>&date=<YYYY-MM-DD>
 ```
 
-Sessions must be grouped by room name and time. The current backend does not expose room type or audio format, so those values must not appear in the UI unless added to the API contract later.
+Sessions must be grouped by room display name and ordered by time. When metadata is available, session cards must show compact badges for room experience, projection format, audio format, and session type, such as `VIP`, `3D`, `Legendado`, `Dublado`, and `Pré-estreia`. Sessions without metadata must continue to render without badges.
 
 Selecting a session must navigate to `/sessions/{sessionId}/seats`.
 
@@ -243,6 +243,7 @@ The checkout page must show:
 - Movie title
 - Session date and time
 - Room
+- Session metadata badges when available
 - Selected seats
 - Ticket type per seat
 - Unit price per seat
@@ -510,7 +511,7 @@ Login response:
 |---|---|---|---|---|
 | List movies | `GET` | `/api/v1/catalog/movies/` | No | `status`, `is_featured` |
 | Get movie | `GET` | `/api/v1/catalog/movies/{id}/` | No | none |
-| List sessions | `GET` | `/api/v1/catalog/sessions/` | No | `movie`, `date`, `start_from`, `start_to` |
+| List sessions | `GET` | `/api/v1/catalog/sessions/` | No | `movie`, `date`, `start_from`, `start_to`, `experience_type`, `audio_format`, `projection_format`, `session_type` |
 | Get session | `GET` | `/api/v1/catalog/sessions/{id}/` | No | none |
 
 Relevant `Movie` fields:
@@ -535,15 +536,32 @@ Relevant `Session` fields:
 - `start_time`
 - `end_time`
 - `base_price`
+- `audio_format`
+- `projection_format`
+- `session_type`
 - `created_at`
 - `updated_at`
+
+Relevant nested `room` fields:
+
+- `id`
+- `name`
+- `capacity`
+- `experience_type`
+- `display_name`
+- `description`
 
 Important contract notes:
 
 - The session movie filter is named `movie`, not `movie_id`.
 - `movie` expects a UUID.
 - Movie `status` values are `em_cartaz`, `pre_venda`, and `em_breve`.
-- The current backend does not expose `age_rating`, `room_type`, or `audio_format`.
+- Session metadata values are optional. Empty or missing metadata must not block session rendering.
+- `experience_type` values are `standard`, `vip`, `premium`, and `imax`.
+- `audio_format` values are `original`, `legendado`, and `dublado`.
+- `projection_format` values are `2d`, `3d`, and `imax`.
+- `session_type` values are `regular`, `preview`, and `special_event`.
+- The current backend does not expose `age_rating` or `trailer_url`.
 - `genres` is a list of `{ id, name }`.
 
 ### 7.3 Seat Map
@@ -967,5 +985,5 @@ The development server runs on `http://localhost:3000`.
 - Loyalty program, cashback, or real coupon validation.
 - Concession ordering.
 - Real QR code validation at physical entrance.
-- Backend model changes.
+- Movie age rating and trailer playback until backend `age_rating` and `trailer_url` fields are available.
 - Server-side rendering requirements beyond what the current Next.js app naturally supports.
