@@ -10,6 +10,7 @@ Next.js App Router frontend for the full-stack CinePrime cinema ticket reservati
 - Node.js test runner with `tsx`
 - Playwright
 - ESLint
+- Tailwind CSS
 
 ## Routes
 
@@ -122,6 +123,16 @@ The production build validates this required variable with:
 ```bash
 npm run validate:env
 ```
+
+## Styling Foundation
+
+Tailwind CSS is wired through `postcss.config.mjs` and imported from
+`src/app/globals.css`. Premium design tokens live in
+[`src/styles/tokens.css`](./src/styles/tokens.css), while reusable primitives
+live in [`src/components/ui`](./src/components/ui). The temporary legacy public
+CSS layer is documented in
+[`docs/tailwind-design-foundation.md`](./docs/tailwind-design-foundation.md)
+with the recommended migration order for the existing screens.
 
 ## Commands
 

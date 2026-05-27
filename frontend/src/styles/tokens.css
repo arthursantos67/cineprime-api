@@ -1,0 +1,74 @@
+@theme static {
+  --font-sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+    "Segoe UI", sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono",
+    monospace;
+
+  --color-background: #f6f7f9;
+  --color-surface: #ffffff;
+  --color-surface-muted: #eef2f7;
+  --color-border: #d5dbe6;
+  --color-text: #17202a;
+  --color-muted: #566273;
+  --color-brand: #b31322;
+  --color-brand-strong: #8f101d;
+  --color-accent: #f6c343;
+  --color-info: #1f6feb;
+  --color-success: #157347;
+  --color-error: #b42318;
+
+  --color-cinema-ink: #17202a;
+  --color-cinema-graphite: #2b3340;
+  --color-cinema-paper: #f6f7f9;
+  --color-cinema-pearl: #ffffff;
+  --color-cinema-mist: #eef2f7;
+  --color-cinema-velvet: #b31322;
+  --color-cinema-velvet-deep: #8f101d;
+  --color-cinema-gold: #f6c343;
+  --color-cinema-gold-soft: #fff2bf;
+  --color-cinema-blue: #1f6feb;
+  --color-cinema-emerald: #157347;
+  --color-cinema-danger: #b42318;
+
+  --spacing-gutter: clamp(1rem, 2vw, 1.25rem);
+  --spacing-section: clamp(2rem, 6vw, 4.5rem);
+  --spacing-panel: 1.5rem;
+  --spacing-control-x: 0.875rem;
+  --spacing-control-y: 0.625rem;
+
+  --radius-control: 0.375rem;
+  --radius-card: 0.5rem;
+  --radius-panel: 0.5rem;
+  --radius-pill: 999px;
+
+  --shadow-soft: 0 16px 45px rgb(28 35 45 / 8%);
+  --shadow-premium: 0 18px 50px rgb(23 32 42 / 14%),
+    inset 0 1px 0 rgb(255 255 255 / 70%);
+  --shadow-focus: 0 0 0 4px rgb(31 111 235 / 18%);
+
+  --container-shell: 70rem;
+  --container-prose: 47.5rem;
+
+  --text-display: clamp(2rem, 4vw, 3rem);
+  --text-display--line-height: 1.05;
+  --text-section: clamp(1.5rem, 3vw, 2rem);
+  --text-section--line-height: 1.15;
+  --text-body-lg: 1.125rem;
+  --text-body-lg--line-height: 1.6;
+}
+
+:root {
+  --duration-fast: 160ms;
+  --duration-medium: 220ms;
+  --ease-standard: ease;
+  --focus-ring-color: rgb(31 111 235 / 55%);
+  --focus-ring: 3px solid var(--focus-ring-color);
+  --focus-ring-offset: 3px;
+  --focus-shadow: var(--shadow-focus);
+  --layout-shell-max: var(--container-shell);
+  --layout-gutter: var(--spacing-gutter);
+  --layout-page-block: var(--spacing-section);
+  --layout-page-block-compact: 2rem;
+  --control-height: 2.5rem;
+  --control-height-lg: 2.875rem;
+}

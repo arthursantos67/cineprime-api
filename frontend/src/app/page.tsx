@@ -1,6 +1,5 @@
-import Link from "next/link";
-
 import { HomeCatalog } from "./HomeCatalog";
+import { ButtonLink } from "@/components/ui/Button";
 import { PageSection } from "@/components/ui/PageSection";
 
 export default function HomePage() {
@@ -8,12 +7,12 @@ export default function HomePage() {
     <PageSection
       actions={
         <>
-          <Link className="button button-primary" href="#catalogo">
+          <ButtonLink href="#catalogo">
             Ver catálogo
-          </Link>
-          <Link className="button button-ghost" href="/login">
+          </ButtonLink>
+          <ButtonLink href="/login" variant="ghost">
             Entrar
-          </Link>
+          </ButtonLink>
         </>
       }
       description="Encontre sessões em Natal, escolha seus assentos e avance para a compra de ingressos com uma experiência preparada para celular e desktop."
