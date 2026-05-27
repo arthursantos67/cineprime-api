@@ -1,7 +1,7 @@
 "use client";
 
 import type { KeyboardEvent, MouseEvent } from "react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 
 import type { CatalogMovie } from "@/types/catalog";
 
@@ -39,7 +39,8 @@ export function MovieCarousel({
   const isDragging = useRef(false);
   const dragStartX = useRef(0);
   const dragScrollLeft = useRef(0);
-  const headingId = `movie-carousel-${slugify(title)}`;
+  const uid = useId();
+  const headingId = `movie-carousel-${uid}`;
 
   useEffect(() => {
     const rail = railRef.current;
@@ -73,6 +74,7 @@ export function MovieCarousel({
   }
 
   function handleMouseDown(e: MouseEvent<HTMLUListElement>) {
+    if (e.button !== 0) return;
     isDragging.current = true;
     dragStartX.current = e.pageX;
     dragScrollLeft.current = railRef.current?.scrollLeft ?? 0;

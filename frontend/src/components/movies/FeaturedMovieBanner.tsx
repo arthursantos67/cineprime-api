@@ -70,6 +70,7 @@ export function FeaturedMovieBanner({
   }
 
   function handleMouseDown(e: MouseEvent<HTMLDivElement>) {
+    if (e.button !== 0) return;
     isDragging.current = true;
     dragStartX.current = e.pageX;
     dragScrollLeft.current = viewportRef.current?.scrollLeft ?? 0;
@@ -94,6 +95,9 @@ export function FeaturedMovieBanner({
     if (viewport) {
       viewport.style.cursor = "";
       viewport.style.userSelect = "";
+      currentIndexRef.current = Math.round(
+        viewport.scrollLeft / Math.max(viewport.clientWidth, 1)
+      );
     }
     resetAutoAdvance();
   }

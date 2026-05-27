@@ -519,6 +519,7 @@ h1 {
 
 .movie-carousel-section__header {
   align-items: center;
+  display: flex;
   min-height: 40px;
 }
 
@@ -2242,8 +2243,7 @@ h1 {
   }
 
   .movie-carousel-section__header {
-    align-items: start;
-    grid-template-columns: 1fr;
+    align-items: flex-start;
     min-height: 0;
   }
 
