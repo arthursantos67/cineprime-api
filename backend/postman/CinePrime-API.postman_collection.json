@@ -321,7 +321,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"Room Manual\",\n  \"capacity\": 20\n}"
+              "raw": "{\n  \"name\": \"Room Manual\",\n  \"capacity\": 20,\n  \"experience_type\": \"vip\",\n  \"display_name\": \"Sala VIP Manual\",\n  \"description\": \"Sala com experiencia premium.\"\n}"
             },
             "url": {
               "raw": "{{BASE_URL}}/api/v1/catalog/rooms/",
@@ -362,7 +362,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"Room Manual Extra\",\n  \"capacity\": 30\n}"
+              "raw": "{\n  \"name\": \"Room Manual Extra\",\n  \"capacity\": 30,\n  \"experience_type\": \"standard\"\n}"
             },
             "url": {
               "raw": "{{BASE_URL}}/api/v1/catalog/rooms/",
@@ -391,7 +391,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"Room Manual Prime\",\n  \"capacity\": 25\n}"
+              "raw": "{\n  \"name\": \"Room Manual Prime\",\n  \"capacity\": 25,\n  \"experience_type\": \"premium\",\n  \"display_name\": \"Sala Prime Manual\"\n}"
             },
             "url": {
               "raw": "{{BASE_URL}}/api/v1/catalog/rooms/{{ROOM_ID}}/",
@@ -585,7 +585,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"movie\": \"{{MOVIE_ID}}\",\n  \"room\": \"{{ROOM_ID}}\",\n  \"start_time\": \"2026-04-01T18:00:00Z\",\n  \"end_time\": \"2026-04-01T20:30:00Z\",\n  \"base_price\": \"30.00\"\n}"
+              "raw": "{\n  \"movie\": \"{{MOVIE_ID}}\",\n  \"room\": \"{{ROOM_ID}}\",\n  \"start_time\": \"2026-04-01T18:00:00Z\",\n  \"end_time\": \"2026-04-01T20:30:00Z\",\n  \"base_price\": \"30.00\",\n  \"audio_format\": \"legendado\",\n  \"projection_format\": \"3d\",\n  \"session_type\": \"preview\"\n}"
             },
             "url": {
               "raw": "{{BASE_URL}}/api/v1/catalog/sessions/",
@@ -635,7 +635,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"end_time\": \"2026-04-01T20:45:00Z\"\n}"
+              "raw": "{\n  \"end_time\": \"2026-04-01T20:45:00Z\",\n  \"audio_format\": \"dublado\",\n  \"projection_format\": \"2d\",\n  \"session_type\": \"regular\"\n}"
             },
             "url": {
               "raw": "{{BASE_URL}}/api/v1/catalog/sessions/{{SESSION_ID}}/",

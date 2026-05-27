@@ -9,7 +9,17 @@ from rest_framework.generics import ListCreateAPIView, RetrieveUpdateDestroyAPIV
 from rest_framework.response import Response
 
 from cineprime_api.permissions import IsAdminUserOrReadOnly
-from catalog.models import Genre, Movie, MovieStatus, Room, Session
+from catalog.models import (
+    AudioFormat,
+    Genre,
+    Movie,
+    MovieStatus,
+    ProjectionFormat,
+    Room,
+    RoomExperienceType,
+    Session,
+    SessionType,
+)
 from catalog.serializers import (
     GenreSerializer,
     MovieReadSerializer,
@@ -73,6 +83,16 @@ def _catalog_list_cache_key(namespace, version_key, request):
     if version is None:
         return None
     return f"catalog:{namespace}:v{version}:{request.get_full_path()}"
+
+
+def _validate_choice_filter(name, value, allowed_values):
+    if value in allowed_values:
+        return value
+
+    allowed = ", ".join(allowed_values)
+    raise ValidationError(
+        {name: [f"Invalid {name} filter. Expected one of: {allowed}."]}
+    )
 
 
 def invalidate_movie_list_cache():
@@ -264,6 +284,10 @@ class SessionListCreateView(ListCreateAPIView):
         date = self.request.query_params.get("date")
         start_from = self.request.query_params.get("start_from")
         start_to = self.request.query_params.get("start_to")
+        experience_type = self.request.query_params.get("experience_type")
+        audio_format = self.request.query_params.get("audio_format")
+        projection_format = self.request.query_params.get("projection_format")
+        session_type = self.request.query_params.get("session_type")
 
         if movie is not None:
             try:
@@ -309,6 +333,34 @@ class SessionListCreateView(ListCreateAPIView):
                 parsed_start_to = timezone.make_aware(parsed_start_to)
             filters["start_to"] = parsed_start_to
 
+        if experience_type is not None:
+            filters["experience_type"] = _validate_choice_filter(
+                "experience_type",
+                experience_type,
+                RoomExperienceType.values,
+            )
+
+        if audio_format is not None:
+            filters["audio_format"] = _validate_choice_filter(
+                "audio_format",
+                audio_format,
+                AudioFormat.values,
+            )
+
+        if projection_format is not None:
+            filters["projection_format"] = _validate_choice_filter(
+                "projection_format",
+                projection_format,
+                ProjectionFormat.values,
+            )
+
+        if session_type is not None:
+            filters["session_type"] = _validate_choice_filter(
+                "session_type",
+                session_type,
+                SessionType.values,
+            )
+
         self._validated_filters = filters
         return filters
 
@@ -327,6 +379,18 @@ class SessionListCreateView(ListCreateAPIView):
 
         if "start_to" in filters:
             queryset = queryset.filter(start_time__lte=filters["start_to"])
+
+        if "experience_type" in filters:
+            queryset = queryset.filter(room__experience_type=filters["experience_type"])
+
+        if "audio_format" in filters:
+            queryset = queryset.filter(audio_format=filters["audio_format"])
+
+        if "projection_format" in filters:
+            queryset = queryset.filter(projection_format=filters["projection_format"])
+
+        if "session_type" in filters:
+            queryset = queryset.filter(session_type=filters["session_type"])
 
         return queryset
 

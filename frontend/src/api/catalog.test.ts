@@ -70,6 +70,7 @@ const sessionResponse = {
   previous: null,
   results: [
     {
+      audio_format: "legendado",
       base_price: "42.50",
       end_time: "2026-05-22T21:00:00-03:00",
       id: "session-123",
@@ -85,9 +86,14 @@ const sessionResponse = {
       },
       room: {
         capacity: 80,
+        description: "Sala com poltronas premium.",
+        display_name: "Sala VIP Prime",
+        experience_type: "vip",
         id: "room-1",
         name: "Sala 1",
       },
+      projection_format: "3d",
+      session_type: "preview",
       start_time: "2026-05-22T18:30:00-03:00",
     },
   ],
@@ -268,6 +274,31 @@ test("catalogApi builds optional session range filters", async () => {
   }
 });
 
+test("catalogApi builds optional session metadata filters", async () => {
+  const originalFetch = globalThis.fetch;
+
+  try {
+    globalThis.fetch = async (input) => {
+      assert.equal(
+        input,
+        "http://localhost:8000/api/v1/catalog/sessions/?movie=movie-123&experience_type=vip&audio_format=legendado&projection_format=3d&session_type=preview"
+      );
+
+      return Response.json(sessionResponse);
+    };
+
+    await catalogApi.getSessions({
+      audio_format: "legendado",
+      experience_type: "vip",
+      movie: "movie-123",
+      projection_format: "3d",
+      session_type: "preview",
+    });
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 test("catalogApi rejects unexpected movie detail responses", async () => {
   const originalFetch = globalThis.fetch;
 
@@ -396,6 +427,30 @@ test("catalogApi rejects unexpected session responses", async () => {
   try {
     globalThis.fetch = async () =>
       Response.json({ ...sessionResponse, results: [{ id: "session-123" }] });
+
+    await assert.rejects(
+      catalogApi.getSessions({ date: "2026-05-22", movie: "movie-123" }),
+      /Unexpected catalog session list response/
+    );
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("catalogApi rejects session responses with invalid metadata", async () => {
+  const originalFetch = globalThis.fetch;
+
+  try {
+    globalThis.fetch = async () =>
+      Response.json({
+        ...sessionResponse,
+        results: [
+          {
+            ...sessionResponse.results[0],
+            audio_format: "karaoke",
+          },
+        ],
+      });
 
     await assert.rejects(
       catalogApi.getSessions({ date: "2026-05-22", movie: "movie-123" }),

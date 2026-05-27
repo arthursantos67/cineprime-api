@@ -5,7 +5,15 @@ import { createElement } from "react";
 import * as React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 
-import { PAYMENT_METHODS, PaymentMethodSelector } from "./CheckoutReview";
+import type { CatalogSession } from "@/types/catalog";
+
+import { getSessionBadges } from "@/components/movies/session-selection";
+
+import {
+  CheckoutSessionDetails,
+  PAYMENT_METHODS,
+  PaymentMethodSelector,
+} from "./CheckoutReview";
 import { paymentMethodLabels } from "./order-summary";
 
 (globalThis as typeof globalThis & { React: typeof React }).React = React;
@@ -80,4 +88,47 @@ test("payment method selector disables all radio inputs while the checkout is su
 
   const disabledCount = (html.match(/disabled=""/g) ?? []).length;
   assert.equal(disabledCount, PAYMENT_METHODS.length);
+});
+
+test("checkout session details render session metadata badges", () => {
+  const session: CatalogSession = {
+    audio_format: "dublado",
+    base_price: "42.50",
+    end_time: "2026-05-22T21:00:00-03:00",
+    id: "session-123",
+    movie: {
+      duration_minutes: 125,
+      genres: [{ id: "genre-1", name: "Aventura" }],
+      id: "movie-123",
+      is_featured: false,
+      poster_url: "https://cdn.example.com/movie.jpg",
+      release_date: "2026-05-13",
+      status: "em_cartaz",
+      title: "A Jornada",
+    },
+    projection_format: "3d",
+    room: {
+      capacity: 48,
+      display_name: "Sala VIP Prime",
+      experience_type: "vip",
+      id: "room-vip",
+      name: "Room VIP",
+    },
+    session_type: "preview",
+    start_time: "2026-05-22T18:30:00-03:00",
+  };
+
+  const html = renderToStaticMarkup(
+    createElement(CheckoutSessionDetails, {
+      badges: getSessionBadges(session),
+      session,
+    })
+  );
+
+  assert.match(html, /A Jornada/);
+  assert.match(html, /Sala VIP Prime/);
+  assert.match(html, /VIP/);
+  assert.match(html, /3D/);
+  assert.match(html, /Dublado/);
+  assert.match(html, /Pré-estreia/);
 });

@@ -532,18 +532,24 @@ Expected: `200 OK` paginated ticket list. Optional filters:
 | `PATCH` | `{{BASE_URL}}/api/v1/catalog/movies/{movie_id}/` | Admin | `{"title":"Interstellar Remastered"}` |
 | `DELETE` | `{{BASE_URL}}/api/v1/catalog/movies/{movie_id}/` | Admin | none |
 | `GET` | `{{BASE_URL}}/api/v1/catalog/rooms/` | No | none |
-| `POST` | `{{BASE_URL}}/api/v1/catalog/rooms/` | Admin | `{"name":"Room 2","capacity":80}` |
+| `POST` | `{{BASE_URL}}/api/v1/catalog/rooms/` | Admin | `{"name":"Room 2","capacity":80,"experience_type":"vip","display_name":"Sala VIP"}` |
 | `GET` | `{{BASE_URL}}/api/v1/catalog/rooms/{room_id}/` | No | none |
-| `PATCH` | `{{BASE_URL}}/api/v1/catalog/rooms/{room_id}/` | Admin | `{"name":"Room Prime","capacity":100}` |
+| `PATCH` | `{{BASE_URL}}/api/v1/catalog/rooms/{room_id}/` | Admin | `{"name":"Room Prime","capacity":100,"experience_type":"premium"}` |
 | `DELETE` | `{{BASE_URL}}/api/v1/catalog/rooms/{room_id}/` | Admin | none |
-| `GET` | `{{BASE_URL}}/api/v1/catalog/sessions/` | No | none |
-| `POST` | `{{BASE_URL}}/api/v1/catalog/sessions/` | Admin | `{"movie":"{movie_id}","room":"{room_id}","start_time":"2026-03-23T18:00:00Z","end_time":"2026-03-23T20:55:00Z","base_price":"30.00"}` |
+| `GET` | `{{BASE_URL}}/api/v1/catalog/sessions/` | No | Optional query: `movie`, `date`, `start_from`, `start_to`, `experience_type`, `audio_format`, `projection_format`, `session_type` |
+| `POST` | `{{BASE_URL}}/api/v1/catalog/sessions/` | Admin | `{"movie":"{movie_id}","room":"{room_id}","start_time":"2026-03-23T18:00:00Z","end_time":"2026-03-23T20:55:00Z","base_price":"30.00","audio_format":"legendado","projection_format":"3d","session_type":"preview"}` |
 | `GET` | `{{BASE_URL}}/api/v1/catalog/sessions/{session_id}/` | No | none |
-| `PATCH` | `{{BASE_URL}}/api/v1/catalog/sessions/{session_id}/` | Admin | `{"end_time":"2026-03-23T21:10:00Z"}` |
+| `PATCH` | `{{BASE_URL}}/api/v1/catalog/sessions/{session_id}/` | Admin | `{"end_time":"2026-03-23T21:10:00Z","audio_format":"dublado"}` |
 | `DELETE` | `{{BASE_URL}}/api/v1/catalog/sessions/{session_id}/` | Admin | none |
 
 Movie `status` accepts `em_cartaz` (now showing), `pre_venda` (pre-sale), and
 `em_breve` (upcoming).
+
+Room and session metadata is optional and serializes as blank strings when not
+set. Room `experience_type` accepts `standard`, `vip`, `premium`, and `imax`;
+session `audio_format` accepts `original`, `legendado`, and `dublado`;
+`projection_format` accepts `2d`, `3d`, and `imax`; and `session_type` accepts
+`regular`, `preview`, and `special_event`.
 
 Notes:
 

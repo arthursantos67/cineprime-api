@@ -4,8 +4,8 @@
 
 **Project:** cineprime
 **Document type:** Product Requirements Document (PRD) — Full-Stack  
-**Version:** 2.0  
-**Last update:** 2026-05-13  
+**Version:** 2.1
+**Last update:** 2026-05-27
 **Previous version:** SRS v1.0 (Backend-only, 2026-03-22)
 
 ---
@@ -149,6 +149,10 @@ The system shall finalize valid reserved seats into purchased seats in a transac
 
 Each `Session` record shall carry a `base_price` field (decimal) representing the full ticket price for that session. This value is used by the checkout service to compute per-seat amounts.
 
+### FR-08b Room and Session Experience Metadata
+
+Rooms shall expose optional experience metadata: `experience_type`, `display_name`, and `description`. Sessions shall expose optional format metadata: `audio_format`, `projection_format`, and `session_type`. Admin users shall be able to create and update these values through catalog APIs and Django admin. Existing rooms and sessions without metadata remain valid and serialize empty metadata values.
+
 ### FR-09 My Tickets
 
 The system shall allow authenticated users to list their own tickets, with optional `type=upcoming|past` filtering. Each ticket record shall include the `ticket_type` and `amount_paid` associated with the purchase.
@@ -171,7 +175,9 @@ The home page shall display a featured-film banner driven by movies where `is_fe
 
 ### FE-02 Movie Detail and Session Selection Page
 
-The movie detail page shall display the film's synopsis, genre(s), age rating, and duration. It shall present a date picker allowing the user to select a viewing date and, upon date selection, render the available sessions for that date grouped by room type and audio format (e.g., Sala Tradicional Legendado, VIP Dublado). Selecting a session shall navigate the user to the seat selection page for that session.
+The movie detail page shall display the film's synopsis, genre(s), duration, and release date when available. It shall present a date picker allowing the user to select a viewing date and, upon date selection, render the available sessions for that date grouped by room display name. Session cards shall show badges when metadata is available, such as `VIP`, `3D`, `Legendado`, `Dublado`, and `Pré-estreia`. Selecting a session shall navigate the user to the seat selection page for that session.
+
+Movie `age_rating` and `trailer_url` are evaluated as a follow-up because the current backend movie schema does not expose those fields yet. The frontend shall not invent or hard-code those values before the backend contract is added.
 
 ### FE-03 Seat Selection Page
 
@@ -339,11 +345,22 @@ The frontend shall provide registration and login forms. On successful login, JW
 | `status` | CharField (enum) | `em_cartaz` \| `pre_venda` \| `em_breve`; default `em_cartaz` |
 | `is_featured` | BooleanField | `default=False`; controls banner placement on home page |
 
+#### Room (amended)
+
+| Field | Type | Notes |
+|---|---|---|
+| `experience_type` | CharField (enum, optional) | `standard` \| `vip` \| `premium` \| `imax`; blank means unspecified |
+| `display_name` | CharField (optional) | Public room label used by session lists and checkout |
+| `description` | TextField (optional) | Admin-editable room experience description |
+
 #### Session (amended)
 
 | Field | Type | Notes |
 |---|---|---|
 | `base_price` | DecimalField | Full-price ticket value for this session; required |
+| `audio_format` | CharField (enum, optional) | `original` \| `legendado` \| `dublado`; blank means unspecified |
+| `projection_format` | CharField (enum, optional) | `2d` \| `3d` \| `imax`; blank means unspecified |
+| `session_type` | CharField (enum, optional) | `regular` \| `preview` \| `special_event`; blank means unspecified |
 
 #### Ticket (amended)
 
@@ -442,7 +459,69 @@ return `404` and are not documented in OpenAPI.
 | `status` | string | Filter by `em_cartaz`, `pre_venda`, or `em_breve` |
 | `is_featured` | boolean | Filter featured movies for the home banner |
 
-### 9.3 Checkout Payload (amended)
+`GET /api/v1/catalog/sessions/` shall support:
+
+| Parameter | Type | Description |
+|---|---|---|
+| `movie` | UUID | Filter sessions by movie |
+| `date` | date | Filter sessions by local start date (`YYYY-MM-DD`) |
+| `start_from` | datetime | Filter sessions starting at or after an ISO 8601 timestamp |
+| `start_to` | datetime | Filter sessions starting at or before an ISO 8601 timestamp |
+| `experience_type` | string | Filter by room `standard`, `vip`, `premium`, or `imax` |
+| `audio_format` | string | Filter by `original`, `legendado`, or `dublado` |
+| `projection_format` | string | Filter by `2d`, `3d`, or `imax` |
+| `session_type` | string | Filter by `regular`, `preview`, or `special_event` |
+
+### 9.3 Catalog Payload Examples (amended)
+
+Create room:
+
+```json
+{
+  "name": "Room VIP 1",
+  "capacity": 48,
+  "experience_type": "vip",
+  "display_name": "Sala VIP Prime",
+  "description": "Sala com poltronas reclinaveis e atendimento dedicado."
+}
+```
+
+Create session:
+
+```json
+{
+  "movie": "7a98bfc0-a535-4a73-b78d-3f11d5cbecb5",
+  "room": "1354ffba-427d-4f8a-aae5-90c54a6c1a2d",
+  "start_time": "2026-04-01T18:00:00Z",
+  "end_time": "2026-04-01T20:30:00Z",
+  "base_price": "54.00",
+  "audio_format": "legendado",
+  "projection_format": "3d",
+  "session_type": "preview"
+}
+```
+
+Read session response excerpt:
+
+```json
+{
+  "id": "f7dd338a-8c0e-4cb3-924d-d2d7d3ce90de",
+  "room": {
+    "id": "1354ffba-427d-4f8a-aae5-90c54a6c1a2d",
+    "name": "Room VIP 1",
+    "capacity": 48,
+    "experience_type": "vip",
+    "display_name": "Sala VIP Prime",
+    "description": "Sala com poltronas reclinaveis e atendimento dedicado."
+  },
+  "base_price": "54.00",
+  "audio_format": "legendado",
+  "projection_format": "3d",
+  "session_type": "preview"
+}
+```
+
+### 9.4 Checkout Payload (amended)
 
 ```json
 {
@@ -466,7 +545,7 @@ The backend shall:
 3. Persist `ticket_type`, `amount_paid`, and `payment_method` on each generated `Ticket` record.
 4. Mark each `SessionSeat` as `PURCHASED` and release the Redis lock within a single DB transaction.
 
-### 9.4 Standardized Error Payload
+### 9.5 Standardized Error Payload
 
 ```json
 {
@@ -516,6 +595,7 @@ Error codes in active use:
 
 - **Navigation bar:** logo, primary nav links (Programação, Bomboniére, Salas Especiais, Promoções), and authenticated-user menu (Meus Ingressos, Sair).
 - **Movie card:** poster image, title, rating badge, duration.
+- **Session badges:** compact labels derived from room/session metadata (`VIP`, `Premium`, `IMAX`, `2D`, `3D`, `Legendado`, `Dublado`, `Pré-estreia`) on session cards and checkout.
 - **Countdown timer:** real-time display of remaining reservation window; triggers expiry warning at 60 s remaining.
 - **Order summary panel:** persistent sidebar or bottom sheet visible during seat selection, ticket-type, and checkout steps displaying selected seats, types, and running total.
 - **Error toast / alert:** maps API `error.code` to user-friendly Portuguese message.
@@ -613,3 +693,4 @@ Not implemented in this project scope:
 - Club CinePrime membership management, cashback, or discount processing beyond the voucher code input field
 - Concession / bomboniére ordering
 - Real QR code validation at the physical entrance
+- Movie age rating and trailer URL until backend `age_rating` and `trailer_url` fields are specified and implemented

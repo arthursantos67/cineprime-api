@@ -5,6 +5,11 @@ import { useRouter } from "next/navigation";
 
 import { checkoutApi } from "@/api/checkout";
 import { catalogApi } from "@/api/catalog";
+import { SessionBadgeList } from "@/components/movies/SessionBadges";
+import {
+  getRoomDisplayName,
+  getSessionBadges,
+} from "@/components/movies/session-selection";
 import { StateMessage } from "@/components/ui/StateMessage";
 import { useReservation } from "@/contexts/ReservationContext";
 import type { CatalogSession } from "@/types/catalog";
@@ -88,6 +93,7 @@ export function CheckoutReview() {
   const total = calculateOrderTotal(items);
   const session =
     sessionState.status === "success" ? sessionState.session : null;
+  const sessionBadges = session ? getSessionBadges(session) : [];
 
   useEffect(() => {
     let isActive = true;
@@ -185,24 +191,10 @@ export function CheckoutReview() {
           <strong>{formatCurrency(total)}</strong>
         </div>
 
-        <dl className="checkout-review__session">
-          <div>
-            <dt>Filme</dt>
-            <dd>{session?.movie.title ?? "Filme indisponível"}</dd>
-          </div>
-          <div>
-            <dt>Sessão</dt>
-            <dd>
-              {session
-                ? formatDateTime(session.start_time)
-                : "Data e horário indisponíveis"}
-            </dd>
-          </div>
-          <div>
-            <dt>Sala</dt>
-            <dd>{session?.room.name ?? "Sala indisponível"}</dd>
-          </div>
-        </dl>
+        <CheckoutSessionDetails
+          badges={sessionBadges}
+          session={session}
+        />
 
         {sessionState.status === "loading" ? (
           <p className="inline-status inline-status-info" role="status">
@@ -277,5 +269,49 @@ export function CheckoutReview() {
         {isSubmitting ? "Finalizando..." : "Confirmar compra"}
       </button>
     </form>
+  );
+}
+
+export function CheckoutSessionDetails({
+  badges,
+  session,
+}: {
+  badges: ReturnType<typeof getSessionBadges>;
+  session: CatalogSession | null;
+}) {
+  return (
+    <dl className="checkout-review__session">
+      <div>
+        <dt>Filme</dt>
+        <dd>{session?.movie.title ?? "Filme indisponível"}</dd>
+      </div>
+      <div>
+        <dt>Sessão</dt>
+        <dd>
+          {session
+            ? formatDateTime(session.start_time)
+            : "Data e horário indisponíveis"}
+        </dd>
+      </div>
+      <div>
+        <dt>Sala</dt>
+        <dd>{session ? getRoomDisplayName(session.room) : "Sala indisponível"}</dd>
+      </div>
+      {session ? (
+        <div>
+          <dt>Formato</dt>
+          <dd>
+            {badges.length > 0 ? (
+              <SessionBadgeList
+                badges={badges}
+                className="checkout-review__badges"
+              />
+            ) : (
+              "Formato padrão"
+            )}
+          </dd>
+        </div>
+      ) : null}
+    </dl>
   );
 }

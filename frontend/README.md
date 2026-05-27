@@ -81,6 +81,10 @@ The API client boundary lives at [`src/api/client.ts`](./src/api/client.ts).
 Catalog helpers in [`src/api/catalog.ts`](./src/api/catalog.ts) expose typed
 movie filters for `em_cartaz`, `pre_venda`, and `em_breve` through
 `listNowShowingMovies()`, `listPreSaleMovies()`, and `listUpcomingMovies()`.
+Session responses also accept optional room and format metadata
+(`experience_type`, `display_name`, `audio_format`, `projection_format`, and
+`session_type`) used to render badges such as VIP, 3D, Legendado, Dublado, and
+Pré-estreia on session selection and checkout.
 
 The frontend requires `NEXT_PUBLIC_API_BASE_URL`, an absolute `http` or `https`
 URL for the Django/DRF API. Because this is a `NEXT_PUBLIC_*` variable, it is
