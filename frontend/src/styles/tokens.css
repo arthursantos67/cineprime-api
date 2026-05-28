@@ -71,5 +71,7 @@
   --layout-page-block-compact: 2rem;
   --control-height: 2.5rem;
   --control-height-lg: 2.875rem;
-  --header-height: 72px;
+  --header-height: 84px;
+
+  --animate-scroll-bounce: scroll-bounce 2s ease-in-out infinite;
 }

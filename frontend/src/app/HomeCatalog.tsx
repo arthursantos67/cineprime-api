@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 
 import { catalogApi } from "@/api/catalog";
+import { Button } from "@/components/ui/Button";
 import { FeaturedMovieBanner } from "@/components/movies";
 import { MovieCarousel } from "@/components/movies";
 import { StateMessage } from "@/components/ui/StateMessage";
@@ -94,39 +95,41 @@ export function HomeCatalogSections({
   upcoming,
 }: HomeCatalogSectionsProps) {
   return (
-    <div className="home-catalog">
+    <div>
       {/* Cinematic hero area — full-bleed, full-height */}
       {featured.status === "loading" ? (
-        <div className="cinematic-hero cinematic-hero--skeleton" aria-busy="true">
-          <div className="cinematic-hero__stage">
-            <div className="shell-container cinematic-hero__inner">
-              <StateMessage title="Carregando filme em destaque" tone="loading">
-                Buscando os destaques do catálogo.
-              </StateMessage>
-            </div>
+        <div
+          aria-busy="true"
+          className="relative overflow-hidden text-white ml-[calc(50%_-_50vw)] mr-[calc(50%_-_50vw)] w-screen mt-[calc(-1_*_var(--layout-page-block))] bg-[rgb(8_10_16)] h-[75svh] min-h-[400px] flex items-center justify-center"
+        >
+          <div className="shell-container">
+            <StateMessage title="Carregando filme em destaque" tone="loading">
+              Buscando os destaques do catálogo.
+            </StateMessage>
           </div>
         </div>
       ) : null}
 
       {featured.status === "error" ? (
-        <div className="cinematic-hero cinematic-hero--empty">
-          <div className="cinematic-hero__stage">
-            <div className="shell-container cinematic-hero__inner">
-              <CatalogErrorState
-                message={
-                  featured.errorMessage ??
-                  "Não foi possível carregar o filme em destaque. Tente novamente."
-                }
-                onRetry={onRetryFeatured}
-                title="Destaque indisponível"
-              />
-            </div>
+        <div className="relative overflow-hidden text-white ml-[calc(50%_-_50vw)] mr-[calc(50%_-_50vw)] w-screen mt-[calc(-1_*_var(--layout-page-block))] bg-[rgb(8_10_16)] h-[75svh] min-h-[400px] flex items-center justify-center">
+          <div className="shell-container">
+            <CatalogErrorState
+              message={
+                featured.errorMessage ??
+                "Não foi possível carregar o filme em destaque. Tente novamente."
+              }
+              onRetry={onRetryFeatured}
+              title="Destaque indisponível"
+            />
           </div>
         </div>
       ) : null}
 
       {featured.status === "success" && featured.movies.length === 0 ? (
-        <div className="cinematic-hero cinematic-hero--empty" aria-hidden="true" />
+        <div
+          aria-hidden="true"
+          className="ml-[calc(50%_-_50vw)] mr-[calc(50%_-_50vw)] w-screen mt-[calc(-1_*_var(--layout-page-block))] bg-[rgb(8_10_16)] min-h-[320px]"
+        />
       ) : null}
 
       {featured.status === "success" && featured.movies.length > 0 ? (
@@ -137,7 +140,10 @@ export function HomeCatalogSections({
       ) : null}
 
       {/* Catalog sections — anchored for scroll-to-catalog links */}
-      <div className="home-catalog__sections" id="catalogo">
+      <div
+        className="grid gap-7 pt-[var(--layout-page-block)] max-md:pt-[var(--layout-page-block-compact)]"
+        id="catalogo"
+      >
         {nowShowing.status === "error" ? (
           <CatalogErrorState
             message={
@@ -237,9 +243,9 @@ function CatalogErrorState({
     <StateMessage
       action={
         onRetry ? (
-          <button className="button button-ghost" onClick={onRetry} type="button">
+          <Button onClick={onRetry} variant="ghost">
             Tentar novamente
-          </button>
+          </Button>
         ) : undefined
       }
       title={title}
