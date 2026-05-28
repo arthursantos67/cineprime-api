@@ -8,7 +8,6 @@ import { useAuth } from "@/contexts/AuthContext";
 const navigationItems = [
   { href: "/", label: "Início" },
   { href: "/#catalogo", label: "Catálogo" },
-  { href: "/ticket-types", label: "Ingressos" },
 ];
 
 function isActiveLink(pathname: string, href: string) {
@@ -30,12 +29,18 @@ export function AppHeader() {
   return (
     <header className="site-header">
       <div className="shell-container header-container">
-        <Link className="brand-link" href="/" aria-label="CinePrime, início">
-          <span className="brand-mark" aria-hidden="true">
-            CP
+        <div className="header-brand">
+          <Link className="brand-link" href="/" aria-label="CinePrime, início">
+            <span className="brand-mark" aria-hidden="true">
+              CP
+            </span>
+            <span>CinePrime</span>
+          </Link>
+          <span className="cinema-context" aria-label="Cinema selecionado: CinePrime Natal">
+            <span aria-hidden="true">&#x1F4CD;</span>
+            Natal
           </span>
-          <span>CinePrime</span>
-        </Link>
+        </div>
 
         <nav className="primary-nav" aria-label="Navegação principal">
           {navigationItems.map((item) => {

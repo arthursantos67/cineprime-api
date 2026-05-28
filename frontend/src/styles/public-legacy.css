@@ -1,6 +1,10 @@
+/* ── Site header: dark cinematic ───────────────────────────────────── */
+
 .site-header {
-  background: rgb(255 255 255 / 96%);
-  border-bottom: 1px solid var(--color-border);
+  background: rgb(10 13 20 / 97%);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgb(255 255 255 / 7%);
   position: sticky;
   top: 0;
   z-index: 10;
@@ -11,17 +15,23 @@
   display: grid;
   gap: 16px;
   grid-template-columns: auto minmax(0, 1fr) auto;
-  min-height: 72px;
+  min-height: var(--header-height, 72px);
+}
+
+.header-brand {
+  align-items: center;
+  display: inline-flex;
+  gap: 10px;
+  min-width: max-content;
 }
 
 .brand-link {
   align-items: center;
-  color: var(--color-brand);
+  color: #ffffff;
   display: inline-flex;
   font-size: 18px;
   font-weight: 850;
   gap: 10px;
-  min-width: max-content;
 }
 
 .brand-mark {
@@ -35,6 +45,27 @@
   justify-content: center;
   line-height: 1;
   width: 34px;
+}
+
+.cinema-context {
+  align-items: center;
+  background: rgb(255 255 255 / 8%);
+  border: 1px solid rgb(255 255 255 / 10%);
+  border-radius: 999px;
+  color: rgb(255 255 255 / 60%);
+  display: inline-flex;
+  font-size: 12px;
+  font-weight: 750;
+  gap: 5px;
+  line-height: 1;
+  padding: 5px 10px;
+  transition: background var(--duration-fast) var(--ease-standard);
+  white-space: nowrap;
+}
+
+.cinema-context:hover {
+  background: rgb(255 255 255 / 12%);
+  color: rgb(255 255 255 / 80%);
 }
 
 .primary-nav,
@@ -57,18 +88,42 @@
 
 .nav-link {
   border-radius: 6px;
-  color: var(--color-muted);
+  color: rgb(255 255 255 / 60%);
   font-size: 14px;
   font-weight: 700;
   line-height: 1;
   padding: 10px 12px;
+  transition:
+    background var(--duration-fast) var(--ease-standard),
+    color var(--duration-fast) var(--ease-standard);
   white-space: nowrap;
 }
 
 .nav-link:hover,
 .nav-link-active {
-  background: #fff2bf;
-  color: var(--color-text);
+  background: rgb(255 255 255 / 8%);
+  color: #ffffff;
+}
+
+.site-header .button-ghost {
+  border-color: rgb(255 255 255 / 16%);
+  color: rgb(255 255 255 / 80%);
+}
+
+.site-header .button-ghost:hover {
+  background: rgb(255 255 255 / 10%);
+  border-color: rgb(255 255 255 / 24%);
+  color: #ffffff;
+}
+
+.site-header .button-secondary {
+  background: rgb(255 255 255 / 10%);
+  border-color: rgb(255 255 255 / 16%);
+  color: #ffffff;
+}
+
+.site-header .button-secondary:hover {
+  background: rgb(255 255 255 / 16%);
 }
 
 .main-content {
@@ -418,7 +473,248 @@ h1 {
 
 .home-catalog {
   display: grid;
+  gap: 0;
+}
+
+.home-catalog__sections {
+  display: grid;
   gap: 28px;
+  padding-top: var(--layout-page-block);
+}
+
+/* ── Cinematic hero ─────────────────────────────────────────────────── */
+
+.cinematic-hero {
+  color: #ffffff;
+  height: calc(100svh - var(--header-height, 72px));
+  margin-left: calc(50% - 50vw);
+  margin-right: calc(50% - 50vw);
+  /* Cancel main-content top padding so hero starts immediately below header */
+  margin-top: calc(-1 * var(--layout-page-block));
+  min-height: 480px;
+  overflow: hidden;
+  position: relative;
+  width: 100vw;
+}
+
+/* Skeleton / empty hero variants */
+.cinematic-hero--skeleton,
+.cinematic-hero--empty {
+  background: rgb(8 10 16);
+  min-height: 320px;
+}
+
+.cinematic-hero--skeleton {
+  height: auto;
+}
+
+/* Backdrop — fills the hero, sits behind content */
+.cinematic-hero__backdrop {
+  bottom: 0;
+  left: 0;
+  position: absolute;
+  right: 0;
+  top: 0;
+}
+
+/* Per-slide background images with fade transition */
+.cinematic-hero__slide-bg {
+  bottom: 0;
+  left: 0;
+  opacity: 0;
+  position: absolute;
+  right: 0;
+  top: 0;
+  transition: opacity 700ms ease;
+  will-change: opacity;
+}
+
+.cinematic-hero__slide-bg--active {
+  opacity: 1;
+}
+
+.cinematic-hero__bg-img {
+  display: block;
+  height: 100%;
+  object-fit: cover;
+  object-position: center top;
+  width: 100%;
+}
+
+/* Cinematic gradient overlay — strong on the left, fades right */
+.cinematic-hero__overlay {
+  background:
+    linear-gradient(
+      to right,
+      rgb(5 8 16 / 90%) 0%,
+      rgb(5 8 16 / 72%) 35%,
+      rgb(5 8 16 / 42%) 60%,
+      rgb(5 8 16 / 18%) 100%
+    ),
+    linear-gradient(
+      to top,
+      rgb(5 8 16 / 60%) 0%,
+      transparent 40%
+    );
+  bottom: 0;
+  left: 0;
+  position: absolute;
+  right: 0;
+  top: 0;
+}
+
+/* Stage — sits above backdrop, positions content */
+.cinematic-hero__stage {
+  align-items: flex-end;
+  bottom: 0;
+  display: flex;
+  left: 0;
+  padding-bottom: 80px;
+  position: absolute;
+  right: 0;
+  top: 0;
+}
+
+/* shell-container overrides for the inner stage */
+.cinematic-hero__inner {
+  display: grid;
+  gap: 20px;
+  position: relative;
+  z-index: 2;
+}
+
+/* Content slides — fade in/out with the active state */
+.cinematic-hero__content {
+  display: grid;
+  gap: 18px;
+  max-width: 580px;
+  opacity: 0;
+  pointer-events: none;
+  position: absolute;
+  transition: opacity 600ms ease;
+}
+
+.cinematic-hero__content--active {
+  opacity: 1;
+  pointer-events: auto;
+  position: static;
+}
+
+.cinematic-hero__eyebrow {
+  color: var(--color-cinema-gold);
+  margin: 0;
+}
+
+.cinematic-hero__title {
+  color: #ffffff;
+  font-size: clamp(2rem, 5vw, 3.5rem);
+  line-height: 1.05;
+  margin: 0;
+  text-shadow: 0 2px 20px rgb(0 0 0 / 50%);
+}
+
+.cinematic-hero__meta {
+  color: rgb(255 255 255 / 75%);
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.cinematic-hero__cta {
+  background: var(--color-brand);
+  border-color: transparent;
+  color: #ffffff;
+  font-size: 15px;
+  min-height: 48px;
+  padding: 0 28px;
+  width: fit-content;
+}
+
+.cinematic-hero__cta:hover {
+  background: var(--color-brand-strong);
+}
+
+/* Dot indicators */
+.cinematic-hero__dots {
+  display: flex;
+  gap: 8px;
+  padding-top: 8px;
+}
+
+.cinematic-hero__dot {
+  background: rgb(255 255 255 / 35%);
+  border: 0;
+  border-radius: 999px;
+  cursor: pointer;
+  height: 6px;
+  padding: 0;
+  transition:
+    background var(--duration-fast) var(--ease-standard),
+    width var(--duration-medium) var(--ease-standard);
+  width: 24px;
+}
+
+.cinematic-hero__dot--active {
+  background: #ffffff;
+  width: 40px;
+}
+
+.cinematic-hero__dot:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: var(--focus-ring-offset);
+}
+
+/* Scroll hint at the bottom center */
+.cinematic-hero__scroll-hint {
+  align-items: center;
+  bottom: 24px;
+  color: rgb(255 255 255 / 55%);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  justify-content: center;
+  left: 50%;
+  position: absolute;
+  transform: translateX(-50%);
+  transition: color var(--duration-fast) var(--ease-standard);
+  z-index: 3;
+}
+
+.cinematic-hero__scroll-hint:hover {
+  color: #ffffff;
+}
+
+.cinematic-hero__scroll-hint:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: 6px;
+}
+
+.cinematic-hero__scroll-arrow {
+  animation: scroll-bounce 2000ms ease-in-out infinite;
+  border-bottom: 2px solid currentColor;
+  border-right: 2px solid currentColor;
+  display: block;
+  height: 10px;
+  transform: rotate(45deg);
+  width: 10px;
+}
+
+@keyframes scroll-bounce {
+  0%, 100% { transform: rotate(45deg) translateY(0); opacity: 0.55; }
+  50% { transform: rotate(45deg) translateY(4px); opacity: 1; }
+}
+
+/* Override carousel-button positioning for the cinematic hero */
+.cinematic-hero .carousel-button--side {
+  top: 50%;
+}
+
+/* Skeleton/empty states inside the hero */
+.cinematic-hero--skeleton .cinematic-hero__stage,
+.cinematic-hero--empty .cinematic-hero__stage {
+  align-items: center;
+  justify-content: center;
+  padding-bottom: 0;
 }
 
 .movie-grid-section {
@@ -2013,23 +2309,56 @@ h1 {
 }
 
 @media (max-width: 820px) {
+  /* Header: brand+actions on first row, nav on second row */
   .header-container {
-    align-items: stretch;
-    grid-template-columns: 1fr;
-    padding-bottom: 14px;
-    padding-top: 14px;
+    align-items: center;
+    grid-template-columns: 1fr auto;
+    grid-template-rows: auto auto;
+    padding-bottom: 0;
+    padding-top: 0;
+    row-gap: 0;
   }
 
-  .primary-nav,
+  .header-brand {
+    grid-column: 1;
+    grid-row: 1;
+    padding-bottom: 12px;
+    padding-top: 12px;
+  }
+
   .header-actions {
-    justify-content: flex-start;
-    width: 100%;
+    grid-column: 2;
+    grid-row: 1;
+    justify-content: flex-end;
+    padding-bottom: 12px;
+    padding-top: 12px;
+    width: auto;
   }
 
   .primary-nav {
+    border-top: 1px solid rgb(255 255 255 / 6%);
     flex-wrap: nowrap;
+    grid-column: 1 / -1;
+    grid-row: 2;
+    justify-content: flex-start;
     overflow-x: auto;
-    padding-bottom: 2px;
+    padding-bottom: 4px;
+    padding-top: 4px;
+    scrollbar-width: none;
+    width: 100%;
+  }
+
+  .primary-nav::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Hero: adjust stage padding for smaller screens */
+  .cinematic-hero__stage {
+    padding-bottom: 60px;
+  }
+
+  .home-catalog__sections {
+    padding-top: var(--layout-page-block-compact);
   }
 
   .page-heading {
@@ -2137,6 +2466,15 @@ h1 {
     padding: 32px 0 56px;
   }
 
+  /* Cancel mobile top padding for hero */
+  .cinematic-hero {
+    margin-top: calc(-1 * var(--layout-page-block-compact));
+  }
+
+  .cinema-context {
+    display: none;
+  }
+
   .brand-link {
     font-size: 17px;
   }
@@ -2147,11 +2485,24 @@ h1 {
   }
 
   .header-actions .button {
-    flex: 1 1 132px;
+    flex: 1 0 auto;
   }
 
   .panel {
     padding: 18px;
+  }
+
+  .cinematic-hero__title {
+    font-size: clamp(1.75rem, 8vw, 2.5rem);
+  }
+
+  .cinematic-hero__stage {
+    align-items: center;
+    padding-bottom: 80px;
+  }
+
+  .home-catalog__sections {
+    padding-top: var(--layout-page-block-compact);
   }
 
   .featured-movie__media {
