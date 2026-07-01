@@ -280,6 +280,7 @@ export function AdminMovieForm({ movie }: AdminMovieFormProps) {
   const [releaseDate, setReleaseDate] = useState(movie?.release_date ?? "");
   const [posterUrl, setPosterUrl] = useState(movie?.poster_url ?? "");
   const [spotlightUrl, setSpotlightUrl] = useState(movie?.spotlight_url ?? "");
+  const [trailerUrl, setTrailerUrl] = useState(movie?.trailer_url ?? "");
   const [status, setStatus] = useState<MovieStatus>(movie?.status ?? "em_cartaz");
   const [isFeatured, setIsFeatured] = useState(movie?.is_featured ?? false);
   const [ageRating, setAgeRating] = useState<CatalogMovieAgeRating>(
@@ -326,6 +327,7 @@ export function AdminMovieForm({ movie }: AdminMovieFormProps) {
   const releaseDateId = useId();
   const posterUrlId = useId();
   const spotlightUrlId = useId();
+  const trailerUrlId = useId();
   const classificationDescriptionId = useId();
   const directorId = useId();
   const castInputId = useId();
@@ -535,6 +537,7 @@ export function AdminMovieForm({ movie }: AdminMovieFormProps) {
       is_featured: isFeatured,
       poster_url: posterUrl,
       spotlight_url: spotlightUrl ? spotlightUrl : isEditing ? null : undefined,
+      trailer_url: trailerUrl ? trailerUrl : isEditing ? null : undefined,
       release_date: releaseDate,
       status,
       synopsis,
@@ -956,6 +959,38 @@ export function AdminMovieForm({ movie }: AdminMovieFormProps) {
           ) : (
             <div className="flex h-40 items-center justify-center rounded-[8px] border border-dashed border-white/[0.12] text-sm text-white/30">
               {t("admin.movie.spotlightPreview")}
+            </div>
+          )}
+
+          <FormField
+            error={fieldErrors.trailer_url}
+            label={t("admin.movie.trailerUrl")}
+            labelFor={trailerUrlId}
+          >
+            <TextInput
+              disabled={isSubmitting}
+              error={fieldErrors.trailer_url}
+              id={trailerUrlId}
+              onChange={(e) => setTrailerUrl(e.target.value)}
+              placeholder={t("admin.movie.trailerUrlPlaceholder")}
+              type="url"
+              value={trailerUrl}
+            />
+          </FormField>
+          {trailerUrl ? (
+            <div className="overflow-hidden rounded-[8px] border border-white/[0.07]" style={{ aspectRatio: "16/9" }}>
+              <iframe
+                allow="accelerometer; autoplay; encrypted-media; picture-in-picture"
+                allowFullScreen
+                className="h-full w-full"
+                sandbox="allow-scripts allow-same-origin allow-presentation allow-fullscreen"
+                src={trailerUrl}
+                title={t("admin.movie.trailerPreview")}
+              />
+            </div>
+          ) : (
+            <div className="flex h-40 items-center justify-center rounded-[8px] border border-dashed border-white/[0.12] text-sm text-white/30">
+              {t("admin.movie.trailerPreview")}
             </div>
           )}
 

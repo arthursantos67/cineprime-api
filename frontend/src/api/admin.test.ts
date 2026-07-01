@@ -133,6 +133,41 @@ test("adminApi.createMovie posts the movie payload", async () => {
   }
 });
 
+test("adminApi.createMovie posts trailer_url independently of spotlight_url", async () => {
+  const originalFetch = globalThis.fetch;
+
+  try {
+    globalThis.fetch = async (input, init) => {
+      assert.equal(input, "http://localhost:8000/api/v1/catalog/movies/");
+      const body = JSON.parse(init?.body as string);
+      assert.equal(body.trailer_url, "https://www.youtube.com/watch?v=dQw4w9WgXcQ");
+      assert.equal(body.spotlight_url, "https://cdn.example.com/spotlight.jpg");
+      return Response.json({
+        ...movieDetail,
+        spotlight_url: body.spotlight_url,
+        trailer_url: body.trailer_url,
+      });
+    };
+
+    const created = await adminApi.createMovie({
+      duration_minutes: 120,
+      genres: ["genre-1"],
+      poster_url: "https://cdn.example.com/poster.jpg",
+      release_date: "2026-06-01",
+      spotlight_url: "https://cdn.example.com/spotlight.jpg",
+      status: "em_cartaz",
+      synopsis: "Uma sinopse.",
+      title: "Filme Teste",
+      trailer_url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+    });
+
+    assert.equal(created.trailer_url, "https://www.youtube.com/watch?v=dQw4w9WgXcQ");
+    assert.equal(created.spotlight_url, "https://cdn.example.com/spotlight.jpg");
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 test("adminApi.updateMovie patches the movie by id", async () => {
   const originalFetch = globalThis.fetch;
 
@@ -147,6 +182,26 @@ test("adminApi.updateMovie patches the movie by id", async () => {
 
     const updated = await adminApi.updateMovie("movie-1", { is_featured: false });
     assert.equal(updated.is_featured, false);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("adminApi.updateMovie can clear trailer_url without touching spotlight_url", async () => {
+  const originalFetch = globalThis.fetch;
+
+  try {
+    globalThis.fetch = async (input, init) => {
+      assert.equal(input, "http://localhost:8000/api/v1/catalog/movies/movie-1/");
+      assert.equal(init?.method, "PATCH");
+      const body = JSON.parse(init?.body as string);
+      assert.equal(body.trailer_url, null);
+      assert.equal("spotlight_url" in body, false);
+      return Response.json({ ...movieDetail, trailer_url: null });
+    };
+
+    const updated = await adminApi.updateMovie("movie-1", { trailer_url: null });
+    assert.equal(updated.trailer_url, null);
   } finally {
     globalThis.fetch = originalFetch;
   }
