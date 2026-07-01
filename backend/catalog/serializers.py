@@ -1,4 +1,5 @@
 import logging
+import re
 from datetime import timedelta
 from decimal import Decimal, ROUND_HALF_UP
 
@@ -24,6 +25,26 @@ from reservations.models import SessionSeat, SessionSeatStatus, Seat
 logger = logging.getLogger(__name__)
 
 _WEEKEND_WEEKDAYS = {4, 5, 6}  # Friday, Saturday, Sunday
+
+_YOUTUBE_URL_RE = re.compile(
+    r"^https?://(?:www\.)?(?:youtube\.com/watch\?(?:.*&)?v=(?P<watch_id>[\w-]{11})"
+    r"|youtu\.be/(?P<short_id>[\w-]{11}))(?:[&?].*)?$"
+)
+_VIMEO_URL_RE = re.compile(r"^https?://(?:www\.)?vimeo\.com/(?P<vimeo_id>\d+)(?:[/?].*)?$")
+
+
+def normalize_trailer_url(url: str) -> str:
+    """Convert plain YouTube/Vimeo links into their embeddable form."""
+    youtube_match = _YOUTUBE_URL_RE.match(url)
+    if youtube_match:
+        video_id = youtube_match.group("watch_id") or youtube_match.group("short_id")
+        return f"https://www.youtube.com/embed/{video_id}"
+
+    vimeo_match = _VIMEO_URL_RE.match(url)
+    if vimeo_match:
+        return f"https://player.vimeo.com/video/{vimeo_match.group('vimeo_id')}"
+
+    return url
 
 
 def compute_session_price(room_base_price, start_time):
@@ -341,6 +362,7 @@ class MovieWriteSerializer(TranslatedCatalogSerializerMixin, serializers.ModelSe
             "release_date",
             "poster_url",
             "spotlight_url",
+            "trailer_url",
             "age_rating",
             "classification_description",
             "director",
@@ -351,6 +373,11 @@ class MovieWriteSerializer(TranslatedCatalogSerializerMixin, serializers.ModelSe
             "updated_at",
         ]
         read_only_fields = ["id", "locale", "available_locales", "created_at", "updated_at"]
+
+    def validate_trailer_url(self, value):
+        if not value:
+            return value
+        return normalize_trailer_url(value)
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
@@ -403,6 +430,7 @@ class MovieReadSerializer(TranslatedCatalogSerializerMixin, serializers.ModelSer
             "release_date",
             "poster_url",
             "spotlight_url",
+            "trailer_url",
             "age_rating",
             "classification_description",
             "director",
@@ -440,6 +468,7 @@ class MovieSummarySerializer(TranslatedCatalogSerializerMixin, serializers.Model
             "release_date",
             "poster_url",
             "spotlight_url",
+            "trailer_url",
             "age_rating",
             "classification_description",
             "director",

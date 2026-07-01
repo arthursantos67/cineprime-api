@@ -528,6 +528,118 @@ class TestCatalogApi:
         movie = Movie.objects.get(title="Future Premiere")
         assert movie.status == MovieStatus.EM_BREVE
 
+    def test_create_movie_accepts_trailer_url_independent_of_spotlight_url(
+        self, api_client, genre, second_genre
+    ):
+        response = api_client.post(
+            "/api/v1/catalog/movies/",
+            {
+                "title": "Dune Part Two",
+                "genres": [str(genre.id), str(second_genre.id)],
+                "synopsis": "Desert power struggle.",
+                "duration_minutes": 166,
+                "release_date": "2024-03-01",
+                "poster_url": "https://example.com/dune-two.jpg",
+                "spotlight_url": "https://example.com/dune-two-banner.jpg",
+                "trailer_url": "https://example.com/dune-two-trailer.mp4",
+            },
+            format="json",
+        )
+
+        assert response.status_code == status.HTTP_201_CREATED
+        assert response.data["trailer_url"] == "https://example.com/dune-two-trailer.mp4"
+        assert response.data["spotlight_url"] == "https://example.com/dune-two-banner.jpg"
+        movie = Movie.objects.get(title="Dune Part Two")
+        assert movie.trailer_url == "https://example.com/dune-two-trailer.mp4"
+        assert movie.spotlight_url == "https://example.com/dune-two-banner.jpg"
+
+    def test_create_movie_rejects_malformed_trailer_url(self, api_client, genre, second_genre):
+        response = api_client.post(
+            "/api/v1/catalog/movies/",
+            {
+                "title": "Broken Trailer Movie",
+                "genres": [str(genre.id), str(second_genre.id)],
+                "synopsis": "Synopsis.",
+                "duration_minutes": 100,
+                "release_date": "2026-05-13",
+                "poster_url": "https://example.com/broken-trailer.jpg",
+                "trailer_url": "not-a-valid-url",
+            },
+            format="json",
+        )
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert "trailer_url" in response.data["error"]["details"]
+        assert not Movie.objects.filter(title="Broken Trailer Movie").exists()
+
+    @pytest.mark.parametrize(
+        "raw_url,expected_embed_url",
+        [
+            (
+                "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+                "https://www.youtube.com/embed/dQw4w9WgXcQ",
+            ),
+            (
+                "https://youtu.be/dQw4w9WgXcQ",
+                "https://www.youtube.com/embed/dQw4w9WgXcQ",
+            ),
+            (
+                "https://vimeo.com/76979871",
+                "https://player.vimeo.com/video/76979871",
+            ),
+        ],
+    )
+    def test_create_movie_normalizes_trailer_url_to_embeddable_form(
+        self, api_client, genre, second_genre, raw_url, expected_embed_url
+    ):
+        response = api_client.post(
+            "/api/v1/catalog/movies/",
+            {
+                "title": f"Normalized Trailer Movie {raw_url}",
+                "genres": [str(genre.id), str(second_genre.id)],
+                "synopsis": "Synopsis.",
+                "duration_minutes": 100,
+                "release_date": "2026-05-13",
+                "poster_url": "https://example.com/normalized-trailer.jpg",
+                "trailer_url": raw_url,
+            },
+            format="json",
+        )
+
+        assert response.status_code == status.HTTP_201_CREATED
+        assert response.data["trailer_url"] == expected_embed_url
+        movie = Movie.objects.get(title=f"Normalized Trailer Movie {raw_url}")
+        assert movie.trailer_url == expected_embed_url
+
+    def test_update_movie_can_set_and_clear_trailer_url_without_affecting_spotlight(
+        self, api_client, movie
+    ):
+        movie.spotlight_url = "https://example.com/godfather-banner.jpg"
+        movie.save()
+
+        set_response = api_client.patch(
+            f"/api/v1/catalog/movies/{movie.id}/",
+            {"trailer_url": "https://example.com/godfather-trailer.mp4"},
+            format="json",
+        )
+
+        assert set_response.status_code == status.HTTP_200_OK
+        assert set_response.data["trailer_url"] == "https://example.com/godfather-trailer.mp4"
+        assert set_response.data["spotlight_url"] == "https://example.com/godfather-banner.jpg"
+
+        clear_response = api_client.patch(
+            f"/api/v1/catalog/movies/{movie.id}/",
+            {"trailer_url": None},
+            format="json",
+        )
+
+        assert clear_response.status_code == status.HTTP_200_OK
+        assert clear_response.data["trailer_url"] is None
+        assert clear_response.data["spotlight_url"] == "https://example.com/godfather-banner.jpg"
+        movie.refresh_from_db()
+        assert movie.trailer_url is None
+        assert movie.spotlight_url == "https://example.com/godfather-banner.jpg"
+
     def test_list_movies_can_filter_by_em_cartaz_status(self, api_client, genre):
         current_movie = self.create_movie(
             title="Current Movie",

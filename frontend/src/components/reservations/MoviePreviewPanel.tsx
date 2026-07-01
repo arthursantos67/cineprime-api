@@ -117,7 +117,7 @@ function PanelContent({ session }: { session: CatalogSession }) {
       </div>
 
       {/* Trailer */}
-      {movie.spotlight_url ? (
+      {movie.trailer_url ? (
         <div>
           <button
             aria-expanded={isTrailerOpen}
@@ -142,7 +142,7 @@ function PanelContent({ session }: { session: CatalogSession }) {
                 allowFullScreen
                 className="h-full w-full"
                 sandbox="allow-scripts allow-same-origin allow-presentation allow-fullscreen"
-                src={movie.spotlight_url}
+                src={movie.trailer_url}
                 title={t("session.previewPanel.trailer")}
               />
             </div>
