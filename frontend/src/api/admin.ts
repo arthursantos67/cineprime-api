@@ -107,6 +107,7 @@ export type AdminSeatWritePayload = {
 export type AdminSessionWritePayload = {
   audio_format?: CatalogAudioFormat;
   end_time: string;
+  extra_dates?: string[];
   movie: string;
   projection_format?: CatalogProjectionFormat;
   room: string;
@@ -599,6 +600,13 @@ export const adminApi = {
       json: payload,
       method: "POST",
     });
+
+    if (Array.isArray(response)) {
+      if (!response.every((item) => isAdminSession(item))) {
+        throw new Error("Unexpected admin create session response.");
+      }
+      return response satisfies AdminSession[];
+    }
 
     if (!isAdminSession(response)) {
       throw new Error("Unexpected admin create session response.");

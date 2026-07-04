@@ -481,6 +481,13 @@ class MovieSummarySerializer(TranslatedCatalogSerializerMixin, serializers.Model
 
 
 class SessionWriteSerializer(serializers.ModelSerializer):
+    extra_dates = serializers.ListField(
+        child=serializers.DateField(),
+        required=False,
+        default=list,
+        write_only=True,
+    )
+
     class Meta:
         model = Session
         fields = [
@@ -493,10 +500,18 @@ class SessionWriteSerializer(serializers.ModelSerializer):
             "audio_format",
             "projection_format",
             "session_type",
+            "extra_dates",
             "created_at",
             "updated_at",
         ]
         read_only_fields = ["id", "base_price", "created_at", "updated_at"]
+
+    def validate_extra_dates(self, value):
+        if self.instance is not None and value:
+            raise serializers.ValidationError(
+                "extra_dates is only supported when creating a session."
+            )
+        return value
 
     def validate(self, attrs):
         attrs = super().validate(attrs)
@@ -562,26 +577,57 @@ class SessionWriteSerializer(serializers.ModelSerializer):
 
     @transaction.atomic
     def create(self, validated_data):
+        extra_dates = validated_data.pop("extra_dates", [])
         room = validated_data["room"]
-        start_time = validated_data["start_time"]
-        validated_data["base_price"] = compute_session_price(
-            room.base_price, start_time
+        base_start_time = validated_data["start_time"]
+        duration = validated_data["end_time"] - base_start_time
+
+        sessions_data = [dict(validated_data)]
+        for extra_date in extra_dates:
+            extra_start_time = base_start_time.replace(
+                year=extra_date.year, month=extra_date.month, day=extra_date.day
+            )
+            sessions_data.append(
+                {
+                    **validated_data,
+                    "start_time": extra_start_time,
+                    "end_time": extra_start_time + duration,
+                }
+            )
+
+        created_sessions = []
+        for session_data in sessions_data:
+            session_data["base_price"] = compute_session_price(
+                room.base_price, session_data["start_time"]
+            )
+            session = Session(**session_data)
+            try:
+                session.save()
+            except DjangoValidationError as exc:
+                if extra_dates:
+                    details = (
+                        getattr(exc, "message_dict", None)
+                        or getattr(exc, "messages", None)
+                        or str(exc)
+                    )
+                    raise serializers.ValidationError(
+                        {"extra_dates": {session_data["start_time"].date().isoformat(): details}}
+                    ) from exc
+                raise_serializer_validation_error(exc)
+            created_sessions.append(session)
+
+        seats = list(Seat.objects.select_related("row").filter(row__room=room))
+        SessionSeat.objects.bulk_create(
+            [
+                SessionSeat(session=session, seat=seat)
+                for session in created_sessions
+                for seat in seats
+            ]
         )
 
-        session = Session(**validated_data)
-
-        try:
-            session.save()
-        except DjangoValidationError as exc:
-            raise_serializer_validation_error(exc)
-
-        seats = Seat.objects.select_related("row").filter(row__room=session.room)
-
-        session_seats = [SessionSeat(session=session, seat=seat) for seat in seats]
-
-        SessionSeat.objects.bulk_create(session_seats)
-
-        return session
+        if len(created_sessions) == 1:
+            return created_sessions[0]
+        return created_sessions
 
     def update(self, instance, validated_data):
         if "start_time" in validated_data:

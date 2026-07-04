@@ -1002,6 +1002,83 @@ class TestCatalogApi:
         assert response.data["base_price"] != "999.99"
         assert response.data["base_price"] == str(room.base_price)
 
+    def test_create_session_with_extra_dates_creates_one_session_per_date(
+        self, api_client, movie, room
+    ):
+        response = api_client.post(
+            "/api/v1/catalog/sessions/",
+            {
+                "movie": str(movie.id),
+                "room": str(room.id),
+                "start_time": "2026-03-23T18:00:00Z",
+                "end_time": "2026-03-23T20:55:00Z",
+                "extra_dates": ["2026-03-24", "2026-03-25"],
+            },
+            format="json",
+        )
+
+        assert response.status_code == status.HTTP_201_CREATED
+        assert isinstance(response.data, list)
+        assert len(response.data) == 3
+        assert Session.objects.count() == 3
+
+        sessions = Session.objects.order_by("start_time")
+        expected_dates = ["2026-03-23", "2026-03-24", "2026-03-25"]
+        for expected_date, created_session in zip(expected_dates, sessions):
+            assert created_session.start_time.isoformat().startswith(expected_date)
+            assert created_session.start_time.strftime("%H:%M") == "18:00"
+            assert created_session.end_time.strftime("%H:%M") == "20:55"
+            assert created_session.movie_id == movie.id
+            assert created_session.room_id == room.id
+
+    def test_create_session_with_extra_dates_rejects_partial_overlap_atomically(
+        self, api_client, movie, room
+    ):
+        Session.objects.create(
+            movie=movie,
+            room=room,
+            start_time="2026-03-25T18:00:00Z",
+            end_time="2026-03-25T20:55:00Z",
+            base_price="25.00",
+        )
+
+        response = api_client.post(
+            "/api/v1/catalog/sessions/",
+            {
+                "movie": str(movie.id),
+                "room": str(room.id),
+                "start_time": "2026-03-23T18:00:00Z",
+                "end_time": "2026-03-23T20:55:00Z",
+                "extra_dates": ["2026-03-24", "2026-03-25"],
+            },
+            format="json",
+        )
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert "extra_dates" in response.data["error"]["details"]
+        assert "2026-03-25" in response.data["error"]["details"]["extra_dates"]
+        # Only the pre-existing session should remain; nothing from the batch was created.
+        assert Session.objects.count() == 1
+
+    def test_create_session_with_empty_extra_dates_behaves_like_single_date(
+        self, api_client, movie, room
+    ):
+        response = api_client.post(
+            "/api/v1/catalog/sessions/",
+            {
+                "movie": str(movie.id),
+                "room": str(room.id),
+                "start_time": "2026-03-23T18:00:00Z",
+                "end_time": "2026-03-23T20:55:00Z",
+                "extra_dates": [],
+            },
+            format="json",
+        )
+
+        assert response.status_code == status.HTTP_201_CREATED
+        assert isinstance(response.data, dict)
+        assert Session.objects.count() == 1
+
     def test_update_session_base_price_is_read_only(self, api_client, session):
         original_price = session.base_price
         response = api_client.patch(

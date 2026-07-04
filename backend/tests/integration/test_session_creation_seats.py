@@ -87,3 +87,49 @@ def test_creating_session_auto_generates_session_seats():
         seat_a2.id,
         seat_b1.id,
     ]
+
+
+@pytest.mark.django_db
+def test_creating_session_with_extra_dates_generates_seats_for_every_session():
+    client = APIClient()
+    admin_user = User.objects.create_user(
+        email="session-admin2@example.com",
+        username="session_admin2",
+        password="StrongPass123",
+        is_staff=True,
+    )
+    client.force_authenticate(user=admin_user)
+
+    room = Room.objects.create(name="Room 2", capacity=100)
+    row_a = SeatRow.objects.create(room=room, name="A")
+    Seat.objects.create(row=row_a, number=1)
+    Seat.objects.create(row=row_a, number=2)
+
+    movie = Movie.objects.create(
+        title="Movie 2",
+        synopsis="Synopsis",
+        duration_minutes=120,
+        release_date="2026-03-21",
+        poster_url="https://example.com/poster.jpg",
+    )
+
+    response = client.post(
+        "/api/v1/catalog/sessions/",
+        {
+            "movie": str(movie.id),
+            "room": str(room.id),
+            "start_time": "2026-03-22T18:00:00Z",
+            "end_time": "2026-03-22T20:00:00Z",
+            "extra_dates": ["2026-03-29", "2026-04-05"],
+        },
+        format="json",
+    )
+
+    assert response.status_code == 201
+    assert len(response.data) == 3
+
+    sessions = Session.objects.filter(room=room).order_by("start_time")
+    assert sessions.count() == 3
+
+    for created_session in sessions:
+        assert SessionSeat.objects.filter(session=created_session).count() == 2

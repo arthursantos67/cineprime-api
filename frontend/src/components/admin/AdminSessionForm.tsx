@@ -158,6 +158,8 @@ export function AdminSessionForm({ session }: AdminSessionFormProps) {
     (session?.session_type as CatalogSessionType) ?? ""
   );
 
+  const [extraDates, setExtraDates] = useState<string[]>([]);
+
   const [movies, setMovies] = useState<CatalogMovieDetail[]>([]);
   const [rooms, setRooms] = useState<AdminRoom[]>([]);
   const [loadingOptions, setLoadingOptions] = useState(true);
@@ -215,6 +217,18 @@ export function AdminSessionForm({ session }: AdminSessionFormProps) {
     setEndTime(computed.time);
   }, [isEndAutoCalc, startDate, startTime, movieId, movies]);
 
+  function handleAddExtraDate() {
+    setExtraDates((prev) => [...prev, ""]);
+  }
+
+  function handleExtraDateChange(index: number, value: string) {
+    setExtraDates((prev) => prev.map((date, i) => (i === index ? value : date)));
+  }
+
+  function handleRemoveExtraDate(index: number) {
+    setExtraDates((prev) => prev.filter((_, i) => i !== index));
+  }
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setFieldErrors({});
@@ -223,6 +237,8 @@ export function AdminSessionForm({ session }: AdminSessionFormProps) {
     setIsSubmitting(true);
 
     try {
+      const trimmedExtraDates = extraDates.map((date) => date.trim()).filter(Boolean);
+
       const payload: AdminSessionWritePayload = {
         audio_format: audioFormat || undefined,
         end_time: combineLocalDateTime(endDate, endTime),
@@ -231,6 +247,9 @@ export function AdminSessionForm({ session }: AdminSessionFormProps) {
         room: roomId,
         session_type: sessionType || undefined,
         start_time: combineLocalDateTime(startDate, startTime),
+        ...(!isEditing && trimmedExtraDates.length > 0
+          ? { extra_dates: trimmedExtraDates }
+          : {}),
       };
 
       if (isEditing) {
@@ -496,6 +515,52 @@ export function AdminSessionForm({ session }: AdminSessionFormProps) {
           </>
         )}
       </div>
+
+      {!isEditing ? (
+        <div className="grid gap-1.5">
+          <span className="text-sm font-extrabold text-white">
+            {t("admin.session.extraDates")}
+          </span>
+          <p className="text-xs text-white/40">
+            {t("admin.session.extraDatesHint")}
+          </p>
+          {extraDates.length > 0 ? (
+            <div className="grid gap-2">
+              {extraDates.map((date, index) => (
+                <div className="flex items-center gap-2" key={index}>
+                  <TextInput
+                    disabled={formDisabled}
+                    onChange={(e) => handleExtraDateChange(index, e.target.value)}
+                    type="date"
+                    value={date}
+                  />
+                  <button
+                    className="text-xs font-bold text-white/40 underline hover:text-error disabled:opacity-50"
+                    disabled={formDisabled}
+                    onClick={() => handleRemoveExtraDate(index)}
+                    type="button"
+                  >
+                    {t("admin.session.removeDate")}
+                  </button>
+                </div>
+              ))}
+            </div>
+          ) : null}
+          <button
+            className="w-fit text-xs font-bold text-brand/80 underline hover:text-brand disabled:opacity-50"
+            disabled={formDisabled}
+            onClick={handleAddExtraDate}
+            type="button"
+          >
+            {t("admin.session.addDate")}
+          </button>
+          {fieldErrors.extra_dates ? (
+            <p className="text-sm font-bold text-error" role="alert">
+              {fieldErrors.extra_dates}
+            </p>
+          ) : null}
+        </div>
+      ) : null}
 
       {(() => {
         const selectedRoom = rooms.find((r) => r.id === roomId);

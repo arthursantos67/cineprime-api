@@ -502,8 +502,11 @@ class SessionListCreateView(ListCreateAPIView):
     def create(self, request, *args, **kwargs):
         write_serializer = self.get_serializer(data=request.data)
         write_serializer.is_valid(raise_exception=True)
-        instance = write_serializer.save()
-        read_serializer = SessionReadSerializer(instance, context=self.get_serializer_context())
+        result = write_serializer.save()
+        many = isinstance(result, list)
+        read_serializer = SessionReadSerializer(
+            result, many=many, context=self.get_serializer_context()
+        )
         headers = self.get_success_headers(read_serializer.data)
         invalidate_session_list_cache()
         return Response(read_serializer.data, status=http_status.HTTP_201_CREATED, headers=headers)

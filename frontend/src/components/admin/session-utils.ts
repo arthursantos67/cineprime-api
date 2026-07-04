@@ -12,6 +12,18 @@ export function getSessionPriceMultiplier(date: string, time: string): number {
   return WEEKEND_DAYS.has(day) ? 1.24 : 1.0;
 }
 
+function flattenErrorMessage(value: unknown): string {
+  if (Array.isArray(value)) {
+    return value.map(flattenErrorMessage).join(" ");
+  }
+  if (value && typeof value === "object") {
+    return Object.values(value as Record<string, unknown>)
+      .map(flattenErrorMessage)
+      .join(" ");
+  }
+  return String(value);
+}
+
 export function extractSessionFieldErrors(error: unknown): FieldErrors {
   if (!(error instanceof ApiError) || error.code !== "VALIDATION_FAILED") {
     return {};
@@ -25,6 +37,12 @@ export function extractSessionFieldErrors(error: unknown): FieldErrors {
   const result: FieldErrors = {};
 
   for (const [key, val] of Object.entries(details)) {
+    if (key === "extra_dates" && val && typeof val === "object" && !Array.isArray(val)) {
+      result.extra_dates = Object.entries(val as Record<string, unknown>)
+        .map(([date, dateErrors]) => `${date}: ${flattenErrorMessage(dateErrors)}`)
+        .join(" ");
+      continue;
+    }
     const messages = Array.isArray(val) ? val : [val];
     result[key as keyof FieldErrors] = messages.join(" ");
   }

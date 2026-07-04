@@ -534,6 +534,9 @@ test("adminApi.createSession posts the session payload", async () => {
       start_time: "2026-06-10T19:30:00Z",
     });
 
+    if (Array.isArray(created)) {
+      throw new Error("Expected a single created session, got an array.");
+    }
     assert.equal(created.id, "session-1");
   } finally {
     globalThis.fetch = originalFetch;
@@ -555,6 +558,35 @@ test("adminApi.createSession rejects unexpected response shape", async () => {
       }),
       /Unexpected admin create session response/
     );
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("adminApi.createSession returns a list of sessions when extra_dates is used", async () => {
+  const originalFetch = globalThis.fetch;
+
+  try {
+    globalThis.fetch = async (_input, init) => {
+      const body = JSON.parse(init?.body as string);
+      assert.deepEqual(body.extra_dates, ["2026-06-17", "2026-06-24"]);
+      return Response.json([session, { ...session, id: "session-2" }]);
+    };
+
+    const created = await adminApi.createSession({
+      end_time: "2026-06-10T22:00:00Z",
+      extra_dates: ["2026-06-17", "2026-06-24"],
+      movie: "movie-1",
+      room: "room-1",
+      start_time: "2026-06-10T19:30:00Z",
+    });
+
+    if (!Array.isArray(created)) {
+      throw new Error("Expected an array of created sessions.");
+    }
+    assert.equal(created.length, 2);
+    assert.equal(created[0].id, "session-1");
+    assert.equal(created[1].id, "session-2");
   } finally {
     globalThis.fetch = originalFetch;
   }
