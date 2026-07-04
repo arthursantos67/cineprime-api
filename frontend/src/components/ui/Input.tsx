@@ -30,6 +30,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
     const inputId = id ?? generatedId;
     const descriptionId = description ? `${inputId}-description` : undefined;
     const errorId = error ? `${inputId}-error` : undefined;
+    const describedBy = cn(props["aria-describedby"], descriptionId, errorId) || undefined;
 
     return (
       <div className={cn("grid gap-1.5", containerClassName)}>
@@ -43,8 +44,9 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
         ) : null}
         <div className="relative">
           <input
-            aria-describedby={cn(descriptionId, errorId) || undefined}
-            aria-invalid={error ? "true" : undefined}
+            {...props}
+            aria-describedby={describedBy}
+            aria-invalid={error ? "true" : props["aria-invalid"]}
             className={cn(
               "min-h-[var(--control-height-lg)] w-full rounded-control border border-white/[0.10] bg-white/[0.04] px-3 py-2 text-white placeholder:text-white/40 shadow-none outline-none transition-colors duration-150 focus:border-brand focus:shadow-focus disabled:cursor-not-allowed disabled:opacity-[0.68]",
               trailing ? "pr-11" : undefined,
@@ -53,7 +55,6 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
             )}
             id={inputId}
             ref={ref}
-            {...props}
           />
           {trailing ? (
             <div className="absolute inset-y-0 right-1 flex items-center">
