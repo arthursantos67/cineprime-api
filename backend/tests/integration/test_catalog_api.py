@@ -730,7 +730,14 @@ class TestCatalogApi:
     def test_list_movies_can_filter_by_search_title_case_insensitively(
         self, api_client, genre
     ):
-        matrix_movie = self.create_movie(title="The Matrix", genre=genre)
+        matrix_movie = Movie.objects.create(
+            title="The Matrix",
+            synopsis="A hacker uncovers the truth about his reality.",
+            duration_minutes=136,
+            release_date="1999-03-31",
+            poster_url="https://example.com/the-matrix.jpg",
+        )
+        matrix_movie.genres.set([genre])
         self.create_movie(title="Inception", genre=genre)
 
         response = api_client.get("/api/v1/catalog/movies/?search=matrix")
