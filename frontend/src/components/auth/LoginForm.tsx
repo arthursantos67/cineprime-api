@@ -4,6 +4,9 @@ import { useEffect, useState, type FormEvent } from "react";
 
 import { useRouter } from "next/navigation";
 
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
+import { PasswordInput } from "@/components/ui/PasswordInput";
 import { useAuth } from "@/contexts/AuthContext";
 import { useI18n } from "@/i18n";
 import {
@@ -29,62 +32,59 @@ export function LoginFormView({
   const formErrorId = errorMessage ? "login-form-error" : undefined;
 
   return (
-    <div className="panel">
+    <div className="grid gap-4 rounded-card border border-white/10 bg-white/[0.03] p-6">
       {confirmationMessage ? (
-        <p className="inline-status inline-status-success" role="status">
+        <p
+          className="w-fit rounded-pill bg-[#e8f5ee] px-3 py-1.5 text-sm font-extrabold leading-none text-success"
+          role="status"
+        >
           {confirmationMessage}
         </p>
       ) : null}
-      <form
-        aria-describedby={formErrorId}
-        className="form-grid"
-        onSubmit={onSubmit}
-      >
-        <div className="form-field">
-          <label htmlFor="email">{t("auth.email")}</label>
+      <form aria-describedby={formErrorId} className="grid gap-4" onSubmit={onSubmit}>
+        <Input
+          aria-describedby={formErrorId}
+          aria-invalid={errorMessage ? "true" : undefined}
+          autoComplete="email"
+          disabled={isSubmitting}
+          id="email"
+          label={t("auth.email")}
+          name="email"
+          placeholder={t("auth.emailPlaceholder")}
+          required
+          type="email"
+        />
+        <PasswordInput
+          aria-describedby={formErrorId}
+          aria-invalid={errorMessage ? "true" : undefined}
+          autoComplete="current-password"
+          disabled={isSubmitting}
+          id="password"
+          label={t("auth.password")}
+          name="password"
+          placeholder={t("auth.passwordPlaceholder")}
+          required
+        />
+        <div className="flex items-center gap-2">
           <input
-            aria-describedby={formErrorId}
-            aria-invalid={errorMessage ? "true" : undefined}
-            autoComplete="email"
-            disabled={isSubmitting}
-            id="email"
-            name="email"
-            placeholder={t("auth.emailPlaceholder")}
-            required
-            type="email"
-          />
-        </div>
-        <div className="form-field">
-          <label htmlFor="password">{t("auth.password")}</label>
-          <input
-            aria-describedby={formErrorId}
-            aria-invalid={errorMessage ? "true" : undefined}
-            autoComplete="current-password"
-            disabled={isSubmitting}
-            id="password"
-            name="password"
-            placeholder={t("auth.passwordPlaceholder")}
-            required
-            type="password"
-          />
-        </div>
-        <div className="form-field form-field-checkbox">
-          <label htmlFor="stayLoggedIn">{t("auth.stayLoggedIn")}</label>
-          <input
+            className="size-[18px] shrink-0 cursor-pointer accent-brand"
             disabled={isSubmitting}
             id="stayLoggedIn"
             name="stayLoggedIn"
             type="checkbox"
           />
+          <label className="cursor-pointer text-sm font-normal text-text" htmlFor="stayLoggedIn">
+            {t("auth.stayLoggedIn")}
+          </label>
         </div>
         {errorMessage ? (
-          <p className="form-error" id="login-form-error" role="alert">
+          <p className="m-0 text-sm font-bold text-error" id="login-form-error" role="alert">
             {errorMessage}
           </p>
         ) : null}
-        <button className="button button-primary" disabled={isSubmitting} type="submit">
+        <Button disabled={isSubmitting} fullWidth type="submit">
           {isSubmitting ? t("auth.loginSubmitting") : t("auth.login")}
-        </button>
+        </Button>
       </form>
     </div>
   );

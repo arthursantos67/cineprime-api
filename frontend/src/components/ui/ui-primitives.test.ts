@@ -9,6 +9,8 @@ import { renderToString } from "react-dom/server";
 import { Badge } from "./Badge";
 import { Button, ButtonLink } from "./Button";
 import { CarouselControls } from "./CarouselControls";
+import { Input } from "./Input";
+import { PasswordInput } from "./PasswordInput";
 import { SectionHeading } from "./SectionHeading";
 import { Select } from "./Select";
 import { Tabs } from "./Tabs";
@@ -127,4 +129,40 @@ test("tabs fall back when default value is invalid or disabled", () => {
   assert.match(disabledDefaultHtml, /Amanha/);
   assert.match(disabledDefaultHtml, /aria-selected="true"/);
   assert.match(disabledDefaultHtml, /hidden=""[^>]*>Hoje/);
+});
+
+test("input renders a themed, accessible text field with label and error", () => {
+  const html = renderToStaticMarkup(
+    createElement(Input, {
+      error: "Informe um e-mail válido.",
+      id: "email",
+      label: "E-mail",
+      name: "email",
+      type: "email",
+    })
+  );
+
+  assert.match(html, /<label[^>]*for="email"/);
+  assert.match(html, /bg-white\/\[0\.04\]/);
+  assert.match(html, /border-white\/\[0\.10\]/);
+  assert.match(html, /aria-invalid="true"[^>]*id="email"/);
+  assert.match(html, /aria-describedby="email-error"/);
+  assert.match(html, /id="email-error"[^>]*role="alert"/);
+  assert.match(html, /Informe um e-mail válido\./);
+});
+
+test("password input toggles type via an accessible eye button", () => {
+  const html = renderToStaticMarkup(
+    createElement(PasswordInput, {
+      id: "password",
+      label: "Senha",
+      name: "password",
+    })
+  );
+
+  assert.match(html, /<input[^>]*id="password"/);
+  assert.match(html, /type="password"/);
+  assert.match(html, /<button[^>]*aria-label="Mostrar senha"/);
+  assert.match(html, /aria-pressed="false"/);
+  assert.doesNotMatch(html, /type="text"/);
 });
