@@ -219,6 +219,12 @@ class MovieListCreateView(ListCreateAPIView):
         filters = {}
         status = self.request.query_params.get("status")
         is_featured = self.request.query_params.get("is_featured")
+        search = self.request.query_params.get("search")
+
+        if search is not None:
+            normalized_search = search.strip()
+            if normalized_search:
+                filters["search"] = normalized_search
 
         if status is not None:
             if status not in MovieStatus.values:
@@ -258,6 +264,12 @@ class MovieListCreateView(ListCreateAPIView):
 
         if "is_featured" in filters:
             queryset = queryset.filter(is_featured=filters["is_featured"])
+
+        if "search" in filters:
+            queryset = queryset.filter(
+                Q(title__icontains=filters["search"])
+                | Q(synopsis__icontains=filters["search"])
+            )
 
         return queryset
 
