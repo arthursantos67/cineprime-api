@@ -110,6 +110,25 @@ test("extractSessionFieldErrors handles non_field_errors", () => {
   );
 });
 
+test("extractSessionFieldErrors flattens per-date extra_dates conflicts", () => {
+  const error = new ApiError("Validation failed", 400, {
+    code: "VALIDATION_FAILED",
+    details: {
+      extra_dates: {
+        "2026-03-25": {
+          room: ["This room already has a session scheduled for the selected time range."],
+        },
+      },
+    },
+  });
+  const result = extractSessionFieldErrors(error);
+  assert.match(result.extra_dates ?? "", /2026-03-25/);
+  assert.match(
+    result.extra_dates ?? "",
+    /This room already has a session scheduled for the selected time range\./
+  );
+});
+
 // ─── adminApi.listSessions ─ integration-style ────────────────────────────────
 
 import { adminApi } from "@/api/admin";

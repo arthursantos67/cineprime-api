@@ -107,6 +107,7 @@ export type AdminSeatWritePayload = {
 export type AdminSessionWritePayload = {
   audio_format?: CatalogAudioFormat;
   end_time: string;
+  extra_dates?: string[];
   movie: string;
   projection_format?: CatalogProjectionFormat;
   room: string;
@@ -600,6 +601,13 @@ export const adminApi = {
       method: "POST",
     });
 
+    if (Array.isArray(response)) {
+      if (!isAdminSessionArray(response)) {
+        throw new Error("Unexpected admin create session response.");
+      }
+      return response;
+    }
+
     if (!isAdminSession(response)) {
       throw new Error("Unexpected admin create session response.");
     }
@@ -816,6 +824,10 @@ function isAdminSession(value: unknown): value is AdminSession {
     isRecord(value.room) &&
     typeof value.room.id === "string"
   );
+}
+
+function isAdminSessionArray(value: unknown): value is AdminSession[] {
+  return Array.isArray(value) && value.every((item) => isAdminSession(item));
 }
 
 function buildSessionsQuery({ date, movie, page, room }: ListSessionsParams) {
