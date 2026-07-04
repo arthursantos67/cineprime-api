@@ -727,6 +727,105 @@ class TestCatalogApi:
         assert response.data["results"][0]["id"] == str(featured_movie.id)
         assert response.data["results"][0]["is_featured"] is True
 
+    def test_list_movies_can_filter_by_search_title_case_insensitively(
+        self, api_client, genre
+    ):
+        matrix_movie = Movie.objects.create(
+            title="The Matrix",
+            synopsis="A hacker uncovers the truth about his reality.",
+            duration_minutes=136,
+            release_date="1999-03-31",
+            poster_url="https://example.com/the-matrix.jpg",
+        )
+        matrix_movie.genres.set([genre])
+        self.create_movie(title="Inception", genre=genre)
+
+        response = api_client.get("/api/v1/catalog/movies/?search=matrix")
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["count"] == 1
+        assert response.data["results"][0]["id"] == str(matrix_movie.id)
+
+    def test_list_movies_search_matches_synopsis(self, api_client, genre):
+        movie = Movie.objects.create(
+            title="Unrelated Title",
+            synopsis="A hacker discovers the matrix is a simulation.",
+            duration_minutes=120,
+            release_date="2026-05-13",
+            poster_url="https://example.com/unrelated-title.jpg",
+        )
+        movie.genres.set([genre])
+        self.create_movie(title="Other Movie", genre=genre)
+
+        response = api_client.get("/api/v1/catalog/movies/?search=matrix")
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["count"] == 1
+        assert response.data["results"][0]["id"] == str(movie.id)
+
+    def test_list_movies_search_combines_with_status_and_is_featured(
+        self, api_client, genre
+    ):
+        target = self.create_movie(
+            title="Matrix Reloaded",
+            genre=genre,
+            status=MovieStatus.EM_CARTAZ,
+            is_featured=True,
+        )
+        self.create_movie(
+            title="Matrix Revolutions",
+            genre=genre,
+            status=MovieStatus.PRE_VENDA,
+            is_featured=True,
+        )
+        self.create_movie(
+            title="Matrix Resurrections",
+            genre=genre,
+            status=MovieStatus.EM_CARTAZ,
+            is_featured=False,
+        )
+
+        response = api_client.get(
+            "/api/v1/catalog/movies/"
+            f"?search=matrix&status={MovieStatus.EM_CARTAZ}&is_featured=true"
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["count"] == 1
+        assert response.data["results"][0]["id"] == str(target.id)
+
+    def test_list_movies_search_with_no_match_returns_empty_results(
+        self, api_client, genre
+    ):
+        self.create_movie(title="The Matrix", genre=genre)
+
+        response = api_client.get("/api/v1/catalog/movies/?search=nonexistent")
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["count"] == 0
+        assert response.data["results"] == []
+
+    def test_list_movies_search_blank_value_behaves_like_no_filter(
+        self, api_client, genre
+    ):
+        self.create_movie(title="The Matrix", genre=genre)
+        self.create_movie(title="Inception", genre=genre)
+
+        response = api_client.get("/api/v1/catalog/movies/?search=")
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["count"] == 2
+
+    def test_list_movies_search_treats_special_characters_literally(
+        self, api_client, genre
+    ):
+        self.create_movie(title="The Matrix", genre=genre)
+
+        response = api_client.get("/api/v1/catalog/movies/?search=%5E%24.%2A%5B%5D")
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["count"] == 0
+
     def test_list_movies_rejects_invalid_status_filter(self, api_client, genre):
         self.create_movie(title="Current Movie", genre=genre)
 
