@@ -484,7 +484,6 @@ class SessionWriteSerializer(serializers.ModelSerializer):
     extra_dates = serializers.ListField(
         child=serializers.DateField(),
         required=False,
-        default=list,
         write_only=True,
     )
 
@@ -507,7 +506,7 @@ class SessionWriteSerializer(serializers.ModelSerializer):
         read_only_fields = ["id", "base_price", "created_at", "updated_at"]
 
     def validate_extra_dates(self, value):
-        if self.instance is not None and value:
+        if self.instance is not None:
             raise serializers.ValidationError(
                 "extra_dates is only supported when creating a session."
             )
@@ -596,7 +595,7 @@ class SessionWriteSerializer(serializers.ModelSerializer):
             )
 
         created_sessions = []
-        for session_data in sessions_data:
+        for index, session_data in enumerate(sessions_data):
             session_data["base_price"] = compute_session_price(
                 room.base_price, session_data["start_time"]
             )
@@ -604,16 +603,16 @@ class SessionWriteSerializer(serializers.ModelSerializer):
             try:
                 session.save()
             except DjangoValidationError as exc:
-                if extra_dates:
-                    details = (
-                        getattr(exc, "message_dict", None)
-                        or getattr(exc, "messages", None)
-                        or str(exc)
-                    )
-                    raise serializers.ValidationError(
-                        {"extra_dates": {session_data["start_time"].date().isoformat(): details}}
-                    ) from exc
-                raise_serializer_validation_error(exc)
+                if index == 0:
+                    raise_serializer_validation_error(exc)
+                details = (
+                    getattr(exc, "message_dict", None)
+                    or getattr(exc, "messages", None)
+                    or str(exc)
+                )
+                raise serializers.ValidationError(
+                    {"extra_dates": {session_data["start_time"].date().isoformat(): details}}
+                ) from exc
             created_sessions.append(session)
 
         seats = list(Seat.objects.select_related("row").filter(row__room=room))

@@ -507,7 +507,7 @@ class SessionListCreateView(ListCreateAPIView):
         read_serializer = SessionReadSerializer(
             result, many=many, context=self.get_serializer_context()
         )
-        headers = self.get_success_headers(read_serializer.data)
+        headers = {} if many else self.get_success_headers(read_serializer.data)
         invalidate_session_list_cache()
         return Response(read_serializer.data, status=http_status.HTTP_201_CREATED, headers=headers)
 

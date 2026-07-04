@@ -602,10 +602,10 @@ export const adminApi = {
     });
 
     if (Array.isArray(response)) {
-      if (!response.every((item) => isAdminSession(item))) {
+      if (!isAdminSessionArray(response)) {
         throw new Error("Unexpected admin create session response.");
       }
-      return response satisfies AdminSession[];
+      return response;
     }
 
     if (!isAdminSession(response)) {
@@ -824,6 +824,10 @@ function isAdminSession(value: unknown): value is AdminSession {
     isRecord(value.room) &&
     typeof value.room.id === "string"
   );
+}
+
+function isAdminSessionArray(value: unknown): value is AdminSession[] {
+  return Array.isArray(value) && value.every((item) => isAdminSession(item));
 }
 
 function buildSessionsQuery({ date, movie, page, room }: ListSessionsParams) {

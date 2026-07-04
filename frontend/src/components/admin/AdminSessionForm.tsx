@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useId, useState, type FormEvent } from "react";
+import { useEffect, useId, useRef, useState, type FormEvent } from "react";
 
 import { adminApi, type AdminSessionWritePayload } from "@/api/admin";
 import { getApiErrorUserMessage } from "@/api/client";
@@ -158,7 +158,8 @@ export function AdminSessionForm({ session }: AdminSessionFormProps) {
     (session?.session_type as CatalogSessionType) ?? ""
   );
 
-  const [extraDates, setExtraDates] = useState<string[]>([]);
+  const nextExtraDateIdRef = useRef(0);
+  const [extraDates, setExtraDates] = useState<{ id: number; value: string }[]>([]);
 
   const [movies, setMovies] = useState<CatalogMovieDetail[]>([]);
   const [rooms, setRooms] = useState<AdminRoom[]>([]);
@@ -218,15 +219,16 @@ export function AdminSessionForm({ session }: AdminSessionFormProps) {
   }, [isEndAutoCalc, startDate, startTime, movieId, movies]);
 
   function handleAddExtraDate() {
-    setExtraDates((prev) => [...prev, ""]);
+    const id = nextExtraDateIdRef.current++;
+    setExtraDates((prev) => [...prev, { id, value: "" }]);
   }
 
-  function handleExtraDateChange(index: number, value: string) {
-    setExtraDates((prev) => prev.map((date, i) => (i === index ? value : date)));
+  function handleExtraDateChange(id: number, value: string) {
+    setExtraDates((prev) => prev.map((entry) => (entry.id === id ? { id, value } : entry)));
   }
 
-  function handleRemoveExtraDate(index: number) {
-    setExtraDates((prev) => prev.filter((_, i) => i !== index));
+  function handleRemoveExtraDate(id: number) {
+    setExtraDates((prev) => prev.filter((entry) => entry.id !== id));
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -237,7 +239,9 @@ export function AdminSessionForm({ session }: AdminSessionFormProps) {
     setIsSubmitting(true);
 
     try {
-      const trimmedExtraDates = extraDates.map((date) => date.trim()).filter(Boolean);
+      const trimmedExtraDates = extraDates
+        .map((entry) => entry.value.trim())
+        .filter(Boolean);
 
       const payload: AdminSessionWritePayload = {
         audio_format: audioFormat || undefined,
@@ -526,18 +530,18 @@ export function AdminSessionForm({ session }: AdminSessionFormProps) {
           </p>
           {extraDates.length > 0 ? (
             <div className="grid gap-2">
-              {extraDates.map((date, index) => (
-                <div className="flex items-center gap-2" key={index}>
+              {extraDates.map((entry) => (
+                <div className="flex items-center gap-2" key={entry.id}>
                   <TextInput
                     disabled={formDisabled}
-                    onChange={(e) => handleExtraDateChange(index, e.target.value)}
+                    onChange={(e) => handleExtraDateChange(entry.id, e.target.value)}
                     type="date"
-                    value={date}
+                    value={entry.value}
                   />
                   <button
                     className="text-xs font-bold text-white/40 underline hover:text-error disabled:opacity-50"
                     disabled={formDisabled}
-                    onClick={() => handleRemoveExtraDate(index)}
+                    onClick={() => handleRemoveExtraDate(entry.id)}
                     type="button"
                   >
                     {t("admin.session.removeDate")}
