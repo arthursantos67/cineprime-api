@@ -21,7 +21,9 @@ test("registers, logs in, reserves a seat, and completes a mocked purchase", asy
     await page.getByRole("button", { name: "Criar conta" }).click();
 
     await expect(
-      page.getByText("Cadastro criado com sucesso. Entre para continuar.")
+      page.getByText(
+        "Cadastro criado com sucesso. Enviamos um e-mail de confirmação — verifique sua caixa de entrada. Entre para continuar."
+      )
     ).toBeVisible();
 
     await page.getByLabel("E-mail").fill("ana@example.com");
