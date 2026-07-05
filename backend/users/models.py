@@ -144,3 +144,48 @@ class AdminPermissionLog(models.Model):
 
     def __str__(self):
         return f"{self.actor} {self.action} admin to {self.target}"
+
+
+class WalletTransaction(models.Model):
+    """Internal store-credit ledger entry.
+
+    This is NOT a real-money wallet: there is no payment gateway integration,
+    custody of funds, or regulatory scope here. Amounts represent CinePrime
+    store credit only (e.g. credit granted when staff cancels/refunds a
+    purchase), to be referenced or spent at a future checkout. Positive
+    amounts are credits; negative amounts are debits. The user's balance is
+    the sum of their transaction amounts.
+    """
+
+    class Reason(models.TextChoices):
+        REFUND = "refund", "Refund"
+        PURCHASE = "purchase", "Purchase"
+        ADJUSTMENT = "adjustment", "Adjustment"
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="wallet_transactions",
+    )
+    amount = models.DecimalField(max_digits=8, decimal_places=2)
+    reason = models.CharField(max_length=20, choices=Reason.choices)
+    reference = models.CharField(
+        max_length=64,
+        blank=True,
+        help_text="Optional reference to the originating record (e.g. ticket code).",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "wallet_transactions"
+        ordering = ["-created_at"]
+        indexes = [
+            # Covers the wallet endpoint's "filter by user, newest first" query.
+            models.Index(
+                fields=["user", "-created_at"], name="wallet_tx_user_created_idx"
+            ),
+        ]
+
+    def __str__(self):
+        return f"{self.user} | {self.reason} | {self.amount}"

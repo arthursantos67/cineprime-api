@@ -394,13 +394,20 @@ EMAIL_VERIFICATION_TOKEN_MAX_AGE_SECONDS = _env_int(
     "EMAIL_VERIFICATION_TOKEN_MAX_AGE_SECONDS", 259200  # 3 days
 )
 
+# How long an email change confirmation link stays valid. Deliberately much
+# shorter than the verification link: applying an email change is an
+# account-takeover-grade operation.
+EMAIL_CHANGE_TOKEN_MAX_AGE_SECONDS = _env_int(
+    "EMAIL_CHANGE_TOKEN_MAX_AGE_SECONDS", 3600  # 1 hour
+)
+
 # -------------------------------------------------------------------
 # Django REST Framework
 # -------------------------------------------------------------------
 
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
-        "rest_framework_simplejwt.authentication.JWTAuthentication",
+        "users.jwt.PasswordChangeAwareJWTAuthentication",
     ],
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
     "DEFAULT_PERMISSION_CLASSES": [
@@ -423,6 +430,7 @@ REST_FRAMEWORK = {
         "email_verification_resend": os.getenv(
             "THROTTLE_EMAIL_VERIFICATION_RESEND_RATE", "3/hour"
         ),
+        "email_change": os.getenv("THROTTLE_EMAIL_CHANGE_RATE", "3/hour"),
     },
     "EXCEPTION_HANDLER": "cineprime_api.exception_handler.standardized_exception_handler",
 }
@@ -471,6 +479,8 @@ SIMPLE_JWT = {
         days=int(os.getenv("JWT_REFRESH_TOKEN_LIFETIME_DAYS", "7"))
     ),
     "AUTH_HEADER_TYPES": ("Bearer",),
+    # Rejects refresh tokens issued before the user's last password change.
+    "TOKEN_REFRESH_SERIALIZER": "users.jwt.PasswordChangeAwareTokenRefreshSerializer",
 }
 
 # -------------------------------------------------------------------

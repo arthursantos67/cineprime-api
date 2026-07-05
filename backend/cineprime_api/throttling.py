@@ -97,6 +97,36 @@ class EmailVerificationResendRateThrottle(SimpleRateThrottle):
         }
 
 
+class EmailChangeRateThrottle(SimpleRateThrottle):
+    """Throttle email-change requests per user, to prevent email-bombing.
+
+    Only applies to PATCH requests that include an "email" field; plain
+    profile updates (e.g. username) are not throttled by this class.
+    """
+
+    scope = "email_change"
+
+    def get_cache_key(self, request, view):
+        if request.method != "PATCH":
+            return None
+
+        try:
+            has_email = "email" in request.data
+        except (AttributeError, APIException):
+            has_email = False
+
+        if not has_email:
+            return None
+
+        user = getattr(request, "user", None)
+        ident = f"user:{user.pk}" if user and user.is_authenticated else self.get_ident(request)
+
+        return self.cache_format % {
+            "scope": self.scope,
+            "ident": ident,
+        }
+
+
 class ReservationRateThrottle(SimpleRateThrottle):
     scope = "reservation"
 

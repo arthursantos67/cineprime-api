@@ -4,7 +4,7 @@ from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 from rest_framework.exceptions import AuthenticationFailed
 
-from users.models import AdminPermissionLog, User
+from users.models import AdminPermissionLog, User, WalletTransaction
 from reservations.models import Ticket
 
 
@@ -28,6 +28,62 @@ class PasswordResetConfirmSerializer(serializers.Serializer):
 
 class TmdbTokenBodySerializer(serializers.Serializer):
     value = serializers.CharField(min_length=1, max_length=2000)
+
+
+class ProfileUpdateSerializer(serializers.Serializer):
+    username = serializers.CharField(max_length=150, required=False)
+    email = serializers.EmailField(required=False)
+    current_password = serializers.CharField(
+        write_only=True, required=False, trim_whitespace=False
+    )
+
+    def validate_username(self, value):
+        value = value.strip()
+
+        if not value:
+            raise serializers.ValidationError("This field may not be blank.")
+
+        user = self.context["request"].user
+        if User.objects.filter(username=value).exclude(pk=user.pk).exists():
+            raise serializers.ValidationError("This username is already taken.")
+
+        return value
+
+    def validate_email(self, value):
+        return value.strip().lower()
+
+    def validate(self, attrs):
+        current_password = attrs.pop("current_password", None)
+
+        if not attrs:
+            raise serializers.ValidationError(
+                "Provide at least one field to update: username or email."
+            )
+
+        # Changing the account email is an account-takeover-grade operation:
+        # require re-authentication so a hijacked session alone is not enough.
+        if "email" in attrs:
+            user = self.context["request"].user
+            if not current_password or not user.check_password(current_password):
+                from users.views import WrongPassword
+
+                raise WrongPassword()
+
+        return attrs
+
+
+class ChangePasswordSerializer(serializers.Serializer):
+    current_password = serializers.CharField(write_only=True, trim_whitespace=False)
+    # new_password is validated in the view with user context, so validators
+    # like UserAttributeSimilarityValidator can compare against email/username.
+    new_password = serializers.CharField(write_only=True, trim_whitespace=False)
+
+
+class WalletTransactionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = WalletTransaction
+        fields = ("id", "amount", "reason", "reference", "created_at")
+        read_only_fields = fields
 
 
 class UserRegistrationSerializer(serializers.ModelSerializer):

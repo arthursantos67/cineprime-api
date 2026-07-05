@@ -11,6 +11,11 @@ export function persistRefreshToken(token: string, persistent: boolean): void {
   }
 }
 
+export function isRefreshTokenPersistent(): boolean {
+  if (typeof window === "undefined") return false;
+  return localStorage.getItem(REFRESH_TOKEN_KEY) !== null;
+}
+
 export function getPersistedRefreshToken(): string | null {
   if (typeof window === "undefined") return null;
   return localStorage.getItem(REFRESH_TOKEN_KEY) ?? sessionStorage.getItem(REFRESH_TOKEN_KEY);

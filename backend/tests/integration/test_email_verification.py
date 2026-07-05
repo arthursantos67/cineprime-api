@@ -4,7 +4,7 @@ import pytest
 from django.contrib.auth import get_user_model
 from django.test import override_settings
 from rest_framework.test import APIClient
-from rest_framework_simplejwt.tokens import RefreshToken
+from users.jwt import issue_tokens_for_user
 
 from users.tokens import generate_email_verification_token
 
@@ -159,7 +159,7 @@ def test_resend_verification_requires_authentication():
 @pytest.mark.django_db
 def test_resend_verification_enqueues_email_for_unverified_user(user):
     client = APIClient()
-    refresh = RefreshToken.for_user(user)
+    refresh = issue_tokens_for_user(user)
     client.credentials(HTTP_AUTHORIZATION=f"Bearer {refresh.access_token}")
 
     with patch("users.tasks.send_email_verification_email_task.apply_async") as mock_apply_async:
@@ -176,7 +176,7 @@ def test_resend_verification_is_noop_for_verified_user(user):
     user.save(update_fields=["is_verified"])
 
     client = APIClient()
-    refresh = RefreshToken.for_user(user)
+    refresh = issue_tokens_for_user(user)
     client.credentials(HTTP_AUTHORIZATION=f"Bearer {refresh.access_token}")
 
     with patch("users.tasks.send_email_verification_email_task.apply_async") as mock_apply_async:

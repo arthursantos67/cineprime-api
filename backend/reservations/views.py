@@ -27,6 +27,7 @@ from reservations.exceptions import (
     SessionNotFoundError,
 )
 from reservations.models import Seat, SeatRow, SessionSeat, Ticket
+from users.models import WalletTransaction
 from reservations.serializers import (
     AccessibleRowRequestSerializer,
     BulkLayoutRequestSerializer,
@@ -153,7 +154,14 @@ class TicketListCreateView(ListAPIView):
     permission_classes = [IsAdminUser]
 
 
-@extend_schema(tags=["Reservations"], summary="Get or delete ticket")
+@extend_schema(
+    tags=["Reservations"],
+    summary="Get or delete ticket",
+    description=(
+        "Deleting a ticket (staff cancellation/refund) credits the paid "
+        "amount to the ticket owner's wallet as internal store credit."
+    ),
+)
 class TicketDetailView(RetrieveDestroyAPIView):
     queryset = Ticket.objects.select_related(
         "user",
@@ -166,6 +174,17 @@ class TicketDetailView(RetrieveDestroyAPIView):
     ).all()
     serializer_class = TicketSerializer
     permission_classes = [IsAdminUser]
+
+    def perform_destroy(self, instance):
+        with transaction.atomic():
+            if instance.amount_paid and instance.amount_paid > 0:
+                WalletTransaction.objects.create(
+                    user=instance.user,
+                    amount=instance.amount_paid,
+                    reason=WalletTransaction.Reason.REFUND,
+                    reference=instance.ticket_code,
+                )
+            instance.delete()
 
 
 @extend_schema_view(

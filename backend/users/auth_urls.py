@@ -1,6 +1,7 @@
 from django.urls import path
 
 from users.views import (
+    EmailChangeConfirmView,
     EmailVerificationView,
     PasswordResetConfirmView,
     PasswordResetRequestView,
@@ -27,6 +28,11 @@ urlpatterns = [
         "verify-email/<str:token>/",
         EmailVerificationView.as_view(),
         name="verify-email",
+    ),
+    path(
+        "change-email/",
+        EmailChangeConfirmView.as_view(),
+        name="change-email-confirm",
     ),
     path(
         "password-reset/confirm/",

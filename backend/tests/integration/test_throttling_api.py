@@ -11,7 +11,7 @@ from rest_framework.request import Request
 from rest_framework.test import APIClient
 from rest_framework.test import APIRequestFactory
 from rest_framework.throttling import SimpleRateThrottle
-from rest_framework_simplejwt.tokens import RefreshToken
+from users.jwt import issue_tokens_for_user
 
 User = get_user_model()
 
@@ -91,7 +91,7 @@ class TestApiThrottling:
     def authenticated_client(self, user):
         client = APIClient()
         client.defaults["REMOTE_ADDR"] = "10.10.10.11"
-        refresh = RefreshToken.for_user(user)
+        refresh = issue_tokens_for_user(user)
         client.credentials(HTTP_AUTHORIZATION=f"Bearer {refresh.access_token}")
         return client
 

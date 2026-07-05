@@ -1,31 +1,18 @@
-import { Suspense } from "react";
+import { redirect } from "next/navigation";
 
-import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
-import { MyTicketsClient } from "@/components/tickets/MyTicketsClient";
-import { PageSection } from "@/components/ui/PageSection";
-import { StateMessage } from "@/components/ui/StateMessage";
-import { getServerLocale, getTranslator } from "@/i18n/server";
+type MyTicketsPageProps = {
+  searchParams: Promise<{ type?: string }>;
+};
 
-export default async function MyTicketsPage() {
-  const t = getTranslator(await getServerLocale());
+// /my-tickets is kept as a deep link into the unified profile area so that
+// old bookmarks and emailed links keep working.
+export default async function MyTicketsPage({ searchParams }: MyTicketsPageProps) {
+  const { type } = await searchParams;
+  const params = new URLSearchParams({ tab: "ingressos" });
 
-  return (
-    <ProtectedRoute>
-      <PageSection
-        description={t("tickets.description")}
-        eyebrow={t("tickets.eyebrow")}
-        title={t("tickets.title")}
-      >
-        <Suspense
-          fallback={
-            <StateMessage tone="loading" title={t("tickets.loadingTitle")}>
-              {t("tickets.loadingDescription")}
-            </StateMessage>
-          }
-        >
-          <MyTicketsClient />
-        </Suspense>
-      </PageSection>
-    </ProtectedRoute>
-  );
+  if (type === "upcoming" || type === "past") {
+    params.set("type", type);
+  }
+
+  redirect(`/profile?${params.toString()}`);
 }

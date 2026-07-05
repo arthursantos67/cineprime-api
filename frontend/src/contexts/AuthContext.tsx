@@ -33,6 +33,7 @@ import {
 import {
   clearPersistedRefreshToken,
   getPersistedRefreshToken,
+  isRefreshTokenPersistent,
   persistRefreshToken,
 } from "./auth-persistence";
 
@@ -43,6 +44,7 @@ export const AUTH_PROTECTED_STATE_RESET_EVENT =
 
 type AuthContextValue = {
   accessToken: string | null;
+  adoptTokens: (tokens: { access: string; refresh: string }) => void;
   isAuthenticated: boolean;
   loading: boolean;
   login: (credentials: LoginCredentials, options?: { stayLoggedIn?: boolean }) => Promise<AuthUser>;
@@ -106,6 +108,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     },
     [clearAuthState, redirectToLogin]
+  );
+
+  // Replace the session's token pair in place, e.g. after a password change
+  // invalidates every previously issued token. Keeps the storage persistence
+  // choice made at login.
+  const adoptTokens = useCallback(
+    (tokens: { access: string; refresh: string }) => {
+      const persistent = isRefreshTokenPersistent();
+      authGenerationRef.current += 1;
+      refreshPromiseRef.current = null;
+      accessTokenRef.current = tokens.access;
+      refreshTokenRef.current = tokens.refresh;
+      persistRefreshToken(tokens.refresh, persistent);
+      setState((currentState) => ({
+        ...currentState,
+        accessToken: tokens.access,
+        refreshToken: tokens.refresh,
+      }));
+    },
+    []
   );
 
   const reloadCurrentUser = useCallback(async () => {
@@ -264,6 +286,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const value = useMemo(
     () => ({
       accessToken: state.accessToken,
+      adoptTokens,
       isAuthenticated: getIsAuthenticated(state),
       loading: state.status === "loading",
       login,
@@ -275,7 +298,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       status: state.status,
       user: state.user,
     }),
-    [login, logout, refreshAccessToken, reloadCurrentUser, state]
+    [adoptTokens, login, logout, refreshAccessToken, reloadCurrentUser, state]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

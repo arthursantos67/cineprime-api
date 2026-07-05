@@ -15,6 +15,7 @@ test("protected route list matches purchase and ticket pages", () => {
   assert.equal(isProtectedRoute("/checkout"), true);
   assert.equal(isProtectedRoute("/confirmation"), true);
   assert.equal(isProtectedRoute("/my-tickets"), true);
+  assert.equal(isProtectedRoute("/profile"), true);
   assert.equal(isProtectedRoute("/sessions/123/seats"), false);
 });
 
