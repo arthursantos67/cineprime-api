@@ -8,7 +8,7 @@ from users.models import User
 class UserAdmin(BaseUserAdmin):
     model = User
     ordering = ("created_at",)
-    list_display = ("id", "email", "username", "is_staff", "is_active", "created_at")
+    list_display = ("id", "email", "username", "is_staff", "is_active", "is_verified", "created_at")
     search_fields = ("email", "username")
     readonly_fields = ("id", "created_at", "updated_at")
 
@@ -21,6 +21,7 @@ class UserAdmin(BaseUserAdmin):
                     "is_active",
                     "is_staff",
                     "is_superuser",
+                    "is_verified",
                     "groups",
                     "user_permissions",
                 )

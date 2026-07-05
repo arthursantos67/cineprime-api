@@ -3,6 +3,7 @@ export type AuthUser = {
   email: string;
   id?: string;
   is_staff?: boolean;
+  is_verified?: boolean;
   role: "user" | "staff" | "master";
   name?: string;
   username: string;

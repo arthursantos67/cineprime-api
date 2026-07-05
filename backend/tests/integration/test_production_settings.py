@@ -14,6 +14,11 @@ BASE_PRODUCTION_ENV = {
     "ALLOWED_HOSTS": "api.example.com",
     "CORS_ALLOWED_ORIGINS": "https://app.example.com",
     "SITE_CONFIG_ENCRYPTION_KEY": "BsB5RCI121YV2KdnpZ3bpFV6xectSpZGYSn6496wlEA=",
+    "EMAIL_BACKEND": "django.core.mail.backends.smtp.EmailBackend",
+    "EMAIL_HOST": "smtp.example.com",
+    "EMAIL_HOST_USER": "smtp-user",
+    "EMAIL_HOST_PASSWORD": "smtp-password",
+    "FRONTEND_BASE_URL": "https://app.example.com",
 }
 
 CONTROLLED_ENV_KEYS = {
@@ -24,7 +29,12 @@ CONTROLLED_ENV_KEYS = {
     "CORS_ALLOWED_ORIGINS",
     "DEBUG",
     "DJANGO_ENV",
+    "EMAIL_BACKEND",
+    "EMAIL_HOST",
+    "EMAIL_HOST_USER",
+    "EMAIL_HOST_PASSWORD",
     "ENVIRONMENT",
+    "FRONTEND_BASE_URL",
     "SECRET_KEY",
     "SITE_CONFIG_ENCRYPTION_KEY",
 }
@@ -117,6 +127,68 @@ def test_production_rejects_insecure_cors_origins_by_default():
 
     assert result.returncode != 0
     assert "CORS_ALLOWED_ORIGINS must use https origins" in result.stderr
+
+
+def test_production_rejects_console_email_backend():
+    result = _production_import(
+        {"EMAIL_BACKEND": "django.core.mail.backends.console.EmailBackend"}
+    )
+
+    assert result.returncode != 0
+    assert "EMAIL_BACKEND must be set to a real SMTP backend" in result.stderr
+
+
+def test_production_rejects_localhost_email_host():
+    result = _production_import({"EMAIL_HOST": "localhost"})
+
+    assert result.returncode != 0
+    assert "EMAIL_HOST must point to a real SMTP provider" in result.stderr
+
+
+def test_production_rejects_dummy_email_backend():
+    result = _production_import(
+        {"EMAIL_BACKEND": "django.core.mail.backends.dummy.EmailBackend"}
+    )
+
+    assert result.returncode != 0
+    assert "EMAIL_BACKEND must be set to a real SMTP backend" in result.stderr
+
+
+def test_production_rejects_filebased_email_backend():
+    result = _production_import(
+        {"EMAIL_BACKEND": "django.core.mail.backends.filebased.EmailBackend"}
+    )
+
+    assert result.returncode != 0
+    assert "EMAIL_BACKEND must be set to a real SMTP backend" in result.stderr
+
+
+def test_production_requires_email_host_user_and_password():
+    result = _production_import({"EMAIL_HOST_USER": "", "EMAIL_HOST_PASSWORD": ""})
+
+    assert result.returncode != 0
+    assert "EMAIL_HOST_USER and EMAIL_HOST_PASSWORD must be set" in result.stderr
+
+
+def test_production_requires_frontend_base_url():
+    result = _production_import({"FRONTEND_BASE_URL": ""})
+
+    assert result.returncode != 0
+    assert "FRONTEND_BASE_URL must be set" in result.stderr
+
+
+def test_production_rejects_insecure_frontend_base_url():
+    result = _production_import({"FRONTEND_BASE_URL": "http://app.example.com"})
+
+    assert result.returncode != 0
+    assert "FRONTEND_BASE_URL must use https" in result.stderr
+
+
+def test_production_rejects_localhost_frontend_base_url():
+    result = _production_import({"FRONTEND_BASE_URL": "https://localhost:3000"})
+
+    assert result.returncode != 0
+    assert "FRONTEND_BASE_URL must not use localhost or loopback hosts" in result.stderr
 
 
 def test_valid_production_settings_enable_security_headers():

@@ -119,6 +119,43 @@ def _build_production_configuration_errors():
             "Generate with: python -c \"from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())\""
         )
 
+    email_backend = os.getenv("EMAIL_BACKEND", "")
+    disallowed_email_backends = ("console", "locmem", "dummy", "filebased")
+    if not email_backend or any(
+        name in email_backend.lower() for name in disallowed_email_backends
+    ):
+        errors.append(
+            "EMAIL_BACKEND must be set to a real SMTP backend "
+            "(django.core.mail.backends.smtp.EmailBackend) when DJANGO_ENV=production."
+        )
+
+    email_host = (os.getenv("EMAIL_HOST") or "").strip().lower()
+    if not email_host or email_host in {"localhost", "127.0.0.1"}:
+        errors.append(
+            "EMAIL_HOST must point to a real SMTP provider when DJANGO_ENV=production."
+        )
+
+    if not os.getenv("EMAIL_HOST_USER") or not os.getenv("EMAIL_HOST_PASSWORD"):
+        errors.append(
+            "EMAIL_HOST_USER and EMAIL_HOST_PASSWORD must be set when DJANGO_ENV=production."
+        )
+
+    raw_frontend_base_url = os.getenv("FRONTEND_BASE_URL")
+    unsafe_frontend_hosts = {"127.0.0.1", "localhost", "0.0.0.0", "::1"}
+    if not raw_frontend_base_url:
+        errors.append("FRONTEND_BASE_URL must be set when DJANGO_ENV=production.")
+    else:
+        parsed_frontend_url = urlparse(raw_frontend_base_url)
+        frontend_hostname = (parsed_frontend_url.hostname or "").lower()
+        if parsed_frontend_url.scheme != "https":
+            errors.append("FRONTEND_BASE_URL must use https in production.")
+        if frontend_hostname in unsafe_frontend_hosts or frontend_hostname.endswith(
+            ".localhost"
+        ):
+            errors.append(
+                "FRONTEND_BASE_URL must not use localhost or loopback hosts in production."
+            )
+
     return errors
 
 
@@ -348,6 +385,15 @@ TICKET_CONFIRMATION_EMAIL_SENT_TTL_SECONDS = int(
     os.getenv("TICKET_CONFIRMATION_EMAIL_SENT_TTL_SECONDS", "604800")
 )
 
+# Base URL of the deployed frontend, used to build links in transactional emails
+# (email verification, password reset).
+FRONTEND_BASE_URL = os.getenv("FRONTEND_BASE_URL", "http://localhost:3000").rstrip("/")
+
+# How long an email verification link stays valid.
+EMAIL_VERIFICATION_TOKEN_MAX_AGE_SECONDS = _env_int(
+    "EMAIL_VERIFICATION_TOKEN_MAX_AGE_SECONDS", 259200  # 3 days
+)
+
 # -------------------------------------------------------------------
 # Django REST Framework
 # -------------------------------------------------------------------
@@ -372,6 +418,11 @@ REST_FRAMEWORK = {
         "login": os.getenv("THROTTLE_LOGIN_RATE", "5/minute"),
         "registration": os.getenv("THROTTLE_REGISTRATION_RATE", "5/hour"),
         "reservation": os.getenv("THROTTLE_RESERVATION_RATE", "10/minute"),
+        "password_reset": os.getenv("THROTTLE_PASSWORD_RESET_RATE", "3/hour"),
+        "password_reset_email": os.getenv("THROTTLE_PASSWORD_RESET_EMAIL_RATE", "3/hour"),
+        "email_verification_resend": os.getenv(
+            "THROTTLE_EMAIL_VERIFICATION_RESEND_RATE", "3/hour"
+        ),
     },
     "EXCEPTION_HANDLER": "cineprime_api.exception_handler.standardized_exception_handler",
 }

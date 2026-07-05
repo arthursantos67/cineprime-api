@@ -2,6 +2,7 @@
 
 import { useEffect, useState, type FormEvent } from "react";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/Button";
@@ -65,17 +66,22 @@ export function LoginFormView({
           placeholder={t("auth.passwordPlaceholder")}
           required
         />
-        <div className="flex items-center gap-2">
-          <input
-            className="size-[18px] shrink-0 cursor-pointer accent-brand"
-            disabled={isSubmitting}
-            id="stayLoggedIn"
-            name="stayLoggedIn"
-            type="checkbox"
-          />
-          <label className="cursor-pointer text-sm font-normal text-text" htmlFor="stayLoggedIn">
-            {t("auth.stayLoggedIn")}
-          </label>
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <input
+              className="size-[18px] shrink-0 cursor-pointer accent-brand"
+              disabled={isSubmitting}
+              id="stayLoggedIn"
+              name="stayLoggedIn"
+              type="checkbox"
+            />
+            <label className="cursor-pointer text-sm font-normal text-text" htmlFor="stayLoggedIn">
+              {t("auth.stayLoggedIn")}
+            </label>
+          </div>
+          <Link className="text-sm font-bold text-link" href="/forgot-password">
+            {t("auth.forgotPasswordLink")}
+          </Link>
         </div>
         {errorMessage ? (
           <p className="m-0 text-sm font-bold text-error" id="login-form-error" role="alert">

@@ -30,15 +30,17 @@ def isolate_throttling_state():
         GlobalAnonRateThrottle,
         GlobalUserRateThrottle,
         LoginRateThrottle,
+        PasswordResetRateThrottle,
         ReservationRateThrottle,
     )
     from reservations.views import CheckoutView, TemporarySeatReservationView
-    from users.views import UserLoginView
+    from users.views import PasswordResetRequestView, UserLoginView
 
     original_genre_throttles = getattr(GenreListCreateView, "throttle_classes", None)
     original_login_throttles = UserLoginView.throttle_classes
     original_temp_reservation_throttles = TemporarySeatReservationView.throttle_classes
     original_checkout_throttles = CheckoutView.throttle_classes
+    original_password_reset_throttles = PasswordResetRequestView.throttle_classes
     original_simple_rate_throttle_rates = SimpleRateThrottle.THROTTLE_RATES
 
     GenreListCreateView.throttle_classes = [
@@ -48,6 +50,7 @@ def isolate_throttling_state():
     UserLoginView.throttle_classes = [LoginRateThrottle]
     TemporarySeatReservationView.throttle_classes = [ReservationRateThrottle]
     CheckoutView.throttle_classes = [ReservationRateThrottle]
+    PasswordResetRequestView.throttle_classes = [PasswordResetRateThrottle]
 
     cache.clear()
     yield
@@ -60,6 +63,7 @@ def isolate_throttling_state():
     UserLoginView.throttle_classes = original_login_throttles
     TemporarySeatReservationView.throttle_classes = original_temp_reservation_throttles
     CheckoutView.throttle_classes = original_checkout_throttles
+    PasswordResetRequestView.throttle_classes = original_password_reset_throttles
     SimpleRateThrottle.THROTTLE_RATES = original_simple_rate_throttle_rates
 
 
@@ -209,6 +213,50 @@ class TestApiThrottling:
             status.HTTP_400_BAD_REQUEST,
             status.HTTP_401_UNAUTHORIZED,
         }
+        assert second_response.status_code == status.HTTP_429_TOO_MANY_REQUESTS
+        body = second_response.json()
+        assert body["error"]["code"] == "THROTTLED"
+        assert body["error"]["status"] == 429
+
+    @override_settings(
+        REST_FRAMEWORK={
+            "DEFAULT_AUTHENTICATION_CLASSES": [
+                "rest_framework_simplejwt.authentication.JWTAuthentication",
+            ],
+            "DEFAULT_PERMISSION_CLASSES": [
+                "rest_framework.permissions.AllowAny",
+            ],
+            "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
+            "PAGE_SIZE": 10,
+            "DEFAULT_THROTTLE_CLASSES": [
+                "cineprime_api.throttling.GlobalAnonRateThrottle",
+                "cineprime_api.throttling.GlobalUserRateThrottle",
+            ],
+            "DEFAULT_THROTTLE_RATES": {
+                "anon": "10/minute",
+                "user": "10/minute",
+                "login": "10/minute",
+                "reservation": "10/minute",
+                "password_reset": "1/minute",
+            },
+            "EXCEPTION_HANDLER": "cineprime_api.throttling.throttling_exception_handler",
+        }
+    )
+    def test_password_reset_request_endpoint_is_throttled_faster_than_global_limit(
+        self, api_client
+    ):
+        _sync_throttle_rates_from_settings()
+
+        payload = {"email": "someone@example.com"}
+
+        first_response = api_client.post(
+            "/api/v1/auth/password-reset/", payload, format="json"
+        )
+        second_response = api_client.post(
+            "/api/v1/auth/password-reset/", payload, format="json"
+        )
+
+        assert first_response.status_code == status.HTTP_200_OK
         assert second_response.status_code == status.HTTP_429_TOO_MANY_REQUESTS
         body = second_response.json()
         assert body["error"]["code"] == "THROTTLED"
