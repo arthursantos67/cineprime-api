@@ -1,6 +1,5 @@
 import hashlib
 
-from django.core.exceptions import ImproperlyConfigured
 from rest_framework.throttling import (
     AnonRateThrottle,
     SimpleRateThrottle,
@@ -106,15 +105,6 @@ class EmailChangeRateThrottle(SimpleRateThrottle):
     """
 
     scope = "email_change"
-
-    def get_rate(self):
-        # Some test suites replace SimpleRateThrottle.THROTTLE_RATES wholesale
-        # with dicts that predate this scope. Treat a missing rate as
-        # "unthrottled" instead of raising and turning every request into a 500.
-        try:
-            return super().get_rate()
-        except ImproperlyConfigured:
-            return None
 
     def get_cache_key(self, request, view):
         if request.method != "PATCH":

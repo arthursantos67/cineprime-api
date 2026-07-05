@@ -7,13 +7,9 @@ import { getApiErrorUserMessage } from "@/api/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
+import { FormFeedback, type FeedbackState } from "@/components/ui/FormFeedback";
 import { PasswordInput } from "@/components/ui/PasswordInput";
 import { useI18n } from "@/i18n";
-
-type FeedbackState =
-  | { kind: "error"; message: string }
-  | { kind: "success"; message: string }
-  | null;
 
 function VerificationStatusCard() {
   const { user } = useAuth();
@@ -83,6 +79,7 @@ function VerificationStatusCard() {
 }
 
 export function SecuritySection() {
+  const { adoptTokens } = useAuth();
   const { locale, t } = useI18n();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [feedback, setFeedback] = useState<FeedbackState>(null);
@@ -98,7 +95,10 @@ export function SecuritySection() {
 
     setIsSubmitting(true);
     try {
-      await authApi.changePassword({ currentPassword, newPassword });
+      const response = await authApi.changePassword({ currentPassword, newPassword });
+      // The password change invalidated every previously issued token; swap
+      // in the fresh pair so this session stays signed in.
+      adoptTokens({ access: response.access, refresh: response.refresh });
       setFeedback({ kind: "success", message: t("profile.passwordChanged") });
       form.reset();
     } catch (error) {
@@ -142,18 +142,7 @@ export function SecuritySection() {
             name="newPassword"
             required
           />
-          {feedback ? (
-            <p
-              className={
-                feedback.kind === "error"
-                  ? "m-0 text-sm font-bold text-error"
-                  : "m-0 text-sm font-bold text-success"
-              }
-              role={feedback.kind === "error" ? "alert" : "status"}
-            >
-              {feedback.message}
-            </p>
-          ) : null}
+          <FormFeedback feedback={feedback} />
           <Button className="w-fit" disabled={isSubmitting} type="submit">
             {isSubmitting ? t("profile.changingPassword") : t("profile.changePassword")}
           </Button>

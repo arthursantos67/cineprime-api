@@ -3,6 +3,8 @@ export type { BadgeTone } from "./Badge";
 export { Button, ButtonLink, buttonClassName } from "./Button";
 export type { ButtonSize, ButtonVariant } from "./Button";
 export { CarouselControls } from "./CarouselControls";
+export { FormFeedback } from "./FormFeedback";
+export type { FeedbackState } from "./FormFeedback";
 export { Input } from "./Input";
 export { PageSection } from "./PageSection";
 export { PasswordInput } from "./PasswordInput";

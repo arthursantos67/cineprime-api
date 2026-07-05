@@ -30,7 +30,7 @@ urlpatterns = [
         name="verify-email",
     ),
     path(
-        "change-email/<str:token>/",
+        "change-email/",
         EmailChangeConfirmView.as_view(),
         name="change-email-confirm",
     ),

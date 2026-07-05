@@ -12,6 +12,8 @@ export type WalletTransaction = {
 
 export type WalletResponse = {
   balance: string;
+  count: number;
+  has_more: boolean;
   transactions: WalletTransaction[];
 };
 
@@ -37,6 +39,8 @@ export function isWalletResponse(value: unknown): value is WalletResponse {
   return (
     isRecord(value) &&
     typeof value.balance === "string" &&
+    typeof value.count === "number" &&
+    typeof value.has_more === "boolean" &&
     Array.isArray(value.transactions) &&
     value.transactions.every(isWalletTransaction)
   );

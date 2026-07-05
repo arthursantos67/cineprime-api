@@ -57,6 +57,8 @@ export type EmailVerificationResponse = {
 };
 
 export type UpdateProfilePayload = {
+  // Required by the API when changing the email (re-authentication).
+  currentPassword?: string;
   email?: string;
   username?: string;
 };
@@ -71,7 +73,10 @@ export type ChangePasswordPayload = {
 };
 
 export type ChangePasswordResponse = {
+  // Fresh token pair: changing the password invalidates all previous tokens.
+  access: string;
   detail: string;
+  refresh: string;
 };
 
 export type ConfirmEmailChangeResponse = {
@@ -146,10 +151,16 @@ export const authApi = {
     });
   },
 
-  updateProfile(payload: UpdateProfilePayload) {
+  updateProfile({ currentPassword, email, username }: UpdateProfilePayload) {
     return apiRequest<UpdateProfileResponse>("/api/v1/users/me/", {
       auth: "required",
-      json: payload,
+      json: {
+        ...(username !== undefined ? { username } : {}),
+        ...(email !== undefined ? { email } : {}),
+        ...(currentPassword !== undefined
+          ? { current_password: currentPassword }
+          : {}),
+      },
       method: "PATCH",
     });
   },
@@ -163,10 +174,12 @@ export const authApi = {
   },
 
   confirmEmailChange(token: string) {
-    return apiRequest<ConfirmEmailChangeResponse>(
-      `/api/v1/auth/change-email/${encodeURIComponent(token)}/`,
-      { auth: "none" }
-    );
+    // POST so email link scanners prefetching the URL cannot apply the change.
+    return apiRequest<ConfirmEmailChangeResponse>("/api/v1/auth/change-email/", {
+      auth: "none",
+      json: { token },
+      method: "POST",
+    });
   },
 
   deleteAccount({ confirm = false, password }: DeleteAccountPayload) {

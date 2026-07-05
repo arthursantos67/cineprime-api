@@ -1,7 +1,7 @@
 import pytest
 from rest_framework import status
 from rest_framework.test import APIClient
-from rest_framework_simplejwt.tokens import RefreshToken
+from users.jwt import issue_tokens_for_user
 
 from users.models import AdminPermissionLog, User
 
@@ -59,7 +59,7 @@ def protected_master(db):
 
 def auth_client(user):
     client = APIClient()
-    refresh = RefreshToken.for_user(user)
+    refresh = issue_tokens_for_user(user)
     client.credentials(HTTP_AUTHORIZATION=f"Bearer {refresh.access_token}")
     return client
 

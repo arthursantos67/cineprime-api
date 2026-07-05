@@ -1,10 +1,11 @@
 import logging
 
+from django.contrib.auth.password_validation import validate_password
 from django.contrib.auth.tokens import default_token_generator
 from django.core.exceptions import ValidationError as DjangoValidationError
 from decimal import Decimal
 
-from django.db import transaction
+from django.db import IntegrityError, transaction
 from django.db.models import Case, IntegerField, Q, Sum, Value, When
 from django.utils import timezone
 from django.utils.encoding import force_bytes, force_str
@@ -23,7 +24,6 @@ from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.serializers import TokenRefreshSerializer
-from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenRefreshView
 
 from cryptography.fernet import InvalidToken
@@ -56,6 +56,7 @@ from users.serializers import (
     UserTicketSerializer,
     WalletTransactionSerializer,
 )
+from users.jwt import issue_tokens_for_user
 from users.tokens import (
     generate_email_change_token,
     resolve_email_change_payload,
@@ -165,6 +166,8 @@ class EmailChangeConfirmResponseSerializer(serializers.Serializer):
 
 class ChangePasswordResponseSerializer(serializers.Serializer):
     detail = serializers.CharField()
+    access = serializers.CharField()
+    refresh = serializers.CharField()
 
 
 PASSWORD_RESET_REQUESTED_MESSAGE = (
@@ -229,7 +232,7 @@ class UserLoginView(APIView):
         serializer.is_valid(raise_exception=True)
 
         user = serializer.validated_data["user"]
-        refresh = RefreshToken.for_user(user)
+        refresh = issue_tokens_for_user(user)
 
         return Response(
             {
@@ -412,14 +415,20 @@ class PasswordResetConfirmView(APIView):
         )
 
 
+class EmailChangeConfirmRequestSerializer(serializers.Serializer):
+    token = serializers.CharField()
+
+
 @extend_schema(
     tags=["Auth"],
     summary="Confirm email change",
     description=(
         "Apply a pending email change using the signed token sent to the new "
         "address. Marks the account as verified, since the user proved "
-        "control of the new email."
+        "control of the new email. Uses POST so email link scanners cannot "
+        "apply the change by prefetching the URL."
     ),
+    request=EmailChangeConfirmRequestSerializer,
     responses={
         200: EmailChangeConfirmResponseSerializer,
         400: OpenApiResponse(description="Invalid, expired, or conflicting token."),
@@ -428,8 +437,11 @@ class PasswordResetConfirmView(APIView):
 class EmailChangeConfirmView(APIView):
     permission_classes = [AllowAny]
 
-    def get(self, request, token, *args, **kwargs):
-        payload = resolve_email_change_payload(token)
+    def post(self, request, *args, **kwargs):
+        serializer = EmailChangeConfirmRequestSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        payload = resolve_email_change_payload(serializer.validated_data["token"])
         if payload is None:
             raise InvalidEmailChangeToken()
 
@@ -438,20 +450,25 @@ class EmailChangeConfirmView(APIView):
         except (User.DoesNotExist, ValueError, DjangoValidationError):
             raise InvalidEmailChangeToken()
 
-        new_email = str(payload["new_email"]).strip().lower()
+        # Reject tokens issued against a previous address: applying any email
+        # change (or reusing an already-applied token) invalidates every
+        # other pending token for this account.
+        if str(payload["from_email"]).strip().lower() != user.email:
+            raise InvalidEmailChangeToken()
 
-        if user.email == new_email:
-            return Response(
-                {"email": user.email, "changed": False},
-                status=status.HTTP_200_OK,
-            )
+        new_email = str(payload["new_email"]).strip().lower()
 
         if User.objects.filter(email=new_email).exclude(pk=user.pk).exists():
             raise InvalidEmailChangeToken()
 
         user.email = new_email
         user.is_verified = True
-        user.save(update_fields=["email", "is_verified", "updated_at"])
+        try:
+            user.save(update_fields=["email", "is_verified", "updated_at"])
+        except IntegrityError:
+            # Concurrent registration/confirmation grabbed the address between
+            # the uniqueness check and the save.
+            raise InvalidEmailChangeToken()
 
         return Response(
             {"email": user.email, "changed": True},
@@ -484,17 +501,35 @@ class ChangePasswordView(APIView):
         if not user.check_password(serializer.validated_data["current_password"]):
             raise WrongPassword()
 
+        # Validate with user context so UserAttributeSimilarityValidator can
+        # compare the new password against the email/username.
+        try:
+            validate_password(serializer.validated_data["new_password"], user=user)
+        except DjangoValidationError as exc:
+            raise ValidationError({"new_password": exc.messages})
+
         user.set_password(serializer.validated_data["new_password"])
         user.save(update_fields=["password", "updated_at"])
 
+        # Every previously issued token is now invalid (its password
+        # fingerprint no longer matches), so hand the caller a fresh pair to
+        # keep this session alive.
+        refresh = issue_tokens_for_user(user)
+
         return Response(
-            {"detail": "Password changed successfully."},
+            {
+                "detail": "Password changed successfully.",
+                "access": str(refresh.access_token),
+                "refresh": str(refresh),
+            },
             status=status.HTTP_200_OK,
         )
 
 
 class WalletResponseSerializer(serializers.Serializer):
     balance = serializers.CharField()
+    count = serializers.IntegerField()
+    has_more = serializers.BooleanField()
     transactions = WalletTransactionSerializer(many=True)
 
 
@@ -515,19 +550,22 @@ class CurrentUserWalletView(APIView):
     MAX_TRANSACTIONS = 50
 
     def get(self, request, *args, **kwargs):
-        transactions = WalletTransaction.objects.filter(user=request.user)[
-            : self.MAX_TRANSACTIONS
-        ]
-        balance = (
-            WalletTransaction.objects.filter(user=request.user).aggregate(
-                total=Sum("amount")
-            )["total"]
-            or Decimal("0.00")
-        )
+        queryset = WalletTransaction.objects.filter(user=request.user)
+
+        # Single transaction so the balance matches the listed entries even
+        # if a credit lands concurrently.
+        with transaction.atomic():
+            transactions = list(queryset[: self.MAX_TRANSACTIONS])
+            count = queryset.count()
+            balance = queryset.aggregate(total=Sum("amount"))["total"] or Decimal(
+                "0.00"
+            )
 
         return Response(
             {
                 "balance": str(balance.quantize(Decimal("0.01"))),
+                "count": count,
+                "has_more": count > len(transactions),
                 "transactions": WalletTransactionSerializer(
                     transactions, many=True
                 ).data,
@@ -625,20 +663,27 @@ class CurrentUserView(APIView):
         new_email = serializer.validated_data.get("email")
         if new_email and new_email != user.email:
             email_change_requested = True
+            locale = get_request_locale(request)
+
+            from users.tasks import (
+                send_email_change_email_task,
+                send_email_change_notice_email_task,
+            )
+
+            # Warn the current address that a change was requested, so the
+            # account owner can react if this came from a hijacked session.
+            # Enqueue failures propagate as a 500: silently swallowing them
+            # would tell the user a confirmation email is on its way when
+            # nothing was sent.
+            send_email_change_notice_email_task.apply_async(
+                args=[str(user.id), locale]
+            )
 
             if not User.objects.filter(email=new_email).exists():
                 token = generate_email_change_token(user, new_email)
-
-                from users.tasks import send_email_change_email_task
-
-                try:
-                    send_email_change_email_task.apply_async(
-                        args=[str(user.id), new_email, token, get_request_locale(request)]
-                    )
-                except Exception:
-                    logger.exception(
-                        "Failed to enqueue email change email for user %s", user.id
-                    )
+                send_email_change_email_task.apply_async(
+                    args=[str(user.id), new_email, token, locale]
+                )
 
         payload = self._profile_payload(user)
         payload["email_change_requested"] = email_change_requested

@@ -33,6 +33,9 @@ class TmdbTokenBodySerializer(serializers.Serializer):
 class ProfileUpdateSerializer(serializers.Serializer):
     username = serializers.CharField(max_length=150, required=False)
     email = serializers.EmailField(required=False)
+    current_password = serializers.CharField(
+        write_only=True, required=False, trim_whitespace=False
+    )
 
     def validate_username(self, value):
         value = value.strip()
@@ -50,20 +53,30 @@ class ProfileUpdateSerializer(serializers.Serializer):
         return value.strip().lower()
 
     def validate(self, attrs):
+        current_password = attrs.pop("current_password", None)
+
         if not attrs:
             raise serializers.ValidationError(
                 "Provide at least one field to update: username or email."
             )
+
+        # Changing the account email is an account-takeover-grade operation:
+        # require re-authentication so a hijacked session alone is not enough.
+        if "email" in attrs:
+            user = self.context["request"].user
+            if not current_password or not user.check_password(current_password):
+                from users.views import WrongPassword
+
+                raise WrongPassword()
+
         return attrs
 
 
 class ChangePasswordSerializer(serializers.Serializer):
     current_password = serializers.CharField(write_only=True, trim_whitespace=False)
-    new_password = serializers.CharField(
-        write_only=True,
-        trim_whitespace=False,
-        validators=[validate_password],
-    )
+    # new_password is validated in the view with user context, so validators
+    # like UserAttributeSimilarityValidator can compare against email/username.
+    new_password = serializers.CharField(write_only=True, trim_whitespace=False)
 
 
 class WalletTransactionSerializer(serializers.ModelSerializer):

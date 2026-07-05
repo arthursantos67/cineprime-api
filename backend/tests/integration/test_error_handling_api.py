@@ -71,15 +71,6 @@ def api_client():
     return APIClient()
 
 
-def _sync_throttle_rates_from_settings():
-    from django.conf import settings
-
-    SimpleRateThrottle.THROTTLE_RATES = settings.REST_FRAMEWORK.get(
-        "DEFAULT_THROTTLE_RATES",
-        {},
-    )
-
-
 def _create_session_with_single_seat(movie_title="Error Handling Movie"):
     genre = Genre.objects.create(name=f"Action-{movie_title}")
     movie = Movie.objects.create(
@@ -244,9 +235,17 @@ def test_error_schema_for_409_conflict(api_client):
         "EXCEPTION_HANDLER": "cineprime_api.exception_handler.standardized_exception_handler",
     }
 )
-def test_error_schema_for_429_throttled(api_client):
+def test_error_schema_for_429_throttled(api_client, monkeypatch):
+    from django.conf import settings
+
     cache.clear()
-    _sync_throttle_rates_from_settings()
+    # monkeypatch (not plain assignment) so the class attribute is restored
+    # after this test: THROTTLE_RATES is global state shared by the suite.
+    monkeypatch.setattr(
+        SimpleRateThrottle,
+        "THROTTLE_RATES",
+        settings.REST_FRAMEWORK["DEFAULT_THROTTLE_RATES"],
+    )
 
     api_client.get("/api/v1/catalog/genres/")
     api_client.get("/api/v1/catalog/genres/")

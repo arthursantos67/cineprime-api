@@ -26,7 +26,7 @@ class Migration(migrations.Migration):
             options={
                 'db_table': 'wallet_transactions',
                 'ordering': ['-created_at'],
-                'indexes': [models.Index(fields=['user'], name='wallet_tx_user_idx')],
+                'indexes': [models.Index(fields=['user', '-created_at'], name='wallet_tx_user_created_idx')],
             },
         ),
     ]

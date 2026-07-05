@@ -1,7 +1,7 @@
 import pytest
 from rest_framework import status
 from rest_framework.test import APIClient
-from rest_framework_simplejwt.tokens import RefreshToken
+from users.jwt import issue_tokens_for_user
 
 from users.models import User
 
@@ -27,7 +27,7 @@ class TestCurrentUserView:
         assert response.data["error"]["code"] == "NOT_AUTHENTICATED"
 
     def test_current_user_returns_authenticated_user(self, api_client, user):
-        refresh = RefreshToken.for_user(user)
+        refresh = issue_tokens_for_user(user)
         access_token = str(refresh.access_token)
 
         api_client.credentials(HTTP_AUTHORIZATION=f"Bearer {access_token}")
@@ -41,7 +41,7 @@ class TestCurrentUserView:
         assert "created_at" in response.data
 
     def test_current_user_returns_is_staff_false_for_regular_user(self, api_client, user):
-        refresh = RefreshToken.for_user(user)
+        refresh = issue_tokens_for_user(user)
         api_client.credentials(HTTP_AUTHORIZATION=f"Bearer {str(refresh.access_token)}")
 
         response = api_client.get("/api/v1/users/me/")
@@ -56,7 +56,7 @@ class TestCurrentUserView:
             password="Soueu123*A",
             is_staff=True,
         )
-        refresh = RefreshToken.for_user(admin)
+        refresh = issue_tokens_for_user(admin)
         api_client.credentials(HTTP_AUTHORIZATION=f"Bearer {str(refresh.access_token)}")
 
         response = api_client.get("/api/v1/users/me/")

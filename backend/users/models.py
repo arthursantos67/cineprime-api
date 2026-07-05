@@ -181,7 +181,10 @@ class WalletTransaction(models.Model):
         db_table = "wallet_transactions"
         ordering = ["-created_at"]
         indexes = [
-            models.Index(fields=["user"], name="wallet_tx_user_idx"),
+            # Covers the wallet endpoint's "filter by user, newest first" query.
+            models.Index(
+                fields=["user", "-created_at"], name="wallet_tx_user_created_idx"
+            ),
         ]
 
     def __str__(self):

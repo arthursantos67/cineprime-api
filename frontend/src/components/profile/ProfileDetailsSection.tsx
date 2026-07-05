@@ -6,13 +6,10 @@ import { authApi } from "@/api/auth";
 import { getApiErrorUserMessage } from "@/api/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/Button";
+import { FormFeedback, type FeedbackState } from "@/components/ui/FormFeedback";
 import { Input } from "@/components/ui/Input";
+import { PasswordInput } from "@/components/ui/PasswordInput";
 import { useI18n } from "@/i18n";
-
-type FeedbackState =
-  | { kind: "error"; message: string }
-  | { kind: "success"; message: string }
-  | null;
 
 export function ProfileDetailsSection() {
   const { reloadCurrentUser, user } = useAuth();
@@ -60,14 +57,15 @@ export function ProfileDetailsSection() {
     const form = event.currentTarget;
     const formData = new FormData(form);
     const email = String(formData.get("email") ?? "").trim();
+    const currentPassword = String(formData.get("currentPassword") ?? "");
 
-    if (!email) {
+    if (!email || !currentPassword) {
       return;
     }
 
     setIsRequestingEmailChange(true);
     try {
-      const response = await authApi.updateProfile({ email });
+      const response = await authApi.updateProfile({ currentPassword, email });
       if (response.email_change_requested) {
         setEmailFeedback({
           kind: "success",
@@ -117,18 +115,7 @@ export function ProfileDetailsSection() {
             name="username"
             required
           />
-          {usernameFeedback ? (
-            <p
-              className={
-                usernameFeedback.kind === "error"
-                  ? "m-0 text-sm font-bold text-error"
-                  : "m-0 text-sm font-bold text-success"
-              }
-              role={usernameFeedback.kind === "error" ? "alert" : "status"}
-            >
-              {usernameFeedback.message}
-            </p>
-          ) : null}
+          <FormFeedback feedback={usernameFeedback} />
           <Button className="w-fit" disabled={isSavingUsername} type="submit">
             {isSavingUsername ? t("profile.saving") : t("profile.saveUsername")}
           </Button>
@@ -157,18 +144,15 @@ export function ProfileDetailsSection() {
             required
             type="email"
           />
-          {emailFeedback ? (
-            <p
-              className={
-                emailFeedback.kind === "error"
-                  ? "m-0 text-sm font-bold text-error"
-                  : "m-0 text-sm font-bold text-success"
-              }
-              role={emailFeedback.kind === "error" ? "alert" : "status"}
-            >
-              {emailFeedback.message}
-            </p>
-          ) : null}
+          <PasswordInput
+            autoComplete="current-password"
+            disabled={isRequestingEmailChange}
+            id="profile-email-current-password"
+            label={t("profile.currentPasswordLabel")}
+            name="currentPassword"
+            required
+          />
+          <FormFeedback feedback={emailFeedback} />
           <Button
             className="w-fit"
             disabled={isRequestingEmailChange}

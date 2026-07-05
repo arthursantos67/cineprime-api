@@ -104,8 +104,10 @@ export function WalletSection() {
         ) : (
           <ul className="m-0 grid list-none gap-2 p-0">
             {transactions.map((transaction) => {
-              const amount = Number(transaction.amount);
-              const isCredit = amount >= 0;
+              // Sign comes from the decimal string itself; Number() is
+              // confined to display formatting to avoid float arithmetic on
+              // monetary values.
+              const isCredit = !transaction.amount.startsWith("-");
 
               return (
                 <li
@@ -138,7 +140,7 @@ export function WalletSection() {
                     }
                   >
                     {isCredit ? "+" : ""}
-                    {formatCurrency(amount)}
+                    {formatCurrency(Number(transaction.amount))}
                   </span>
                 </li>
               );

@@ -87,6 +87,8 @@ class TestWalletEndpoint:
         assert response.status_code == status.HTTP_200_OK
         assert response.data["balance"] == "0.00"
         assert response.data["transactions"] == []
+        assert response.data["count"] == 0
+        assert response.data["has_more"] is False
 
     def test_balance_is_the_sum_of_transactions(self, auth_client, user):
         WalletTransaction.objects.create(
@@ -106,9 +108,35 @@ class TestWalletEndpoint:
         assert response.status_code == status.HTTP_200_OK
         assert response.data["balance"] == "19.50"
         assert len(response.data["transactions"]) == 2
+        assert response.data["count"] == 2
+        assert response.data["has_more"] is False
 
         first = response.data["transactions"][0]
         assert set(first.keys()) == {"id", "amount", "reason", "reference", "created_at"}
+
+    def test_reports_has_more_when_history_exceeds_page_size(
+        self, auth_client, user, monkeypatch
+    ):
+        from users.views import CurrentUserWalletView
+
+        monkeypatch.setattr(CurrentUserWalletView, "MAX_TRANSACTIONS", 2)
+
+        for index in range(3):
+            WalletTransaction.objects.create(
+                user=user,
+                amount=Decimal("1.00"),
+                reason=WalletTransaction.Reason.ADJUSTMENT,
+                reference=f"TX-{index}",
+            )
+
+        response = auth_client.get(WALLET_URL)
+
+        assert response.status_code == status.HTTP_200_OK
+        # Balance covers the full history even though the list is truncated.
+        assert response.data["balance"] == "3.00"
+        assert len(response.data["transactions"]) == 2
+        assert response.data["count"] == 3
+        assert response.data["has_more"] is True
 
     def test_does_not_leak_other_users_transactions(self, auth_client):
         other = User.objects.create_user(

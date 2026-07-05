@@ -8,6 +8,7 @@ import { authApi } from "@/api/auth";
 import { ApiError, getApiErrorUserMessage } from "@/api/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/Button";
+import { FormFeedback } from "@/components/ui/FormFeedback";
 import { PasswordInput } from "@/components/ui/PasswordInput";
 import { useI18n } from "@/i18n";
 
@@ -66,11 +67,9 @@ export function AccountSection() {
           name="password"
           required
         />
-        {errorMessage ? (
-          <p className="m-0 text-sm font-bold text-error" role="alert">
-            {errorMessage}
-          </p>
-        ) : null}
+        <FormFeedback
+          feedback={errorMessage ? { kind: "error", message: errorMessage } : null}
+        />
         <Button
           className="w-fit border-error text-error hover:bg-[rgb(180_35_24/0.16)]"
           disabled={isSubmitting}

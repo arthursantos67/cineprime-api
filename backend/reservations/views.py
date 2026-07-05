@@ -27,6 +27,7 @@ from reservations.exceptions import (
     SessionNotFoundError,
 )
 from reservations.models import Seat, SeatRow, SessionSeat, Ticket
+from users.models import WalletTransaction
 from reservations.serializers import (
     AccessibleRowRequestSerializer,
     BulkLayoutRequestSerializer,
@@ -175,8 +176,6 @@ class TicketDetailView(RetrieveDestroyAPIView):
     permission_classes = [IsAdminUser]
 
     def perform_destroy(self, instance):
-        from users.models import WalletTransaction
-
         with transaction.atomic():
             if instance.amount_paid and instance.amount_paid > 0:
                 WalletTransaction.objects.create(

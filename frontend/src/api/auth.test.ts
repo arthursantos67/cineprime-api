@@ -107,6 +107,44 @@ test("updateProfile patches the current user endpoint", async () => {
   }
 });
 
+test("updateProfile sends current_password when changing the email", async () => {
+  const originalFetch = globalThis.fetch;
+
+  try {
+    globalThis.fetch = async (input, init) => {
+      assert.equal(input, "http://localhost:8000/api/v1/users/me/");
+      assert.equal(init?.method, "PATCH");
+      assert.equal(
+        init?.body,
+        JSON.stringify({
+          email: "nova@example.com",
+          current_password: "senha-atual",
+        })
+      );
+
+      return Response.json({
+        created_at: "2026-05-21T10:00:00Z",
+        email: "ana@example.com",
+        email_change_requested: true,
+        id: "user-1",
+        is_staff: false,
+        is_verified: true,
+        role: "user",
+        username: "ana",
+      });
+    };
+
+    const response = await authApi.updateProfile({
+      currentPassword: "senha-atual",
+      email: "nova@example.com",
+    });
+
+    assert.equal(response.email_change_requested, true);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 test("changePassword posts snake_case fields to the change-password endpoint", async () => {
   const originalFetch = globalThis.fetch;
 
@@ -125,7 +163,11 @@ test("changePassword posts snake_case fields to the change-password endpoint", a
         })
       );
 
-      return Response.json({ detail: "Password changed successfully." });
+      return Response.json({
+        access: "novo-access",
+        detail: "Password changed successfully.",
+        refresh: "novo-refresh",
+      });
     };
 
     const response = await authApi.changePassword({
@@ -134,20 +176,21 @@ test("changePassword posts snake_case fields to the change-password endpoint", a
     });
 
     assert.equal(response.detail, "Password changed successfully.");
+    assert.equal(response.access, "novo-access");
+    assert.equal(response.refresh, "novo-refresh");
   } finally {
     globalThis.fetch = originalFetch;
   }
 });
 
-test("confirmEmailChange calls the public confirmation endpoint with the token", async () => {
+test("confirmEmailChange posts the token to the public confirmation endpoint", async () => {
   const originalFetch = globalThis.fetch;
 
   try {
-    globalThis.fetch = async (input) => {
-      assert.equal(
-        input,
-        "http://localhost:8000/api/v1/auth/change-email/tok-123/"
-      );
+    globalThis.fetch = async (input, init) => {
+      assert.equal(input, "http://localhost:8000/api/v1/auth/change-email/");
+      assert.equal(init?.method, "POST");
+      assert.equal(init?.body, JSON.stringify({ token: "tok-123" }));
 
       return Response.json({ changed: true, email: "nova@example.com" });
     };

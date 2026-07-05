@@ -7,6 +7,9 @@ from django.contrib.auth import get_user_model
 from django.core.mail import send_mail
 
 from users.services.email_change_email_service import build_email_change_email
+from users.services.email_change_notice_email_service import (
+    build_email_change_notice_email,
+)
 from users.services.email_verification_email_service import (
     build_email_verification_email,
 )
@@ -144,3 +147,46 @@ def send_email_change_email_task(
         raise
 
     logger.info("Email change email sent | user_id=%s", user_id)
+
+
+@shared_task(
+    bind=True,
+    autoretry_for=(smtplib.SMTPException, ConnectionError, TimeoutError, OSError),
+    retry_backoff=True,
+    retry_jitter=True,
+    max_retries=5,
+)
+def send_email_change_notice_email_task(
+    self, user_id: str, locale: str | None = None
+) -> None:
+    """Warn the account's current address that an email change was requested."""
+    user_model = get_user_model()
+    user = user_model.objects.filter(id=user_id).first()
+    if user is None:
+        logger.warning(
+            "Email change notice skipped because user was not found | user_id=%s",
+            user_id,
+        )
+        return
+
+    email_payload = build_email_change_notice_email(user=user, locale=locale)
+
+    try:
+        send_mail(
+            subject=email_payload["subject"],
+            message=email_payload["body"],
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[user.email],
+            fail_silently=False,
+        )
+    except (smtplib.SMTPException, ConnectionError, TimeoutError, OSError):
+        task_id = getattr(self.request, "id", None)
+        logger.exception(
+            "Email change notice delivery failed | task_id=%s user_id=%s",
+            task_id,
+            user_id,
+            extra={"task_id": task_id, "task_name": self.name, "user_id": user_id},
+        )
+        raise
+
+    logger.info("Email change notice sent | user_id=%s", user_id)

@@ -5,6 +5,8 @@ import { isWalletResponse, walletApi } from "./wallet";
 
 const VALID_WALLET = {
   balance: "19.50",
+  count: 2,
+  has_more: false,
   transactions: [
     {
       amount: "30.00",
@@ -62,11 +64,21 @@ test("getWallet rejects malformed responses", async () => {
 
 test("isWalletResponse validates shape strictly", () => {
   assert.equal(isWalletResponse(VALID_WALLET), true);
-  assert.equal(isWalletResponse({ balance: "0.00", transactions: [] }), true);
-  assert.equal(isWalletResponse({ balance: 0, transactions: [] }), false);
+  assert.equal(
+    isWalletResponse({ balance: "0.00", count: 0, has_more: false, transactions: [] }),
+    true
+  );
+  assert.equal(
+    isWalletResponse({ balance: 0, count: 0, has_more: false, transactions: [] }),
+    false
+  );
+  // count/has_more are required so truncation is always detectable.
+  assert.equal(isWalletResponse({ balance: "0.00", transactions: [] }), false);
   assert.equal(
     isWalletResponse({
       balance: "0.00",
+      count: 1,
+      has_more: false,
       transactions: [{ amount: "1.00", created_at: "x", id: "1", reason: "bonus", reference: "" }],
     }),
     false
