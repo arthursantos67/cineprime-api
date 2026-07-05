@@ -161,10 +161,10 @@ export function AppHeader() {
               )}
               <ButtonLink
                 className="border-white/[0.16] text-white/80 hover:bg-white/10 hover:border-white/[0.24] hover:text-white"
-                href="/my-tickets"
+                href="/profile"
                 variant="ghost"
               >
-                {t("nav.myTickets")}
+                {t("nav.profile")}
               </ButtonLink>
               <Button
                 className="border-white/[0.16] text-white/80 hover:bg-white/10 hover:border-white/[0.24] hover:text-white"

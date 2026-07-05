@@ -423,6 +423,7 @@ REST_FRAMEWORK = {
         "email_verification_resend": os.getenv(
             "THROTTLE_EMAIL_VERIFICATION_RESEND_RATE", "3/hour"
         ),
+        "email_change": os.getenv("THROTTLE_EMAIL_CHANGE_RATE", "3/hour"),
     },
     "EXCEPTION_HANDLER": "cineprime_api.exception_handler.standardized_exception_handler",
 }

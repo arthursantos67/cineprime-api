@@ -24,9 +24,9 @@ const filterOptions: Array<{
   labelKey: string;
   value: TicketFilterType | null;
 }> = [
-  { href: "/my-tickets", labelKey: "tickets.filterAll", value: null },
-  { href: "/my-tickets?type=upcoming", labelKey: "tickets.filterUpcoming", value: "upcoming" },
-  { href: "/my-tickets?type=past", labelKey: "tickets.filterPast", value: "past" },
+  { href: "/profile?tab=ingressos", labelKey: "tickets.filterAll", value: null },
+  { href: "/profile?tab=ingressos&type=upcoming", labelKey: "tickets.filterUpcoming", value: "upcoming" },
+  { href: "/profile?tab=ingressos&type=past", labelKey: "tickets.filterPast", value: "past" },
 ];
 
 export function MyTicketsContent({

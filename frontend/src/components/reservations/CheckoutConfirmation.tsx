@@ -31,7 +31,7 @@ export function CheckoutConfirmationContent({
         action={
           <Link
             className="inline-flex min-h-10 items-center justify-center rounded-md border border-brand bg-brand px-3.5 text-sm font-extrabold leading-none text-white transition hover:bg-brand-strong"
-            href="/my-tickets"
+            href="/profile?tab=ingressos"
           >
             {t("nav.myTickets")}
           </Link>
@@ -93,7 +93,7 @@ export function CheckoutConfirmationContent({
             "inline-flex min-h-10 items-center justify-center rounded-md border border-brand bg-brand px-3.5 text-sm font-extrabold leading-none text-white transition hover:bg-brand-strong",
             "max-sm:w-full"
           )}
-          href="/my-tickets"
+          href="/profile?tab=ingressos"
         >
           {t("confirmation.goToMyTickets")}
         </Link>

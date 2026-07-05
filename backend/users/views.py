@@ -2,8 +2,10 @@ import logging
 
 from django.contrib.auth.tokens import default_token_generator
 from django.core.exceptions import ValidationError as DjangoValidationError
+from decimal import Decimal
+
 from django.db import transaction
-from django.db.models import Case, IntegerField, Q, Value, When
+from django.db.models import Case, IntegerField, Q, Sum, Value, When
 from django.utils import timezone
 from django.utils.encoding import force_bytes, force_str
 from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
@@ -30,26 +32,35 @@ from cineprime_api.encryption import decrypt_value, encrypt_value
 from cineprime_api.localization import get_request_locale
 from cineprime_api.permissions import IsMasterUser
 from cineprime_api.throttling import (
+    EmailChangeRateThrottle,
     EmailVerificationResendRateThrottle,
+    GlobalUserRateThrottle,
     LoginRateThrottle,
     PasswordResetEmailRateThrottle,
     PasswordResetRateThrottle,
     RegistrationRateThrottle,
 )
 from reservations.models import SessionSeat, SessionSeatStatus, Ticket
-from users.models import AdminPermissionLog, SiteConfig, User
+from users.models import AdminPermissionLog, SiteConfig, User, WalletTransaction
 from users.serializers import (
     AdminPermissionLogSerializer,
+    ChangePasswordSerializer,
     PasswordResetConfirmSerializer,
     PasswordResetRequestSerializer,
+    ProfileUpdateSerializer,
     TmdbTokenBodySerializer,
     TmdbTokenResponseSerializer,
     UserLoginSerializer,
     UserListSerializer,
     UserRegistrationSerializer,
     UserTicketSerializer,
+    WalletTransactionSerializer,
 )
-from users.tokens import resolve_email_verification_user_id
+from users.tokens import (
+    generate_email_change_token,
+    resolve_email_change_payload,
+    resolve_email_verification_user_id,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -135,6 +146,25 @@ class InvalidPasswordResetToken(APIException):
     status_code = 400
     default_code = "INVALID_RESET_TOKEN"
     default_detail = "Invalid or expired password reset link."
+
+
+class InvalidEmailChangeToken(APIException):
+    status_code = 400
+    default_code = "INVALID_EMAIL_CHANGE_TOKEN"
+    default_detail = "Invalid or expired email change confirmation link."
+
+
+class ProfileUpdateResponseSerializer(CurrentUserResponseSerializer):
+    email_change_requested = serializers.BooleanField()
+
+
+class EmailChangeConfirmResponseSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    changed = serializers.BooleanField()
+
+
+class ChangePasswordResponseSerializer(serializers.Serializer):
+    detail = serializers.CharField()
 
 
 PASSWORD_RESET_REQUESTED_MESSAGE = (
@@ -382,6 +412,130 @@ class PasswordResetConfirmView(APIView):
         )
 
 
+@extend_schema(
+    tags=["Auth"],
+    summary="Confirm email change",
+    description=(
+        "Apply a pending email change using the signed token sent to the new "
+        "address. Marks the account as verified, since the user proved "
+        "control of the new email."
+    ),
+    responses={
+        200: EmailChangeConfirmResponseSerializer,
+        400: OpenApiResponse(description="Invalid, expired, or conflicting token."),
+    },
+)
+class EmailChangeConfirmView(APIView):
+    permission_classes = [AllowAny]
+
+    def get(self, request, token, *args, **kwargs):
+        payload = resolve_email_change_payload(token)
+        if payload is None:
+            raise InvalidEmailChangeToken()
+
+        try:
+            user = User.objects.get(pk=payload["user_id"])
+        except (User.DoesNotExist, ValueError, DjangoValidationError):
+            raise InvalidEmailChangeToken()
+
+        new_email = str(payload["new_email"]).strip().lower()
+
+        if user.email == new_email:
+            return Response(
+                {"email": user.email, "changed": False},
+                status=status.HTTP_200_OK,
+            )
+
+        if User.objects.filter(email=new_email).exclude(pk=user.pk).exists():
+            raise InvalidEmailChangeToken()
+
+        user.email = new_email
+        user.is_verified = True
+        user.save(update_fields=["email", "is_verified", "updated_at"])
+
+        return Response(
+            {"email": user.email, "changed": True},
+            status=status.HTTP_200_OK,
+        )
+
+
+@extend_schema(
+    tags=["Users"],
+    summary="Change own password",
+    description=(
+        "Rotate the authenticated user's password by providing the current "
+        "one. This is separate from the password reset flow, which is for "
+        "users who are locked out."
+    ),
+    request=ChangePasswordSerializer,
+    responses={
+        200: ChangePasswordResponseSerializer,
+        400: OpenApiResponse(description="Wrong current password or invalid new password."),
+    },
+)
+class ChangePasswordView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, *args, **kwargs):
+        serializer = ChangePasswordSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        user = request.user
+        if not user.check_password(serializer.validated_data["current_password"]):
+            raise WrongPassword()
+
+        user.set_password(serializer.validated_data["new_password"])
+        user.save(update_fields=["password", "updated_at"])
+
+        return Response(
+            {"detail": "Password changed successfully."},
+            status=status.HTTP_200_OK,
+        )
+
+
+class WalletResponseSerializer(serializers.Serializer):
+    balance = serializers.CharField()
+    transactions = WalletTransactionSerializer(many=True)
+
+
+@extend_schema(
+    tags=["Users"],
+    summary="Get wallet balance and transactions",
+    description=(
+        "Return the authenticated user's internal store-credit balance and "
+        "recent transaction history. This wallet holds CinePrime store "
+        "credit only (e.g. refunds issued by staff) — it is not a real-money "
+        "wallet and involves no payment gateway or custody of funds."
+    ),
+    responses={200: WalletResponseSerializer},
+)
+class CurrentUserWalletView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    MAX_TRANSACTIONS = 50
+
+    def get(self, request, *args, **kwargs):
+        transactions = WalletTransaction.objects.filter(user=request.user)[
+            : self.MAX_TRANSACTIONS
+        ]
+        balance = (
+            WalletTransaction.objects.filter(user=request.user).aggregate(
+                total=Sum("amount")
+            )["total"]
+            or Decimal("0.00")
+        )
+
+        return Response(
+            {
+                "balance": str(balance.quantize(Decimal("0.01"))),
+                "transactions": WalletTransactionSerializer(
+                    transactions, many=True
+                ).data,
+            },
+            status=status.HTTP_200_OK,
+        )
+
+
 class DeleteConflictResponseSerializer(serializers.Serializer):
     ticket_count = serializers.IntegerField()
 
@@ -392,6 +546,21 @@ class DeleteConflictResponseSerializer(serializers.Serializer):
         summary="Get current user",
         description="Return profile information for the authenticated user.",
         responses={200: CurrentUserResponseSerializer},
+    ),
+    patch=extend_schema(
+        tags=["Users"],
+        summary="Update own profile",
+        description=(
+            "Update the authenticated user's profile. Username changes take "
+            "effect immediately. Email changes do NOT take effect until the "
+            "new address is confirmed via the link emailed to it."
+        ),
+        request=ProfileUpdateSerializer,
+        responses={
+            200: ProfileUpdateResponseSerializer,
+            400: OpenApiResponse(description="Validation error."),
+            429: OpenApiResponse(description="Too many email change requests."),
+        },
     ),
     delete=extend_schema(
         tags=["Users"],
@@ -418,20 +587,62 @@ class DeleteConflictResponseSerializer(serializers.Serializer):
 )
 class CurrentUserView(APIView):
     permission_classes = [IsAuthenticated]
+    throttle_classes = [EmailChangeRateThrottle, GlobalUserRateThrottle]
+
+    def _profile_payload(self, user):
+        return {
+            "id": str(user.id),
+            "email": user.email,
+            "username": user.username,
+            "created_at": user.created_at,
+            "is_staff": user.is_staff,
+            "is_verified": user.is_verified,
+            "role": user.role,
+        }
 
     def get(self, request, *args, **kwargs):
-        return Response(
-            {
-                "id": str(request.user.id),
-                "email": request.user.email,
-                "username": request.user.username,
-                "created_at": request.user.created_at,
-                "is_staff": request.user.is_staff,
-                "is_verified": request.user.is_verified,
-                "role": request.user.role,
-            },
-            status=status.HTTP_200_OK,
+        return Response(self._profile_payload(request.user), status=status.HTTP_200_OK)
+
+    def patch(self, request, *args, **kwargs):
+        serializer = ProfileUpdateSerializer(
+            data=request.data,
+            context={"request": request},
         )
+        serializer.is_valid(raise_exception=True)
+        user = request.user
+
+        username = serializer.validated_data.get("username")
+        if username and username != user.username:
+            user.username = username
+            user.save(update_fields=["username", "updated_at"])
+
+        # Email changes are never applied directly: a confirmation link is
+        # sent to the new address and the change only takes effect once that
+        # link is followed (see EmailChangeConfirmView). The response is
+        # intentionally generic when the address is already registered, to
+        # avoid account enumeration.
+        email_change_requested = False
+        new_email = serializer.validated_data.get("email")
+        if new_email and new_email != user.email:
+            email_change_requested = True
+
+            if not User.objects.filter(email=new_email).exists():
+                token = generate_email_change_token(user, new_email)
+
+                from users.tasks import send_email_change_email_task
+
+                try:
+                    send_email_change_email_task.apply_async(
+                        args=[str(user.id), new_email, token, get_request_locale(request)]
+                    )
+                except Exception:
+                    logger.exception(
+                        "Failed to enqueue email change email for user %s", user.id
+                    )
+
+        payload = self._profile_payload(user)
+        payload["email_change_requested"] = email_change_requested
+        return Response(payload, status=status.HTTP_200_OK)
 
     def delete(self, request, *args, **kwargs):
         user = request.user

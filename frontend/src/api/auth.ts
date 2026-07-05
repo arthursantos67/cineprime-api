@@ -56,6 +56,34 @@ export type EmailVerificationResponse = {
   verified: boolean;
 };
 
+export type UpdateProfilePayload = {
+  email?: string;
+  username?: string;
+};
+
+export type UpdateProfileResponse = CurrentUserResponse & {
+  email_change_requested: boolean;
+};
+
+export type ChangePasswordPayload = {
+  currentPassword: string;
+  newPassword: string;
+};
+
+export type ChangePasswordResponse = {
+  detail: string;
+};
+
+export type ConfirmEmailChangeResponse = {
+  changed: boolean;
+  email: string;
+};
+
+export type DeleteAccountPayload = {
+  confirm?: boolean;
+  password: string;
+};
+
 export const authApi = {
   login(credentials: LoginCredentials) {
     return apiRequest<LoginResponse>("/api/v1/auth/login/", {
@@ -115,6 +143,38 @@ export const authApi = {
     return apiRequest<EmailVerificationResponse>("/api/v1/auth/verify-email/resend/", {
       auth: "required",
       method: "POST",
+    });
+  },
+
+  updateProfile(payload: UpdateProfilePayload) {
+    return apiRequest<UpdateProfileResponse>("/api/v1/users/me/", {
+      auth: "required",
+      json: payload,
+      method: "PATCH",
+    });
+  },
+
+  changePassword({ currentPassword, newPassword }: ChangePasswordPayload) {
+    return apiRequest<ChangePasswordResponse>("/api/v1/users/me/change-password/", {
+      auth: "required",
+      json: { current_password: currentPassword, new_password: newPassword },
+      method: "POST",
+    });
+  },
+
+  confirmEmailChange(token: string) {
+    return apiRequest<ConfirmEmailChangeResponse>(
+      `/api/v1/auth/change-email/${encodeURIComponent(token)}/`,
+      { auth: "none" }
+    );
+  },
+
+  deleteAccount({ confirm = false, password }: DeleteAccountPayload) {
+    const path = confirm ? "/api/v1/users/me/?confirm=true" : "/api/v1/users/me/";
+    return apiRequest<void>(path, {
+      auth: "required",
+      json: { password },
+      method: "DELETE",
     });
   },
 };

@@ -88,7 +88,7 @@ test("checkout confirmation renders the success state and generated tickets", ()
   assert.match(html, /ABC123/);
   assert.match(html, /role="list"/);
   assert.match(html, /role="listitem"/);
-  assert.match(html, /href="\/my-tickets"/);
+  assert.match(html, /href="\/profile\?tab=ingressos"/);
 });
 
 test("checkout confirmation reload fallback guides users to my tickets without fake tickets", () => {
@@ -98,7 +98,7 @@ test("checkout confirmation reload fallback guides users to my tickets without f
 
   assert.match(html, /Confirmação indisponível/);
   assert.match(html, /página foi recarregada/);
-  assert.match(html, /href="\/my-tickets"/);
+  assert.match(html, /href="\/profile\?tab=ingressos"/);
   assert.doesNotMatch(html, /A Jornada/);
   assert.doesNotMatch(html, /ABC123/);
 });

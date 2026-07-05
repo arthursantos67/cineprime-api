@@ -6,6 +6,7 @@ export const PROTECTED_ROUTES = [
   "/checkout",
   "/confirmation",
   "/my-tickets",
+  "/profile",
 ] as const;
 
 export const ADMIN_ROUTES = ["/admin"] as const;

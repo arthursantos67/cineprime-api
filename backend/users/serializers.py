@@ -4,7 +4,7 @@ from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 from rest_framework.exceptions import AuthenticationFailed
 
-from users.models import AdminPermissionLog, User
+from users.models import AdminPermissionLog, User, WalletTransaction
 from reservations.models import Ticket
 
 
@@ -28,6 +28,49 @@ class PasswordResetConfirmSerializer(serializers.Serializer):
 
 class TmdbTokenBodySerializer(serializers.Serializer):
     value = serializers.CharField(min_length=1, max_length=2000)
+
+
+class ProfileUpdateSerializer(serializers.Serializer):
+    username = serializers.CharField(max_length=150, required=False)
+    email = serializers.EmailField(required=False)
+
+    def validate_username(self, value):
+        value = value.strip()
+
+        if not value:
+            raise serializers.ValidationError("This field may not be blank.")
+
+        user = self.context["request"].user
+        if User.objects.filter(username=value).exclude(pk=user.pk).exists():
+            raise serializers.ValidationError("This username is already taken.")
+
+        return value
+
+    def validate_email(self, value):
+        return value.strip().lower()
+
+    def validate(self, attrs):
+        if not attrs:
+            raise serializers.ValidationError(
+                "Provide at least one field to update: username or email."
+            )
+        return attrs
+
+
+class ChangePasswordSerializer(serializers.Serializer):
+    current_password = serializers.CharField(write_only=True, trim_whitespace=False)
+    new_password = serializers.CharField(
+        write_only=True,
+        trim_whitespace=False,
+        validators=[validate_password],
+    )
+
+
+class WalletTransactionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = WalletTransaction
+        fields = ("id", "amount", "reason", "reference", "created_at")
+        read_only_fields = fields
 
 
 class UserRegistrationSerializer(serializers.ModelSerializer):

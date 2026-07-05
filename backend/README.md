@@ -120,6 +120,21 @@ The table below maps implemented requirements to concrete endpoints/components.
 - Login throttling uses the client IP plus a SHA-256 fingerprint of the normalized submitted email. This keeps responses independent of account existence, avoids storing raw emails in cache keys, and prevents one attempted email from consuming the whole IP login budget.
 - Reservation throttling uses the authenticated user id for authenticated reservation and checkout requests. Anonymous reservation attempts fall back to client IP, although reservation endpoints still require authentication.
 
+### Wallet (internal store credit)
+
+The user wallet (`WalletTransaction` + `GET /api/v1/users/me/wallet/`) is an
+internal store-credit ledger, **not** a real-money wallet:
+
+- There is no payment gateway integration, custody of funds, KYC, or
+  regulatory scope. `payment_method` on tickets remains a recorded label.
+- Positive amounts are credits, negative amounts are debits; the balance is
+  the sum of a user's transactions.
+- Today credit is granted when staff deletes (cancels/refunds) a ticket via
+  `DELETE /api/v1/reservation/tickets/<id>/`, crediting `amount_paid` to the
+  ticket owner. Spending the balance at checkout is a future step.
+- A full digital wallet holding real funds is intentionally out of scope and
+  would be a separate feature.
+
 ### Scalability considerations already implemented
 
 - Stateless JWT authentication.
@@ -223,6 +238,7 @@ Set these explicitly only when your deployment topology requires a different val
 - `THROTTLE_USER_RATE`
 - `THROTTLE_LOGIN_RATE`
 - `THROTTLE_RESERVATION_RATE`
+- `THROTTLE_EMAIL_CHANGE_RATE`
 
 ### Email
 
