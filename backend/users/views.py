@@ -1,3 +1,5 @@
+import logging
+
 from django.contrib.auth.tokens import default_token_generator
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import transaction
@@ -48,6 +50,8 @@ from users.serializers import (
     UserTicketSerializer,
 )
 from users.tokens import resolve_email_verification_user_id
+
+logger = logging.getLogger(__name__)
 
 
 class HasActiveTickets(APIException):
@@ -160,9 +164,14 @@ class UserRegistrationView(CreateAPIView):
 
         from users.tasks import send_email_verification_email_task
 
-        send_email_verification_email_task.apply_async(
-            args=[str(user.id), get_request_locale(self.request)]
-        )
+        try:
+            send_email_verification_email_task.apply_async(
+                args=[str(user.id), get_request_locale(self.request)]
+            )
+        except Exception:
+            logger.exception(
+                "Failed to enqueue verification email for user %s", user.id
+            )
 
 
 @extend_schema_view(
@@ -275,9 +284,14 @@ class ResendEmailVerificationView(APIView):
 
         from users.tasks import send_email_verification_email_task
 
-        send_email_verification_email_task.apply_async(
-            args=[str(user.id), get_request_locale(request)]
-        )
+        try:
+            send_email_verification_email_task.apply_async(
+                args=[str(user.id), get_request_locale(request)]
+            )
+        except Exception:
+            logger.exception(
+                "Failed to enqueue verification email for user %s", user.id
+            )
         return Response(
             {"verified": False, "already_verified": False},
             status=status.HTTP_200_OK,
@@ -312,9 +326,14 @@ class PasswordResetRequestView(APIView):
 
             uid = urlsafe_base64_encode(force_bytes(user.pk))
             token = default_token_generator.make_token(user)
-            send_password_reset_email_task.apply_async(
-                args=[str(user.id), uid, token, get_request_locale(request)]
-            )
+            try:
+                send_password_reset_email_task.apply_async(
+                    args=[str(user.id), uid, token, get_request_locale(request)]
+                )
+            except Exception:
+                logger.exception(
+                    "Failed to enqueue password reset email for user %s", user.id
+                )
 
         return Response(
             {"detail": PASSWORD_RESET_REQUESTED_MESSAGE},

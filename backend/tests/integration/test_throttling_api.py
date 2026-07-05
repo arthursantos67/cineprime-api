@@ -30,6 +30,7 @@ def isolate_throttling_state():
         GlobalAnonRateThrottle,
         GlobalUserRateThrottle,
         LoginRateThrottle,
+        PasswordResetEmailRateThrottle,
         PasswordResetRateThrottle,
         ReservationRateThrottle,
     )
@@ -50,7 +51,10 @@ def isolate_throttling_state():
     UserLoginView.throttle_classes = [LoginRateThrottle]
     TemporarySeatReservationView.throttle_classes = [ReservationRateThrottle]
     CheckoutView.throttle_classes = [ReservationRateThrottle]
-    PasswordResetRequestView.throttle_classes = [PasswordResetRateThrottle]
+    PasswordResetRequestView.throttle_classes = [
+        PasswordResetRateThrottle,
+        PasswordResetEmailRateThrottle,
+    ]
 
     cache.clear()
     yield
@@ -238,6 +242,7 @@ class TestApiThrottling:
                 "login": "10/minute",
                 "reservation": "10/minute",
                 "password_reset": "1/minute",
+                "password_reset_email": "1/minute",
             },
             "EXCEPTION_HANDLER": "cineprime_api.throttling.throttling_exception_handler",
         }
@@ -248,11 +253,13 @@ class TestApiThrottling:
         _sync_throttle_rates_from_settings()
 
         payload = {"email": "someone@example.com"}
+        other_ip_client = APIClient()
+        other_ip_client.defaults["REMOTE_ADDR"] = "10.10.10.20"
 
         first_response = api_client.post(
             "/api/v1/auth/password-reset/", payload, format="json"
         )
-        second_response = api_client.post(
+        second_response = other_ip_client.post(
             "/api/v1/auth/password-reset/", payload, format="json"
         )
 
