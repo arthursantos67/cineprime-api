@@ -28,12 +28,32 @@ export type CurrentUserResponse = {
   email: string;
   id: string;
   is_staff: boolean;
+  is_verified: boolean;
   role: "user" | "staff" | "master";
   username: string;
 };
 
 export type RefreshAccessResponse = {
   access: string;
+};
+
+export type PasswordResetRequestPayload = {
+  email: string;
+};
+
+export type PasswordResetRequestResponse = {
+  detail: string;
+};
+
+export type PasswordResetConfirmPayload = {
+  newPassword: string;
+  token: string;
+  uid: string;
+};
+
+export type EmailVerificationResponse = {
+  already_verified: boolean;
+  verified: boolean;
 };
 
 export const authApi = {
@@ -64,6 +84,36 @@ export const authApi = {
     return apiRequest<RefreshAccessResponse>("/api/v1/auth/token/refresh/", {
       auth: "none",
       json: { refresh: refreshToken },
+      method: "POST",
+    });
+  },
+
+  requestPasswordReset(payload: PasswordResetRequestPayload) {
+    return apiRequest<PasswordResetRequestResponse>("/api/v1/auth/password-reset/", {
+      auth: "none",
+      json: payload,
+      method: "POST",
+    });
+  },
+
+  confirmPasswordReset({ newPassword, token, uid }: PasswordResetConfirmPayload) {
+    return apiRequest<PasswordResetRequestResponse>("/api/v1/auth/password-reset/confirm/", {
+      auth: "none",
+      json: { new_password: newPassword, token, uid },
+      method: "POST",
+    });
+  },
+
+  verifyEmail(token: string) {
+    return apiRequest<EmailVerificationResponse>(
+      `/api/v1/auth/verify-email/${encodeURIComponent(token)}/`,
+      { auth: "none" }
+    );
+  },
+
+  resendVerificationEmail() {
+    return apiRequest<EmailVerificationResponse>("/api/v1/auth/verify-email/resend/", {
+      auth: "required",
       method: "POST",
     });
   },

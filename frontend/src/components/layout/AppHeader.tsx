@@ -1,8 +1,12 @@
 "use client";
 
+import { useState } from "react";
+
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
+import { authApi } from "@/api/auth";
+import { getApiErrorUserMessage } from "@/api/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button, ButtonLink } from "@/components/ui/Button";
 import { cn } from "@/components/ui/classNames";
@@ -10,6 +14,48 @@ import { LogoCp } from "@/components/ui/LogoCp";
 import { useI18n } from "@/i18n";
 
 import { LanguageSwitcher } from "./LanguageSwitcher";
+
+function UnverifiedEmailBanner() {
+  const { locale, t } = useI18n();
+  const [status, setStatus] = useState<"error" | "idle" | "sending" | "sent">("idle");
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  async function handleResend() {
+    setStatus("sending");
+    try {
+      await authApi.resendVerificationEmail();
+      setStatus("sent");
+    } catch (error) {
+      setErrorMessage(getApiErrorUserMessage(error, locale));
+      setStatus("error");
+    }
+  }
+
+  return (
+    <div
+      className="flex flex-wrap items-center justify-center gap-2 border-b border-white/[0.07] bg-[rgb(180_120_24/0.16)] px-[var(--layout-gutter)] py-2 text-center text-sm font-bold text-white/80"
+      role="status"
+    >
+      <span>
+        {status === "sent"
+          ? t("auth.emailVerificationResent")
+          : status === "error"
+            ? errorMessage
+            : t("auth.emailNotVerified")}
+      </span>
+      {status !== "sent" ? (
+        <button
+          className="font-extrabold text-link underline-offset-2 hover:underline disabled:opacity-60"
+          disabled={status === "sending"}
+          onClick={handleResend}
+          type="button"
+        >
+          {t("auth.resendVerification")}
+        </button>
+      ) : null}
+    </div>
+  );
+}
 
 function isActiveLink(pathname: string, href: string) {
   if (href === "/") {
@@ -28,6 +74,7 @@ export function AppHeader() {
   const { isAuthenticated, signOut, user } = useAuth();
   const { t } = useI18n();
   const isAdmin = isAuthenticated && Boolean(user?.is_staff);
+  const showUnverifiedBanner = isAuthenticated && user?.is_verified === false;
   const navigationItems = [
     { href: "/", label: t("nav.home") },
     { href: "/#catalogo", label: t("nav.catalog") },
@@ -35,6 +82,7 @@ export function AppHeader() {
 
   return (
     <header className="sticky top-0 z-10 border-b border-white/[0.07] bg-[rgb(10_13_20/0.97)] [backdrop-filter:blur(20px)]">
+      {showUnverifiedBanner ? <UnverifiedEmailBanner /> : null}
       <div
         className={cn(
           "w-full px-[var(--layout-gutter)] grid items-center gap-4",

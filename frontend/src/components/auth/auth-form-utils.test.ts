@@ -3,6 +3,7 @@ import test from "node:test";
 
 import { ApiError } from "../../api/client";
 import {
+  buildPasswordResetLoginUrl,
   buildRegisteredLoginUrl,
   getLoginConfirmationMessage,
   getLoginFormErrorMessage,
@@ -14,7 +15,15 @@ test("successful registration redirects to login with a confirmation marker", ()
   assert.equal(buildRegisteredLoginUrl(), "/login?cadastro=ok");
   assert.equal(
     getLoginConfirmationMessage("?cadastro=ok"),
-    "Cadastro criado com sucesso. Entre para continuar."
+    "Cadastro criado com sucesso. Enviamos um e-mail de confirmação — verifique sua caixa de entrada. Entre para continuar."
+  );
+});
+
+test("successful password reset redirects to login with a confirmation marker", () => {
+  assert.equal(buildPasswordResetLoginUrl(), "/login?senha-redefinida=ok");
+  assert.equal(
+    getLoginConfirmationMessage("?senha-redefinida=ok"),
+    "Senha redefinida com sucesso. Entre com sua nova senha."
   );
 });
 

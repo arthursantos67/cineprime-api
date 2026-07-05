@@ -18,24 +18,33 @@ class GlobalUserRateThrottle(UserRateThrottle):
     scope = "user"
 
 
-class LoginRateThrottle(SimpleRateThrottle):
-    scope = "login"
+def _normalized_request_email(request):
+    try:
+        request_data = request.data
+    except (AttributeError, APIException):
+        request_data = getattr(request, "POST", {})
+    email = request_data.get("email", "")
+    return str(email).strip().lower()
+
+
+class EmailKeyedRateThrottle(SimpleRateThrottle):
+    """Throttle keyed by client IP combined with the submitted email address."""
 
     def get_cache_key(self, request, view):
         ident = self.get_ident(request)
-        try:
-            request_data = request.data
-        except (AttributeError, APIException):
-            request_data = getattr(request, "POST", {})
-        email = request_data.get("email", "")
-        normalized_email = str(email).strip().lower()
-        email_fingerprint = hashlib.sha256(normalized_email.encode("utf-8")).hexdigest()
+        email_fingerprint = hashlib.sha256(
+            _normalized_request_email(request).encode("utf-8")
+        ).hexdigest()
         throttle_ident = f"{ident}:{email_fingerprint}"
 
         return self.cache_format % {
             "scope": self.scope,
             "ident": throttle_ident,
         }
+
+
+class LoginRateThrottle(EmailKeyedRateThrottle):
+    scope = "login"
 
 
 class RegistrationRateThrottle(SimpleRateThrottle):
@@ -45,6 +54,46 @@ class RegistrationRateThrottle(SimpleRateThrottle):
         return self.cache_format % {
             "scope": self.scope,
             "ident": self.get_ident(request),
+        }
+
+
+class PasswordResetRateThrottle(EmailKeyedRateThrottle):
+    scope = "password_reset"
+
+
+class PasswordResetEmailRateThrottle(SimpleRateThrottle):
+    """Throttle keyed by email address alone, independent of the requester's IP.
+
+    `PasswordResetRateThrottle` is keyed by IP+email, so an attacker rotating
+    IPs can send unlimited requests to a single victim email. This throttle
+    closes that gap by limiting the target address regardless of source IP.
+    """
+
+    scope = "password_reset_email"
+
+    def get_cache_key(self, request, view):
+        email_fingerprint = hashlib.sha256(
+            _normalized_request_email(request).encode("utf-8")
+        ).hexdigest()
+
+        return self.cache_format % {
+            "scope": self.scope,
+            "ident": email_fingerprint,
+        }
+
+
+class EmailVerificationResendRateThrottle(SimpleRateThrottle):
+    """Throttle keyed by authenticated user, to prevent email-bombing via resend."""
+
+    scope = "email_verification_resend"
+
+    def get_cache_key(self, request, view):
+        user = getattr(request, "user", None)
+        ident = f"user:{user.pk}" if user and user.is_authenticated else self.get_ident(request)
+
+        return self.cache_format % {
+            "scope": self.scope,
+            "ident": ident,
         }
 
 

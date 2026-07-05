@@ -177,6 +177,15 @@ def normalize_translation_payload(
     return normalized_translations
 
 
+def resolve_email_copy(
+    *,
+    locale: str | None,
+    copy_by_locale: Mapping[str, Mapping[str, str]],
+) -> Mapping[str, str]:
+    normalized_locale = normalize_locale(locale) or DEFAULT_LOCALE
+    return copy_by_locale.get(normalized_locale, copy_by_locale[DEFAULT_LOCALE])
+
+
 def format_email_datetime(value, *, locale: str) -> str:
     _formats = {
         "en-US": "%m/%d/%Y %I:%M %p %Z",

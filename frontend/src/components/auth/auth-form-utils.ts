@@ -16,6 +16,7 @@ export type RegistrationValidationState = {
 };
 
 export const REGISTRATION_SUCCESS_PARAM = "cadastro";
+export const PASSWORD_RESET_SUCCESS_PARAM = "senha-redefinida";
 
 export function getSafeRedirectFromSearch(search: string) {
   const redirect = new URLSearchParams(search).get("redirect");
@@ -26,14 +27,25 @@ export function buildRegisteredLoginUrl() {
   return `/login?${REGISTRATION_SUCCESS_PARAM}=ok`;
 }
 
+export function buildPasswordResetLoginUrl() {
+  return `/login?${PASSWORD_RESET_SUCCESS_PARAM}=ok`;
+}
+
 export function getLoginConfirmationMessage(
   search: string,
   locale: Locale | string = DEFAULT_LOCALE
 ) {
   const params = new URLSearchParams(search);
-  return params.get(REGISTRATION_SUCCESS_PARAM) === "ok"
-    ? t(locale, "auth.registrationSuccess")
-    : null;
+
+  if (params.get(REGISTRATION_SUCCESS_PARAM) === "ok") {
+    return t(locale, "auth.registrationSuccess");
+  }
+
+  if (params.get(PASSWORD_RESET_SUCCESS_PARAM) === "ok") {
+    return t(locale, "auth.resetPasswordSuccess");
+  }
+
+  return null;
 }
 
 export function getLoginFormErrorMessage(

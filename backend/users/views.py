@@ -1,6 +1,12 @@
+import logging
+
+from django.contrib.auth.tokens import default_token_generator
+from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import transaction
 from django.db.models import Case, IntegerField, Q, Value, When
 from django.utils import timezone
+from django.utils.encoding import force_bytes, force_str
+from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
 from drf_spectacular.utils import (
     OpenApiParameter,
     OpenApiResponse,
@@ -21,12 +27,21 @@ from rest_framework_simplejwt.views import TokenRefreshView
 from cryptography.fernet import InvalidToken
 
 from cineprime_api.encryption import decrypt_value, encrypt_value
+from cineprime_api.localization import get_request_locale
 from cineprime_api.permissions import IsMasterUser
-from cineprime_api.throttling import LoginRateThrottle, RegistrationRateThrottle
+from cineprime_api.throttling import (
+    EmailVerificationResendRateThrottle,
+    LoginRateThrottle,
+    PasswordResetEmailRateThrottle,
+    PasswordResetRateThrottle,
+    RegistrationRateThrottle,
+)
 from reservations.models import SessionSeat, SessionSeatStatus, Ticket
 from users.models import AdminPermissionLog, SiteConfig, User
 from users.serializers import (
     AdminPermissionLogSerializer,
+    PasswordResetConfirmSerializer,
+    PasswordResetRequestSerializer,
     TmdbTokenBodySerializer,
     TmdbTokenResponseSerializer,
     UserLoginSerializer,
@@ -34,6 +49,9 @@ from users.serializers import (
     UserRegistrationSerializer,
     UserTicketSerializer,
 )
+from users.tokens import resolve_email_verification_user_id
+
+logger = logging.getLogger(__name__)
 
 
 class HasActiveTickets(APIException):
@@ -94,7 +112,34 @@ class CurrentUserResponseSerializer(serializers.Serializer):
     username = serializers.CharField()
     created_at = serializers.DateTimeField()
     is_staff = serializers.BooleanField()
+    is_verified = serializers.BooleanField()
     role = serializers.CharField()
+
+
+class EmailVerificationResponseSerializer(serializers.Serializer):
+    verified = serializers.BooleanField()
+    already_verified = serializers.BooleanField()
+
+
+class PasswordResetRequestResponseSerializer(serializers.Serializer):
+    detail = serializers.CharField()
+
+
+class InvalidVerificationToken(APIException):
+    status_code = 400
+    default_code = "INVALID_VERIFICATION_TOKEN"
+    default_detail = "Invalid or expired verification link."
+
+
+class InvalidPasswordResetToken(APIException):
+    status_code = 400
+    default_code = "INVALID_RESET_TOKEN"
+    default_detail = "Invalid or expired password reset link."
+
+
+PASSWORD_RESET_REQUESTED_MESSAGE = (
+    "If an account exists for this email, a password reset link has been sent."
+)
 
 
 @extend_schema_view(
@@ -113,6 +158,20 @@ class UserRegistrationView(CreateAPIView):
     serializer_class = UserRegistrationSerializer
     permission_classes = [AllowAny]
     throttle_classes = [RegistrationRateThrottle]
+
+    def perform_create(self, serializer):
+        user = serializer.save()
+
+        from users.tasks import send_email_verification_email_task
+
+        try:
+            send_email_verification_email_task.apply_async(
+                args=[str(user.id), get_request_locale(self.request)]
+            )
+        except Exception:
+            logger.exception(
+                "Failed to enqueue verification email for user %s", user.id
+            )
 
 
 @extend_schema_view(
@@ -167,6 +226,162 @@ class UserTokenRefreshView(TokenRefreshView):
     permission_classes = [AllowAny]
 
 
+@extend_schema(
+    tags=["Auth"],
+    summary="Verify email",
+    description="Confirm a user's email address using the signed token sent by email.",
+    responses={
+        200: EmailVerificationResponseSerializer,
+        400: OpenApiResponse(description="Invalid or expired token."),
+    },
+)
+class EmailVerificationView(APIView):
+    permission_classes = [AllowAny]
+
+    def get(self, request, token, *args, **kwargs):
+        user_id = resolve_email_verification_user_id(token)
+        if user_id is None:
+            raise InvalidVerificationToken()
+
+        try:
+            user = User.objects.get(pk=user_id)
+        except (User.DoesNotExist, ValueError, DjangoValidationError):
+            raise InvalidVerificationToken()
+
+        if user.is_verified:
+            return Response(
+                {"verified": True, "already_verified": True},
+                status=status.HTTP_200_OK,
+            )
+
+        user.is_verified = True
+        user.save(update_fields=["is_verified", "updated_at"])
+        return Response(
+            {"verified": True, "already_verified": False},
+            status=status.HTTP_200_OK,
+        )
+
+
+@extend_schema(
+    tags=["Auth"],
+    summary="Resend verification email",
+    description="Re-send the email verification link to the authenticated user, if not yet verified.",
+    request=None,
+    responses={200: EmailVerificationResponseSerializer},
+)
+class ResendEmailVerificationView(APIView):
+    permission_classes = [IsAuthenticated]
+    throttle_classes = [EmailVerificationResendRateThrottle]
+
+    def post(self, request, *args, **kwargs):
+        user = request.user
+
+        if user.is_verified:
+            return Response(
+                {"verified": True, "already_verified": True},
+                status=status.HTTP_200_OK,
+            )
+
+        from users.tasks import send_email_verification_email_task
+
+        try:
+            send_email_verification_email_task.apply_async(
+                args=[str(user.id), get_request_locale(request)]
+            )
+        except Exception:
+            logger.exception(
+                "Failed to enqueue verification email for user %s", user.id
+            )
+        return Response(
+            {"verified": False, "already_verified": False},
+            status=status.HTTP_200_OK,
+        )
+
+
+@extend_schema(
+    tags=["Auth"],
+    summary="Request password reset",
+    description=(
+        "Request a password reset email. Always returns a generic response, "
+        "whether or not the email is registered, to avoid account enumeration."
+    ),
+    request=PasswordResetRequestSerializer,
+    responses={
+        200: PasswordResetRequestResponseSerializer,
+        429: OpenApiResponse(description="Too many password reset requests."),
+    },
+)
+class PasswordResetRequestView(APIView):
+    permission_classes = [AllowAny]
+    throttle_classes = [PasswordResetRateThrottle, PasswordResetEmailRateThrottle]
+
+    def post(self, request, *args, **kwargs):
+        serializer = PasswordResetRequestSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        email = serializer.validated_data["email"]
+
+        user = User.objects.filter(email=email, is_active=True).first()
+        if user is not None:
+            from users.tasks import send_password_reset_email_task
+
+            uid = urlsafe_base64_encode(force_bytes(user.pk))
+            token = default_token_generator.make_token(user)
+            try:
+                send_password_reset_email_task.apply_async(
+                    args=[str(user.id), uid, token, get_request_locale(request)]
+                )
+            except Exception:
+                logger.exception(
+                    "Failed to enqueue password reset email for user %s", user.id
+                )
+
+        return Response(
+            {"detail": PASSWORD_RESET_REQUESTED_MESSAGE},
+            status=status.HTTP_200_OK,
+        )
+
+
+@extend_schema(
+    tags=["Auth"],
+    summary="Confirm password reset",
+    description="Set a new password using a valid password reset token.",
+    request=PasswordResetConfirmSerializer,
+    responses={
+        200: OpenApiResponse(description="Password updated."),
+        400: OpenApiResponse(
+            description="Invalid, expired, or already-used token; or invalid password."
+        ),
+    },
+)
+class PasswordResetConfirmView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request, *args, **kwargs):
+        serializer = PasswordResetConfirmSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        uid = serializer.validated_data["uid"]
+        token = serializer.validated_data["token"]
+        new_password = serializer.validated_data["new_password"]
+
+        try:
+            user_id = force_str(urlsafe_base64_decode(uid))
+            user = User.objects.get(pk=user_id)
+        except (TypeError, ValueError, OverflowError, User.DoesNotExist, DjangoValidationError):
+            raise InvalidPasswordResetToken()
+
+        if not default_token_generator.check_token(user, token):
+            raise InvalidPasswordResetToken()
+
+        user.set_password(new_password)
+        user.save(update_fields=["password", "updated_at"])
+
+        return Response(
+            {"detail": "Password updated successfully."},
+            status=status.HTTP_200_OK,
+        )
+
+
 class DeleteConflictResponseSerializer(serializers.Serializer):
     ticket_count = serializers.IntegerField()
 
@@ -212,6 +427,7 @@ class CurrentUserView(APIView):
                 "username": request.user.username,
                 "created_at": request.user.created_at,
                 "is_staff": request.user.is_staff,
+                "is_verified": request.user.is_verified,
                 "role": request.user.role,
             },
             status=status.HTTP_200_OK,
