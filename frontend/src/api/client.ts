@@ -141,7 +141,7 @@ export async function apiRequest<T>(
 
   if (
     response.status === 401 &&
-    auth === "required" &&
+    (auth === "required" || (auth === "optional" && accessToken)) &&
     retryOnUnauthorized &&
     apiAuthController
   ) {
@@ -157,6 +157,20 @@ export async function apiRequest<T>(
         json,
         retryOnUnauthorized: false,
         token: refreshedAccessToken,
+      });
+    }
+
+    if (auth === "optional") {
+      // A stale token must not break public endpoints: retry anonymously
+      // instead of surfacing the 401 (or logging the user out).
+      return apiRequest<T>(path, {
+        ...options,
+        auth: "none",
+        baseUrl,
+        body: options.body,
+        headers,
+        json,
+        retryOnUnauthorized: false,
       });
     }
 
