@@ -8,7 +8,6 @@ import { MyTicketsClient } from "@/components/tickets/MyTicketsClient";
 import { Tabs } from "@/components/ui/Tabs";
 import { useI18n } from "@/i18n";
 
-import { AccountSection } from "./AccountSection";
 import { ProfileDetailsSection } from "./ProfileDetailsSection";
 import {
   getProfileTabFromSearchParams,
@@ -48,7 +47,6 @@ export function ProfileTabsClient() {
     { content: <SecuritySection />, label: t("profile.tabSecurity"), value: "seguranca" },
     { content: <MyTicketsClient />, label: t("profile.tabTickets"), value: "ingressos" },
     { content: <WalletSection />, label: t("profile.tabWallet"), value: "carteira" },
-    { content: <AccountSection />, label: t("profile.tabAccount"), value: "conta" },
   ];
 
   return (

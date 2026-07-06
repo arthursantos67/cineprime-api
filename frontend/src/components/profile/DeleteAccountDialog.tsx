@@ -8,17 +8,29 @@ import { authApi } from "@/api/auth";
 import { ApiError, getApiErrorUserMessage } from "@/api/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/Button";
+import { Dialog } from "@/components/ui/Dialog";
 import { FormFeedback } from "@/components/ui/FormFeedback";
 import { PasswordInput } from "@/components/ui/PasswordInput";
 import { useI18n } from "@/i18n";
 
-export function AccountSection() {
+type DeleteAccountDialogProps = {
+  isOpen: boolean;
+  onClose: () => void;
+};
+
+export function DeleteAccountDialog({ isOpen, onClose }: DeleteAccountDialogProps) {
   const router = useRouter();
   const { signOut } = useAuth();
   const { locale, t } = useI18n();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [requiresTicketConfirmation, setRequiresTicketConfirmation] = useState(false);
+
+  function handleClose() {
+    setErrorMessage(null);
+    setRequiresTicketConfirmation(false);
+    onClose();
+  }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -50,14 +62,13 @@ export function AccountSection() {
   }
 
   return (
-    <div className="grid gap-4 rounded-card border border-error/40 bg-[rgb(180_35_24/0.08)] p-6">
-      <div className="grid gap-1">
-        <h3 className="m-0 text-base font-extrabold text-white">
-          {t("profile.deleteAccountTitle")}
-        </h3>
-        <p className="m-0 text-sm text-muted">{t("profile.deleteAccountDescription")}</p>
-      </div>
-
+    <Dialog
+      closeLabel={t("common.close")}
+      description={t("profile.deleteAccountDescription")}
+      isOpen={isOpen}
+      onClose={handleClose}
+      title={t("profile.deleteAccountTitle")}
+    >
       <form className="grid gap-4" onSubmit={handleSubmit}>
         <PasswordInput
           autoComplete="current-password"
@@ -71,10 +82,10 @@ export function AccountSection() {
           feedback={errorMessage ? { kind: "error", message: errorMessage } : null}
         />
         <Button
-          className="w-fit border-error text-error hover:bg-[rgb(180_35_24/0.16)]"
+          className="w-fit"
           disabled={isSubmitting}
           type="submit"
-          variant="ghost"
+          variant="danger"
         >
           {isSubmitting
             ? t("profile.deletingAccount")
@@ -83,6 +94,6 @@ export function AccountSection() {
               : t("profile.deleteAccount")}
         </Button>
       </form>
-    </div>
+    </Dialog>
   );
 }
