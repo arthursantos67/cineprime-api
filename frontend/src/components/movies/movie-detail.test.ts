@@ -52,6 +52,36 @@ test("movie detail renders backend movie fields with accessible media", () => {
   assert.doesNotMatch(html, /age_rating|classificação/i);
 });
 
+test("movie detail shows trailer toggle when trailer_url is available", () => {
+  const html = renderToStaticMarkup(
+    createElement(MovieDetailView, {
+      state: {
+        movie: { ...movie, trailer_url: "https://www.youtube.com/embed/abc123" },
+        status: "success",
+      },
+    })
+  );
+
+  assert.match(html, /aria-labelledby="movie-trailer"/);
+  assert.match(html, /Trailer/);
+  assert.match(html, /aria-expanded="false"/);
+  // Collapsed by default: the iframe is only mounted after the toggle opens.
+  assert.doesNotMatch(html, /youtube\.com\/embed\/abc123/);
+});
+
+test("movie detail omits trailer section without trailer_url", () => {
+  const html = renderToStaticMarkup(
+    createElement(MovieDetailView, {
+      state: {
+        movie,
+        status: "success",
+      },
+    })
+  );
+
+  assert.doesNotMatch(html, /aria-labelledby="movie-trailer"/);
+});
+
 test("movie detail session cards render room and session metadata badges", () => {
   const premiumSession: CatalogSession = {
     audio_format: "legendado",
