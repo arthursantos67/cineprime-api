@@ -30,7 +30,8 @@ test("getProfileTabFromSearchParams falls back to the default tab", () => {
 
 test("isProfileTabValue only accepts declared tab values", () => {
   assert.equal(isProfileTabValue("seguranca"), true);
-  assert.equal(isProfileTabValue("conta"), true);
+  // The account tab was folded into "dados"; old links must fall back.
+  assert.equal(isProfileTabValue("conta"), false);
   assert.equal(isProfileTabValue("perfil"), false);
   assert.equal(isProfileTabValue(undefined), false);
 });

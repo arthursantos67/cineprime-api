@@ -7,11 +7,12 @@ import { getApiErrorUserMessage } from "@/api/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
+import { Dialog } from "@/components/ui/Dialog";
 import { FormFeedback, type FeedbackState } from "@/components/ui/FormFeedback";
 import { PasswordInput } from "@/components/ui/PasswordInput";
 import { useI18n } from "@/i18n";
 
-function VerificationStatusCard() {
+function VerificationRow() {
   const { user } = useAuth();
   const { locale, t } = useI18n();
   const [status, setStatus] = useState<"error" | "idle" | "sending" | "sent">("idle");
@@ -34,11 +35,11 @@ function VerificationStatusCard() {
   }
 
   return (
-    <div className="grid gap-4 rounded-card border border-white/10 bg-white/[0.03] p-6">
-      <div className="flex flex-wrap items-center gap-3">
-        <h3 className="m-0 text-base font-extrabold text-white">
-          {t("profile.verificationTitle")}
-        </h3>
+    <div className="grid gap-1">
+      <span className="text-xs font-bold uppercase tracking-[0.08em] text-muted">
+        {t("profile.verificationTitle")}
+      </span>
+      <span className="flex flex-wrap items-center gap-2">
         {user.is_verified ? (
           <Badge size="sm" tone="success">
             {t("profile.verified")}
@@ -48,31 +49,27 @@ function VerificationStatusCard() {
             {t("profile.notVerified")}
           </Badge>
         )}
-      </div>
-
+      </span>
       {!user.is_verified ? (
-        <div className="grid gap-3">
-          <p className="m-0 text-sm text-muted">{t("auth.emailNotVerified")}</p>
-          {status === "sent" ? (
-            <p className="m-0 text-sm font-bold text-success" role="status">
-              {t("auth.emailVerificationResent")}
-            </p>
-          ) : (
-            <Button
-              className="w-fit"
-              disabled={status === "sending"}
-              onClick={handleResend}
-              variant="ghost"
-            >
-              {t("auth.resendVerification")}
-            </Button>
-          )}
-          {status === "error" && errorMessage ? (
-            <p className="m-0 text-sm font-bold text-error" role="alert">
-              {errorMessage}
-            </p>
-          ) : null}
-        </div>
+        status === "sent" ? (
+          <p className="m-0 text-sm font-bold text-success" role="status">
+            {t("auth.emailVerificationResent")}
+          </p>
+        ) : (
+          <button
+            className="w-fit text-sm font-bold text-accent underline-offset-4 hover:underline focus-visible:outline-none focus-visible:shadow-focus disabled:opacity-[0.68]"
+            disabled={status === "sending"}
+            onClick={handleResend}
+            type="button"
+          >
+            {t("auth.resendVerification")}
+          </button>
+        )
+      ) : null}
+      {status === "error" && errorMessage ? (
+        <p className="m-0 text-sm font-bold text-error" role="alert">
+          {errorMessage}
+        </p>
       ) : null}
     </div>
   );
@@ -81,15 +78,27 @@ function VerificationStatusCard() {
 export function SecuritySection() {
   const { adoptTokens } = useAuth();
   const { locale, t } = useI18n();
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [feedback, setFeedback] = useState<FeedbackState>(null);
+  const [dialogFeedback, setDialogFeedback] = useState<FeedbackState>(null);
+  const [cardFeedback, setCardFeedback] = useState<FeedbackState>(null);
+
+  function openDialog() {
+    setCardFeedback(null);
+    setDialogFeedback(null);
+    setIsDialogOpen(true);
+  }
+
+  function closeDialog() {
+    setDialogFeedback(null);
+    setIsDialogOpen(false);
+  }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setFeedback(null);
+    setDialogFeedback(null);
 
-    const form = event.currentTarget;
-    const formData = new FormData(form);
+    const formData = new FormData(event.currentTarget);
     const currentPassword = String(formData.get("currentPassword") ?? "");
     const newPassword = String(formData.get("newPassword") ?? "");
 
@@ -99,10 +108,10 @@ export function SecuritySection() {
       // The password change invalidated every previously issued token; swap
       // in the fresh pair so this session stays signed in.
       adoptTokens({ access: response.access, refresh: response.refresh });
-      setFeedback({ kind: "success", message: t("profile.passwordChanged") });
-      form.reset();
+      setIsDialogOpen(false);
+      setCardFeedback({ kind: "success", message: t("profile.passwordChanged") });
     } catch (error) {
-      setFeedback({
+      setDialogFeedback({
         kind: "error",
         message: getApiErrorUserMessage(error, locale),
       });
@@ -113,18 +122,47 @@ export function SecuritySection() {
 
   return (
     <div className="grid gap-6">
-      <VerificationStatusCard />
-
-      <div className="grid gap-4 rounded-card border border-white/10 bg-white/[0.03] p-6">
+      <div className="grid gap-5 rounded-card border border-white/10 bg-white/[0.03] p-6">
         <div className="grid gap-1">
           <h3 className="m-0 text-base font-extrabold text-white">
-            {t("profile.changePasswordTitle")}
+            {t("profile.securityTitle")}
           </h3>
-          <p className="m-0 text-sm text-muted">
-            {t("profile.changePasswordDescription")}
-          </p>
+          <p className="m-0 text-sm text-muted">{t("profile.securityDescription")}</p>
         </div>
 
+        <div className="grid gap-4">
+          <VerificationRow />
+
+          <div className="grid gap-1 border-t border-white/[0.06] pt-4">
+            <span className="text-xs font-bold uppercase tracking-[0.08em] text-muted">
+              {t("profile.passwordLabel")}
+            </span>
+            <span
+              aria-hidden="true"
+              className="text-base font-extrabold tracking-[0.2em] text-white"
+            >
+              ••••••••••
+            </span>
+            <button
+              className="w-fit text-sm font-bold text-accent underline-offset-4 hover:underline focus-visible:outline-none focus-visible:shadow-focus"
+              onClick={openDialog}
+              type="button"
+            >
+              {t("profile.changePassword")}
+            </button>
+          </div>
+        </div>
+
+        <FormFeedback feedback={cardFeedback} />
+      </div>
+
+      <Dialog
+        closeLabel={t("common.close")}
+        description={t("profile.changePasswordDescription")}
+        isOpen={isDialogOpen}
+        onClose={closeDialog}
+        title={t("profile.changePasswordTitle")}
+      >
         <form className="grid gap-4" onSubmit={handleSubmit}>
           <PasswordInput
             autoComplete="current-password"
@@ -142,12 +180,12 @@ export function SecuritySection() {
             name="newPassword"
             required
           />
-          <FormFeedback feedback={feedback} />
+          <FormFeedback feedback={dialogFeedback} />
           <Button className="w-fit" disabled={isSubmitting} type="submit">
             {isSubmitting ? t("profile.changingPassword") : t("profile.changePassword")}
           </Button>
         </form>
-      </div>
+      </Dialog>
     </div>
   );
 }

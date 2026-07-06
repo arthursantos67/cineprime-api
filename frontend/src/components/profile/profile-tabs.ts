@@ -3,7 +3,6 @@ export const PROFILE_TAB_VALUES = [
   "seguranca",
   "ingressos",
   "carteira",
-  "conta",
 ] as const;
 
 export type ProfileTabValue = (typeof PROFILE_TAB_VALUES)[number];
