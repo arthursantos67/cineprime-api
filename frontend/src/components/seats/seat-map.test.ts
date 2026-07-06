@@ -250,6 +250,98 @@ test("seat map layout pairs companions with adjacent non-accessible seats", () =
   );
 });
 
+test("dedicated accessible row shows every pair and never leaks a phantom row", () => {
+  // 8 accessible + 8 companions in a dedicated PCD row (like Sala 4): more
+  // than the 6-seat cap used for synthesized accessible strips.
+  const pcdSeats = Array.from({ length: 8 }, (_, index) => {
+    const accessibleNumber = index * 2 + 1;
+    return [
+      seat({
+        companion_seat_id: `seat-PCD-${accessibleNumber + 1}`,
+        is_accessible: true,
+        is_accessible_row: true,
+        number: accessibleNumber,
+        row: "PCD",
+      }),
+      seat({
+        is_accessible_row: true,
+        number: accessibleNumber + 1,
+        row: "PCD",
+      }),
+    ];
+  }).flat();
+  const layout = buildSeatMapLayout([
+    ...pcdSeats,
+    ...Array.from({ length: 4 }, (_, index) =>
+      seat({ number: index + 1, row: "A" })
+    ),
+  ]);
+  const accessiblePairs = [
+    ...layout.accessibleLeftPairs,
+    ...layout.accessibleRightPairs,
+  ];
+
+  assert.equal(accessiblePairs.length, 8);
+  assert.equal(layout.accessibleLeftPairs.length, 4);
+  assert.equal(layout.accessibleRightPairs.length, 4);
+  assert.ok(accessiblePairs.every((pair) => pair.companionSeat));
+  assert.deepEqual(
+    layout.rows.map((row) => row.rowLabel),
+    ["A"]
+  );
+});
+
+test("last row keeps seats joined without namoradeiras", () => {
+  const layout = buildSeatMapLayout(
+    [
+      ...Array.from({ length: 6 }, (_, index) =>
+        seat({
+          is_accessible: index % 2 === 0,
+          is_accessible_row: true,
+          number: index + 1,
+          row: "PCD",
+        })
+      ),
+      ...Array.from({ length: 20 }, (_, index) =>
+        seat({ number: index + 1, row: "A" })
+      ),
+      ...Array.from({ length: 24 }, (_, index) =>
+        seat({ number: index + 1, row: "L" })
+      ),
+    ],
+    16
+  );
+  const rowA = layout.rows.find((row) => row.rowLabel === "A");
+  const rowL = layout.rows.find((row) => row.rowLabel === "L");
+
+  assert.ok(rowA);
+  assert.ok(rowL);
+  assert.ok(rowA.leftNamoradeiras.length > 0);
+  assert.equal(rowL.leftNamoradeiras.length, 0);
+  assert.equal(rowL.rightNamoradeiras.length, 0);
+  assert.equal(rowL.leftSeats.length, 12);
+  assert.equal(rowL.rightSeats.length, 12);
+});
+
+test("last row renders a wider projector-cabin center gap", () => {
+  const html = renderToStaticMarkup(
+    createElement(SeatMapLayout, {
+      seats: [
+        ...Array.from({ length: 8 }, (_, index) =>
+          seat({ number: index + 1, row: "A" })
+        ),
+        ...Array.from({ length: 8 }, (_, index) =>
+          seat({ number: index + 1, row: "B" })
+        ),
+      ],
+    })
+  );
+
+  const wideGapMatches = html.match(/64px/g) ?? [];
+  assert.equal(wideGapMatches.length, 1);
+  assert.match(html, /!w-16/);
+});
+
 test("seat map center aisle keeps rows with two extra seats symmetric", () => {
   assert.equal(getCenterAisleAfterIndex(4), -1);
   assert.equal(getCenterAisleAfterIndex(10), 4);
