@@ -526,10 +526,13 @@ export function SeatMapLayout({
       const padding = parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight);
       const available = scroll.clientWidth - padding;
       const newFitZoom = Math.min(1, available / naturalWidth);
-      const rawOffset = newFitZoom < DEFAULT_TARGET_ZOOM
-        ? Math.log(DEFAULT_TARGET_ZOOM / newFitZoom) / Math.log(ZOOM_FACTOR)
-        : 0;
-      const defaultOffset = Math.min(Math.max(Math.round(rawOffset), -MAX_ZOOM_STEPS), MAX_ZOOM_STEPS);
+      const rawOffset =
+        Math.log(DEFAULT_TARGET_ZOOM / newFitZoom) / Math.log(ZOOM_FACTOR);
+      // Zooming in rounds to the nearest step; zooming out floors so the map
+      // opens at or below the target zoom instead of staying at a larger fit.
+      const steppedOffset =
+        rawOffset >= 0 ? Math.round(rawOffset) : Math.floor(rawOffset);
+      const defaultOffset = Math.min(Math.max(steppedOffset, -MAX_ZOOM_STEPS), MAX_ZOOM_STEPS);
       hasInitializedZoomRef.current = false;
       setFitZoom(newFitZoom);
       setZoomOffset(defaultOffset);
@@ -811,7 +814,15 @@ function renderRegularRow({
       </span>
       <div
         aria-label={t("seats.rowA11y", { row: row.rowLabel })}
-        className="seat-map__seat-list"
+        className={[
+          "seat-map__seat-list",
+          // Back row: wider central gap where the projector cabin sits.
+          isLastRow
+            ? "[grid-template-columns:minmax(0,1fr)_64px_minmax(0,1fr)]"
+            : "",
+        ]
+          .filter(Boolean)
+          .join(" ")}
         role="group"
       >
         <div className="seat-map__seat-group seat-map__seat-group--left">
@@ -826,7 +837,7 @@ function renderRegularRow({
               t,
             })
           )}
-          {hasNamoradeiras && !isLastRow && (
+          {hasNamoradeiras && (
             <span aria-hidden="true" className="block w-5 flex-shrink-0" />
           )}
           {row.leftSeats.map((seat) =>
@@ -840,15 +851,17 @@ function renderRegularRow({
               t,
             })
           )}
-          {hasNamoradeiras && isLastRow && (
-            <span aria-hidden="true" className="block w-5 flex-shrink-0" />
-          )}
         </div>
-        <span aria-hidden="true" className="seat-map__center-aisle" />
+        <span
+          aria-hidden="true"
+          className={[
+            "seat-map__center-aisle",
+            isLastRow ? "!w-16" : "",
+          ]
+            .filter(Boolean)
+            .join(" ")}
+        />
         <div className="seat-map__seat-group seat-map__seat-group--right">
-          {hasNamoradeiras && isLastRow && (
-            <span aria-hidden="true" className="block w-5 flex-shrink-0" />
-          )}
           {row.rightSeats.map((seat) =>
             renderSeatButton({
               displayNumber: seat.displayNumber,
@@ -860,7 +873,7 @@ function renderRegularRow({
               t,
             })
           )}
-          {hasNamoradeiras && !isLastRow && (
+          {hasNamoradeiras && (
             <span aria-hidden="true" className="block w-5 flex-shrink-0" />
           )}
           {hasNamoradeiras && row.rightNamoradeiras.map((seat) =>
@@ -1114,8 +1127,13 @@ export function buildSeatMapLayout(
     ...accessibleSeats.map((seat) => seat.session_seat_id),
     ...companionSeatIds,
   ]);
+  // Seats of the dedicated accessible row never render as a regular row, even
+  // if pairing left some of them unused — they'd show up as a phantom row.
   const roomRows = groupSeatMapRows(
-    seats.filter((seat) => !reservedFrontSeatIds.has(seat.session_seat_id))
+    seats.filter(
+      (seat) =>
+        !reservedFrontSeatIds.has(seat.session_seat_id) && !seat.is_accessible_row
+    )
   );
   // Prefer the row flagged as the accessible row (e.g. "PCD") over whatever
   // happens to be first after sorting — fallback seats from other rows can
@@ -1132,16 +1150,28 @@ export function buildSeatMapLayout(
       ? Math.min(Math.max(0, accessibleRowIndex), roomRows.length)
       : 0;
 
+  const pairsPerSide = Math.max(
+    ACCESSIBLE_SEATS_PER_SIDE,
+    Math.ceil(accessiblePairs.length / 2)
+  );
+
   return {
-    accessibleLeftPairs: accessiblePairs.slice(0, ACCESSIBLE_SEATS_PER_SIDE),
-    accessibleRightPairs: accessiblePairs.slice(ACCESSIBLE_SEATS_PER_SIDE),
+    accessibleLeftPairs: accessiblePairs.slice(0, pairsPerSide),
+    accessibleRightPairs: accessiblePairs.slice(pairsPerSide),
     accessibleRowIndex: resolvedAccessibleRowIndex,
     accessibleRowLabel,
     maxCenterSeatsPerRow,
-    rows: roomRows.map((row) => {
+    rows: roomRows.map((row, rowIndex) => {
       const displaySeats = withDisplayNumbers(row.seats);
+      // The back row has no namoradeiras: seats stay joined with only the
+      // wider projector-cabin gap in the middle.
+      const isLastRow = rowIndex === roomRows.length - 1;
 
-      if (maxCenterSeatsPerRow !== null && displaySeats.length > maxCenterSeatsPerRow) {
+      if (
+        !isLastRow &&
+        maxCenterSeatsPerRow !== null &&
+        displaySeats.length > maxCenterSeatsPerRow
+      ) {
         return { ...row, ...splitRowSeatsWithNamoradeiras(displaySeats, maxCenterSeatsPerRow) };
       }
 
@@ -1371,10 +1401,15 @@ function getAccessibleDisplaySeats(seats: SessionSeatMapItem[]) {
   const selectedSeatIds = new Set<string>();
   const selectedSeats: SessionSeatMapItem[] = [];
 
+  // With a dedicated accessible row, every accessible seat belongs to the
+  // accessible strip — capping at ACCESSIBLE_SEAT_COUNT would spill the rest
+  // into a phantom regular row.
+  const hasAccessibleRow = seats.some((s) => s.is_accessible_row);
+
   for (const seat of seats
     .filter((seat) => seat.is_accessible)
     .sort(compareSeatPositions)) {
-    if (selectedSeats.length >= ACCESSIBLE_SEAT_COUNT) {
+    if (!hasAccessibleRow && selectedSeats.length >= ACCESSIBLE_SEAT_COUNT) {
       break;
     }
 
@@ -1383,8 +1418,6 @@ function getAccessibleDisplaySeats(seats: SessionSeatMapItem[]) {
   }
 
   // Fallbacks from regular rows are only needed when there's no dedicated accessible row.
-  const hasAccessibleRow = seats.some((s) => s.is_accessible_row);
-
   if (!hasAccessibleRow) {
     for (const seat of getAccessibleFallbackSeats(seats, selectedSeatIds)) {
       if (selectedSeats.length >= ACCESSIBLE_SEAT_COUNT) {
