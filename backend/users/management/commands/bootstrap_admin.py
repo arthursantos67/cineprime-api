@@ -32,6 +32,8 @@ class Command(BaseCommand):
 
         user.is_staff = True
         user.is_superuser = True
+        user.is_protected_master = True
+        user.is_verified = True
 
         if created:
             user.set_password(password)

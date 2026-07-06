@@ -268,14 +268,19 @@ class TestEmailChangeConfirm:
         user.refresh_from_db()
         assert user.email == "profile@example.com"
 
-    def test_already_applied_token_cannot_be_reused(self, api_client, user):
+    def test_already_applied_token_confirms_idempotently(self, api_client, user):
+        # The confirmation POST can fire twice (StrictMode double-effect,
+        # link clicked twice, page reload); the retry must report success
+        # instead of showing an error for a change that was applied.
         token = generate_email_change_token(user, "confirmed@example.com")
 
         first = self._confirm(api_client, token)
         second = self._confirm(api_client, token)
 
         assert first.status_code == status.HTTP_200_OK
-        assert second.status_code == status.HTTP_400_BAD_REQUEST
+        assert first.data["changed"] is True
+        assert second.status_code == status.HTTP_200_OK
+        assert second.data["changed"] is False
 
         user.refresh_from_db()
         assert user.email == "confirmed@example.com"

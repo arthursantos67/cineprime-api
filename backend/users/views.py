@@ -1,5 +1,6 @@
 import logging
 
+from django.conf import settings
 from django.contrib.auth.password_validation import validate_password
 from django.contrib.auth.tokens import default_token_generator
 from django.core.exceptions import ValidationError as DjangoValidationError
@@ -18,7 +19,7 @@ from drf_spectacular.utils import (
 )
 from rest_framework import status
 from rest_framework import serializers
-from rest_framework.exceptions import APIException, NotFound, PermissionDenied, ValidationError
+from rest_framework.exceptions import NotFound, ValidationError
 from rest_framework.generics import CreateAPIView, ListAPIView
 from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
@@ -41,6 +42,15 @@ from cineprime_api.throttling import (
     RegistrationRateThrottle,
 )
 from reservations.models import SessionSeat, SessionSeatStatus, Ticket
+from users.exceptions import (
+    HasActiveTickets,
+    InvalidEmailChangeToken,
+    InvalidPasswordResetToken,
+    InvalidVerificationToken,
+    OnlyMasterAdmin,
+    ProtectedTransferRequired,
+    WrongPassword,
+)
 from users.models import AdminPermissionLog, SiteConfig, User, WalletTransaction
 from users.serializers import (
     AdminPermissionLogSerializer,
@@ -64,34 +74,6 @@ from users.tokens import (
 )
 
 logger = logging.getLogger(__name__)
-
-
-class HasActiveTickets(APIException):
-    status_code = 409
-    default_code = "HAS_ACTIVE_TICKETS"
-    default_detail = "User has active tickets."
-
-    def __init__(self, ticket_count=0):
-        super().__init__()
-        self.ticket_count = ticket_count
-
-
-class OnlyMasterAdmin(APIException):
-    status_code = 400
-    default_code = "ONLY_MASTER_ADMIN"
-    default_detail = "You are the only master admin. Promote another user to master before deleting your account."
-
-
-class ProtectedTransferRequired(APIException):
-    status_code = 400
-    default_code = "PROTECTED_TRANSFER_REQUIRED"
-    default_detail = "You are the protected master. Designate a successor master before deleting your account."
-
-
-class WrongPassword(APIException):
-    status_code = 400
-    default_code = "WRONG_PASSWORD"
-    default_detail = "Incorrect password."
 
 
 def _delete_user_cascade(user):
@@ -137,24 +119,6 @@ class PasswordResetRequestResponseSerializer(serializers.Serializer):
     detail = serializers.CharField()
 
 
-class InvalidVerificationToken(APIException):
-    status_code = 400
-    default_code = "INVALID_VERIFICATION_TOKEN"
-    default_detail = "Invalid or expired verification link."
-
-
-class InvalidPasswordResetToken(APIException):
-    status_code = 400
-    default_code = "INVALID_RESET_TOKEN"
-    default_detail = "Invalid or expired password reset link."
-
-
-class InvalidEmailChangeToken(APIException):
-    status_code = 400
-    default_code = "INVALID_EMAIL_CHANGE_TOKEN"
-    default_detail = "Invalid or expired email change confirmation link."
-
-
 class ProfileUpdateResponseSerializer(CurrentUserResponseSerializer):
     email_change_requested = serializers.BooleanField()
 
@@ -194,6 +158,12 @@ class UserRegistrationView(CreateAPIView):
 
     def perform_create(self, serializer):
         user = serializer.save()
+
+        if settings.AUTO_VERIFY_NEW_USERS:
+            if not user.is_verified:
+                user.is_verified = True
+                user.save(update_fields=["is_verified", "updated_at"])
+            return
 
         from users.tasks import send_email_verification_email_task
 
@@ -450,13 +420,23 @@ class EmailChangeConfirmView(APIView):
         except (User.DoesNotExist, ValueError, DjangoValidationError):
             raise InvalidEmailChangeToken()
 
+        new_email = str(payload["new_email"]).strip().lower()
+
+        # Idempotent success: the confirmation POST can fire more than once
+        # (React StrictMode double-effect, link clicked twice, page reload).
+        # If this token was already applied to this account, report success
+        # instead of failing the from_email check below.
+        if user.email == new_email:
+            return Response(
+                {"email": user.email, "changed": False},
+                status=status.HTTP_200_OK,
+            )
+
         # Reject tokens issued against a previous address: applying any email
         # change (or reusing an already-applied token) invalidates every
         # other pending token for this account.
         if str(payload["from_email"]).strip().lower() != user.email:
             raise InvalidEmailChangeToken()
-
-        new_email = str(payload["new_email"]).strip().lower()
 
         if User.objects.filter(email=new_email).exclude(pk=user.pk).exists():
             raise InvalidEmailChangeToken()
@@ -552,20 +532,20 @@ class CurrentUserWalletView(APIView):
     def get(self, request, *args, **kwargs):
         queryset = WalletTransaction.objects.filter(user=request.user)
 
-        # Single transaction so the balance matches the listed entries even
-        # if a credit lands concurrently.
-        with transaction.atomic():
-            transactions = list(queryset[: self.MAX_TRANSACTIONS])
-            count = queryset.count()
-            balance = queryset.aggregate(total=Sum("amount"))["total"] or Decimal(
-                "0.00"
-            )
+        # Fetch one extra row so has_more is derived from the same query as
+        # the listed entries; balance/count may lag by a concurrent credit,
+        # which is acceptable for a display-only endpoint.
+        transactions = list(queryset[: self.MAX_TRANSACTIONS + 1])
+        has_more = len(transactions) > self.MAX_TRANSACTIONS
+        transactions = transactions[: self.MAX_TRANSACTIONS]
+        count = queryset.count()
+        balance = queryset.aggregate(total=Sum("amount"))["total"] or Decimal("0.00")
 
         return Response(
             {
                 "balance": str(balance.quantize(Decimal("0.01"))),
                 "count": count,
-                "has_more": count > len(transactions),
+                "has_more": has_more,
                 "transactions": WalletTransactionSerializer(
                     transactions, many=True
                 ).data,
@@ -652,7 +632,12 @@ class CurrentUserView(APIView):
         username = serializer.validated_data.get("username")
         if username and username != user.username:
             user.username = username
-            user.save(update_fields=["username", "updated_at"])
+            try:
+                user.save(update_fields=["username", "updated_at"])
+            except IntegrityError:
+                # Concurrent update grabbed the username between the
+                # serializer's uniqueness check and the save.
+                raise ValidationError({"username": ["This username is already taken."]})
 
         # Email changes are never applied directly: a confirmation link is
         # sent to the new address and the change only takes effect once that

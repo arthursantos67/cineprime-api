@@ -1,9 +1,11 @@
 from django.contrib.auth import authenticate
 from django.contrib.auth.password_validation import validate_password
+from django.db import connection, transaction
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 from rest_framework.exceptions import AuthenticationFailed
 
+from users.exceptions import WrongPassword
 from users.models import AdminPermissionLog, User, WalletTransaction
 from reservations.models import Ticket
 
@@ -65,8 +67,6 @@ class ProfileUpdateSerializer(serializers.Serializer):
         if "email" in attrs:
             user = self.context["request"].user
             if not current_password or not user.check_password(current_password):
-                from users.views import WrongPassword
-
                 raise WrongPassword()
 
         return attrs
@@ -120,7 +120,40 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         return value
 
     def create(self, validated_data):
-        return User.objects.create_user(**validated_data)
+        # The very first account in an empty database becomes the protected
+        # master admin, so a fresh install always has an owner that cannot be
+        # locked out or demoted by later accounts.
+        with transaction.atomic():
+            is_first_user = False
+            if not User.objects.exists():
+                # Serialize only the bootstrap path: concurrent registrations
+                # against an empty database could otherwise both pass the
+                # exists() check (READ COMMITTED) and create two protected
+                # masters. The lock is only ever taken with an empty table,
+                # so normal registrations never wait on it.
+                if connection.vendor == "postgresql":
+                    with connection.cursor() as cursor:
+                        cursor.execute("SELECT pg_advisory_xact_lock(%s)", [713001])
+                is_first_user = not User.objects.exists()
+
+            user = User.objects.create_user(**validated_data)
+
+            if is_first_user:
+                user.is_staff = True
+                user.is_superuser = True
+                user.is_protected_master = True
+                user.is_verified = True
+                user.save(
+                    update_fields=[
+                        "is_staff",
+                        "is_superuser",
+                        "is_protected_master",
+                        "is_verified",
+                        "updated_at",
+                    ]
+                )
+
+        return user
 
 
 class UserLoginSerializer(serializers.Serializer):

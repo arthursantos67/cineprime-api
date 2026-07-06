@@ -120,7 +120,32 @@ def test_user_registration_requires_email_username_and_password():
 
 
 @pytest.mark.django_db
-def test_public_registration_never_creates_admin():
+def test_first_registration_becomes_protected_master():
+    client = APIClient()
+
+    payload = {
+        "email": "founder@example.com",
+        "username": "founder",
+        "password": "StrongPassword123",
+    }
+
+    response = client.post("/api/v1/auth/register/", payload, format="json")
+
+    assert response.status_code == 201
+    user = User.objects.get(email=payload["email"])
+    assert user.is_staff is True
+    assert user.is_superuser is True
+    assert user.is_protected_master is True
+    assert user.is_verified is True
+
+
+@pytest.mark.django_db
+def test_public_registration_never_creates_admin_when_users_exist():
+    User.objects.create_user(
+        email="existing@example.com",
+        username="existing",
+        password="StrongPassword123",
+    )
     client = APIClient()
 
     payload = {
@@ -137,3 +162,4 @@ def test_public_registration_never_creates_admin():
     user = User.objects.get(email=payload["email"])
     assert user.is_staff is False
     assert user.is_superuser is False
+    assert user.is_protected_master is False
