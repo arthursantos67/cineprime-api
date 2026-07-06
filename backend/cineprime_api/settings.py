@@ -394,6 +394,14 @@ EMAIL_VERIFICATION_TOKEN_MAX_AGE_SECONDS = _env_int(
     "EMAIL_VERIFICATION_TOKEN_MAX_AGE_SECONDS", 259200  # 3 days
 )
 
+# When real email delivery is unavailable (local development), mark new
+# accounts as verified at registration and skip the verification email.
+# Defaults to on outside production; forced off when DJANGO_ENV=production.
+AUTO_VERIFY_NEW_USERS = (
+    _env_bool("AUTO_VERIFY_NEW_USERS", default=not IS_PRODUCTION)
+    and not IS_PRODUCTION
+)
+
 # How long an email change confirmation link stays valid. Deliberately much
 # shorter than the verification link: applying an email change is an
 # account-takeover-grade operation.
@@ -482,6 +490,16 @@ SIMPLE_JWT = {
     # Rejects refresh tokens issued before the user's last password change.
     "TOKEN_REFRESH_SERIALIZER": "users.jwt.PasswordChangeAwareTokenRefreshSerializer",
 }
+
+# Two-phase rollout of the pwd_fp claim: tokens issued before the claim
+# existed carry no fingerprint, so requiring it immediately would force-log-out
+# every active session at deploy time. Keep this True for at least one full
+# JWT_REFRESH_TOKEN_LIFETIME_DAYS window after the first deploy that issues the
+# claim, then flip it to False so tokens without the claim are rejected.
+JWT_ACCEPT_TOKENS_WITHOUT_PASSWORD_FINGERPRINT = (
+    os.getenv("JWT_ACCEPT_TOKENS_WITHOUT_PASSWORD_FINGERPRINT", "true").lower()
+    == "true"
+)
 
 # -------------------------------------------------------------------
 # Logging

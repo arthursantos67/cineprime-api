@@ -59,6 +59,7 @@ def user():
 
 
 @pytest.mark.django_db
+@override_settings(AUTO_VERIFY_NEW_USERS=False)
 def test_registration_enqueues_verification_email():
     client = APIClient()
 
@@ -76,6 +77,26 @@ def test_registration_enqueues_verification_email():
     mock_apply_async.assert_called_once()
     call_args = mock_apply_async.call_args.kwargs["args"]
     assert call_args[0] == str(user_id)
+
+
+@pytest.mark.django_db
+@override_settings(AUTO_VERIFY_NEW_USERS=True)
+def test_registration_auto_verifies_without_email_when_enabled():
+    client = APIClient()
+
+    payload = {
+        "email": "autoverify@example.com",
+        "username": "autoverify",
+        "password": "StrongPassword123",
+    }
+
+    with patch("users.tasks.send_email_verification_email_task.apply_async") as mock_apply_async:
+        response = client.post("/api/v1/auth/register/", payload, format="json")
+
+    assert response.status_code == 201
+    mock_apply_async.assert_not_called()
+    user = User.objects.get(email=payload["email"])
+    assert user.is_verified is True
 
 
 @pytest.mark.django_db

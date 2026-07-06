@@ -8,6 +8,7 @@ database-backed blacklist.
 
 import hashlib
 
+from django.conf import settings
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework_simplejwt.exceptions import InvalidToken
 from rest_framework_simplejwt.serializers import TokenRefreshSerializer
@@ -27,7 +28,13 @@ def issue_tokens_for_user(user) -> RefreshToken:
 
 
 def _validate_password_fingerprint(token, user) -> None:
-    if token.get(PASSWORD_FINGERPRINT_CLAIM) != password_fingerprint(user):
+    claim = token.get(PASSWORD_FINGERPRINT_CLAIM)
+    if claim is None and settings.JWT_ACCEPT_TOKENS_WITHOUT_PASSWORD_FINGERPRINT:
+        # Legacy token issued before the claim existed; accepted during the
+        # rollout window (see the setting) instead of force-logging-out every
+        # session on deploy.
+        return
+    if claim != password_fingerprint(user):
         raise InvalidToken("Token is no longer valid because the password changed.")
 
 
