@@ -247,6 +247,110 @@ test("apiRequest clears auth through the controller when refresh fails", async (
   }
 });
 
+test("apiRequest refreshes and retries an optional-auth request once after 401", async () => {
+  const originalFetch = globalThis.fetch;
+  const seenAuthorizationHeaders: Array<string | null> = [];
+
+  try {
+    setApiAuthController({
+      getAccessToken: () => "old-access",
+      refreshAccessToken: async () => "new-access",
+    });
+
+    globalThis.fetch = async (_input, init) => {
+      const headers = new Headers(init?.headers);
+      seenAuthorizationHeaders.push(headers.get("Authorization"));
+
+      if (seenAuthorizationHeaders.length === 1) {
+        return Response.json(
+          {
+            error: {
+              code: "NOT_AUTHENTICATED",
+              details: {},
+              message: "Token is invalid or expired.",
+              status: 401,
+            },
+          },
+          { status: 401 }
+        );
+      }
+
+      return Response.json({ ok: true });
+    };
+
+    const response = await apiRequest<{ ok: boolean }>(
+      "/api/v1/reservation/sessions/abc/seats/",
+      {
+        auth: "optional",
+        baseUrl: "http://api.local:8000",
+      }
+    );
+
+    assert.deepEqual(response, { ok: true });
+    assert.deepEqual(seenAuthorizationHeaders, [
+      "Bearer old-access",
+      "Bearer new-access",
+    ]);
+  } finally {
+    setApiAuthController(null);
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("apiRequest retries an optional-auth request anonymously when refresh fails", async () => {
+  const originalFetch = globalThis.fetch;
+  const seenAuthorizationHeaders: Array<string | null> = [];
+  let handledRefreshFailureFor: string | null = null;
+
+  try {
+    setApiAuthController({
+      getAccessToken: () => "stale-access",
+      handleRefreshFailure: (path) => {
+        handledRefreshFailureFor = path;
+      },
+      refreshAccessToken: async () => {
+        throw new Error("refresh failed");
+      },
+    });
+
+    globalThis.fetch = async (_input, init) => {
+      const headers = new Headers(init?.headers);
+      seenAuthorizationHeaders.push(headers.get("Authorization"));
+
+      if (headers.get("Authorization")) {
+        return Response.json(
+          {
+            error: {
+              code: "NOT_AUTHENTICATED",
+              details: {},
+              message: "Token is invalid or expired.",
+              status: 401,
+            },
+          },
+          { status: 401 }
+        );
+      }
+
+      return Response.json({ ok: true });
+    };
+
+    const response = await apiRequest<{ ok: boolean }>(
+      "/api/v1/reservation/sessions/abc/seats/",
+      {
+        auth: "optional",
+        baseUrl: "http://api.local:8000",
+      }
+    );
+
+    assert.deepEqual(response, { ok: true });
+    assert.deepEqual(seenAuthorizationHeaders, ["Bearer stale-access", null]);
+    assert.equal(handledRefreshFailureFor, null);
+  } finally {
+    setApiAuthController(null);
+    globalThis.fetch = originalFetch;
+  }
+});
+
 test("getApiErrorUserMessage maps known backend codes without exposing raw backend messages", () => {
   for (const code of KNOWN_BACKEND_ERROR_CODES) {
     const error = new ApiError("Raw backend message.", 400, {

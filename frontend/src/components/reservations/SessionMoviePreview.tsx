@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 
 import { catalogApi } from "@/api/catalog";
+import { useI18n } from "@/i18n";
 import type { CatalogSession } from "@/types/catalog";
 
 import { MoviePreviewPanel } from "./MoviePreviewPanel";
@@ -20,6 +21,7 @@ export function SessionMoviePreview({
   summaryActionHref,
   summaryActionLabel,
 }: SessionMoviePreviewProps) {
+  const { locale } = useI18n();
   const [session, setSession] = useState<CatalogSession | null>(null);
   const [error, setError] = useState(false);
 
@@ -32,7 +34,7 @@ export function SessionMoviePreview({
         if (err.name !== "AbortError") setError(true);
       });
     return () => controller.abort();
-  }, [sessionId]);
+  }, [sessionId, locale]);
 
   if (error) return <p className="text-sm text-white/50">...</p>;
   if (!session) return <div className="animate-pulse rounded-card bg-white/5 h-64 w-full" />;
