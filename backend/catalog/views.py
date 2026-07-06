@@ -1,5 +1,7 @@
+import math
 import uuid
 
+from datetime import datetime, timezone as dt_timezone
 from decimal import Decimal, InvalidOperation
 
 from django.core.cache import cache
@@ -18,9 +20,9 @@ from rest_framework.views import APIView
 
 from cineprime_api.permissions import IsAdminUserOrReadOnly
 from rest_framework.generics import ListAPIView, RetrieveUpdateAPIView
-from reservations.models import SessionSeatStatus
 
 from cineprime_api.localization import DEFAULT_LOCALE, get_request_locale
+from reservations.models import SessionSeatStatus
 from catalog.models import (
     AudioFormat,
     Genre,
@@ -136,6 +138,25 @@ def _catalog_list_cache_key(namespace, version_key, request):
     if locale == DEFAULT_LOCALE:
         return f"catalog:{namespace}:v{version}:{request.get_full_path()}"
     return f"catalog:{namespace}:v{version}:{locale}:{request.get_full_path()}"
+
+
+PUBLIC_SESSION_VISIBILITY_WINDOW_SECONDS = 300
+
+
+def _public_session_horizon():
+    """Now, rounded UP to the next visibility-window boundary.
+
+    The public session list is cached; filtering with the exact current time
+    would let already-started sessions linger in cached responses for the
+    whole TTL. Filtering with the window's end (and keying the cache by the
+    window) guarantees a cached page never lists a session that has already
+    started — at the cost of hiding sessions up to 5 minutes before start,
+    which the 15-minute presale cutoff makes irrelevant.
+    """
+    window = PUBLIC_SESSION_VISIBILITY_WINDOW_SECONDS
+    now_ts = timezone.now().timestamp()
+    horizon_ts = math.ceil(now_ts / window) * window
+    return datetime.fromtimestamp(horizon_ts, tz=dt_timezone.utc)
 
 
 def _validate_choice_filter(name, value, allowed_values):
@@ -473,7 +494,14 @@ class SessionListCreateView(ListCreateAPIView):
         if "session_type" in filters:
             queryset = queryset.filter(session_type=filters["session_type"])
 
+        if not self._is_staff_request():
+            queryset = queryset.filter(start_time__gte=_public_session_horizon())
+
         return queryset
+
+    def _is_staff_request(self):
+        user = getattr(self.request, "user", None)
+        return bool(user and user.is_authenticated and user.is_staff)
 
     def get_serializer_class(self):
         if self.request.method == "GET":
@@ -487,6 +515,14 @@ class SessionListCreateView(ListCreateAPIView):
             SESSION_LIST_CACHE_VERSION_KEY,
             request,
         )
+        if cache_key is not None:
+            if self._is_staff_request():
+                cache_key = f"{cache_key}:staff"
+            else:
+                # Key public responses by visibility window so a fresh window
+                # never serves a page filtered against an older horizon.
+                horizon = int(_public_session_horizon().timestamp())
+                cache_key = f"{cache_key}:h{horizon}"
         cached_response = None
         if cache_key is not None:
             cached_response = _safe_cache_get(cache_key)
@@ -564,23 +600,21 @@ class RoomTypePricingDetailView(RetrieveUpdateAPIView):
     @transaction.atomic
     def perform_update(self, serializer):
         instance = serializer.save()
-        Room.objects.filter(experience_type=instance.experience_type).update(
-            base_price=instance.base_price
-        )
-        sessions = (
-            Session.objects.filter(
-                room__experience_type=instance.experience_type,
-                start_time__gt=timezone.now(),
-            )
-            .exclude(
-                session_seats__status__in=[
-                    SessionSeatStatus.RESERVED,
-                    SessionSeatStatus.PURCHASED,
-                ]
-            )
-            .select_related("room")
-            .distinct()
-        )
+        # Rooms with a blank experience_type are priced as "standard" on save.
+        room_filter = Q(experience_type=instance.experience_type)
+        if instance.experience_type == "standard":
+            room_filter |= Q(experience_type="")
+        rooms = Room.objects.filter(room_filter)
+        rooms.update(base_price=instance.base_price)
+        # Sold tickets snapshot amount_paid, so repricing future sessions
+        # never rewrites what buyers already paid. Sessions with a RESERVED
+        # seat are skipped: checkout charges session.base_price at purchase
+        # time (no freeze at reservation), so repricing mid-checkout would
+        # change the price under the user between reserving and paying.
+        sessions = Session.objects.filter(
+            room__in=rooms,
+            start_time__gt=timezone.now(),
+        ).exclude(session_seats__status=SessionSeatStatus.RESERVED)
         for session in sessions.iterator():
             new_price = compute_session_price(instance.base_price, session.start_time)
             Session.objects.filter(pk=session.pk).update(base_price=new_price)

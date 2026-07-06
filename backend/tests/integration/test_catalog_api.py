@@ -19,9 +19,12 @@ from catalog.models import (
     ProjectionFormat,
     Room,
     RoomExperienceType,
+    RoomTypePricing,
     Session,
     SessionType,
 )
+from catalog.serializers import compute_session_price
+from reservations.models import Seat, SeatRow, SessionSeat, SessionSeatStatus
 from users.models import User
 
 
@@ -1160,6 +1163,39 @@ class TestCatalogApi:
         assert response.data["count"] == 1
         assert response.data["results"][0]["id"] == str(first_session.id)
 
+    def test_list_sessions_hides_past_sessions_from_non_staff(
+        self, api_client, anonymous_api_client, regular_api_client, movie, room
+    ):
+        now = timezone.now()
+        past_session = Session.objects.create(
+            movie=movie,
+            room=room,
+            start_time=now - timedelta(hours=3),
+            end_time=now - timedelta(hours=1),
+            base_price="30.00",
+        )
+        future_session = Session.objects.create(
+            movie=movie,
+            room=room,
+            start_time=now + timedelta(hours=3),
+            end_time=now + timedelta(hours=5),
+            base_price="30.00",
+        )
+
+        for client in (anonymous_api_client, regular_api_client):
+            response = client.get("/api/v1/catalog/sessions/")
+
+            assert response.status_code == status.HTTP_200_OK
+            returned_ids = {item["id"] for item in response.data["results"]}
+            assert str(future_session.id) in returned_ids
+            assert str(past_session.id) not in returned_ids
+
+        staff_response = api_client.get("/api/v1/catalog/sessions/")
+
+        assert staff_response.status_code == status.HTTP_200_OK
+        staff_ids = {item["id"] for item in staff_response.data["results"]}
+        assert {str(past_session.id), str(future_session.id)} <= staff_ids
+
     def test_list_sessions_can_filter_by_experience_and_format_metadata(
         self,
         api_client,
@@ -1566,7 +1602,9 @@ class TestCatalogApi:
 
         first_response = api_client.get("/api/v1/catalog/sessions/")
         initial_version = cache.get("catalog:sessions:version")
-        old_cache_key = f"catalog:sessions:v{initial_version}:/api/v1/catalog/sessions/"
+        old_cache_key = (
+            f"catalog:sessions:v{initial_version}:/api/v1/catalog/sessions/:staff"
+        )
         assert cache.get(old_cache_key) == first_response.data
 
         create_response = api_client.post(
@@ -1840,6 +1878,36 @@ class TestCatalogApi:
         second_response = api_client.get("/api/v1/catalog/sessions/")
         assert second_response.status_code == status.HTTP_200_OK
         assert second_response.data["results"][0]["end_time"] == new_end_time
+
+    def test_room_type_pricing_update_reprices_future_sessions_even_with_sold_seats(
+        self,
+        api_client,
+        session,
+        room,
+    ):
+        row = SeatRow.objects.create(room=room, name="A")
+        seat = Seat.objects.create(row=row, number=1)
+        SessionSeat.objects.create(
+            session=session,
+            seat=seat,
+            status=SessionSeatStatus.PURCHASED,
+        )
+        pricing = RoomTypePricing.objects.get(experience_type="standard")
+
+        response = api_client.patch(
+            f"/api/v1/catalog/room-type-pricing/{pricing.id}/",
+            {"base_price": "31.00"},
+            format="json",
+        )
+        assert response.status_code == status.HTTP_200_OK
+
+        room.refresh_from_db()
+        assert room.base_price == Decimal("31.00")
+
+        session.refresh_from_db()
+        assert session.base_price == compute_session_price(
+            Decimal("31.00"), session.start_time
+        )
 
 
 @pytest.mark.django_db
