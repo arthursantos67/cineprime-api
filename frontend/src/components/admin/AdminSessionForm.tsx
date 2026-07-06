@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useId, useRef, useState, type FormEvent } from "react";
+import { useEffect, useId, useState, type FormEvent } from "react";
 
 import { adminApi, type AdminSessionWritePayload } from "@/api/admin";
 import { getApiErrorUserMessage } from "@/api/client";
@@ -18,6 +18,7 @@ import type { BadgeTone } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { SelectMenu } from "@/components/ui/SelectMenu";
 import { useI18n } from "@/i18n";
+import { MultiDateCalendar, toggleDateInList } from "./MultiDateCalendar";
 import {
   addMinutesToLocalDateTime,
   combineLocalDateTime,
@@ -116,6 +117,21 @@ const SESSION_TYPE_BADGE_TONE: Record<Exclude<CatalogSessionType, "">, BadgeTone
   special_event: "accent",
 };
 
+function todayIsoDate(): string {
+  // Sessions operate in America/Fortaleza; using the admin's local timezone
+  // would enable/disable the wrong days around midnight. en-CA => YYYY-MM-DD.
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Fortaleza",
+  }).format(new Date());
+}
+
+function formatExtraDateChip(isoDate: string, locale: string): string {
+  const [year, month, day] = isoDate.split("-").map(Number);
+  return new Intl.DateTimeFormat(locale, { dateStyle: "medium" }).format(
+    new Date(year, month - 1, day)
+  );
+}
+
 function getUserTimezone(): string {
   try {
     return Intl.DateTimeFormat().resolvedOptions().timeZone;
@@ -158,8 +174,7 @@ export function AdminSessionForm({ session }: AdminSessionFormProps) {
     (session?.session_type as CatalogSessionType) ?? ""
   );
 
-  const nextExtraDateIdRef = useRef(0);
-  const [extraDates, setExtraDates] = useState<{ id: number; value: string }[]>([]);
+  const [extraDates, setExtraDates] = useState<string[]>([]);
 
   const [movies, setMovies] = useState<CatalogMovieDetail[]>([]);
   const [rooms, setRooms] = useState<AdminRoom[]>([]);
@@ -218,17 +233,8 @@ export function AdminSessionForm({ session }: AdminSessionFormProps) {
     setEndTime(computed.time);
   }, [isEndAutoCalc, startDate, startTime, movieId, movies]);
 
-  function handleAddExtraDate() {
-    const id = nextExtraDateIdRef.current++;
-    setExtraDates((prev) => [...prev, { id, value: "" }]);
-  }
-
-  function handleExtraDateChange(id: number, value: string) {
-    setExtraDates((prev) => prev.map((entry) => (entry.id === id ? { id, value } : entry)));
-  }
-
-  function handleRemoveExtraDate(id: number) {
-    setExtraDates((prev) => prev.filter((entry) => entry.id !== id));
+  function handleToggleExtraDate(isoDate: string) {
+    setExtraDates((prev) => toggleDateInList(prev, isoDate));
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -239,10 +245,10 @@ export function AdminSessionForm({ session }: AdminSessionFormProps) {
     setIsSubmitting(true);
 
     try {
-      const trimmedExtraDates = extraDates
-        .map((entry) => entry.value.trim())
-        .filter(Boolean);
-
+      // The calendar disables picking startDate, but a date selected before
+      // startDate changed to it would still linger in extraDates and create
+      // the same session twice.
+      const effectiveExtraDates = extraDates.filter((d) => d !== startDate);
       const payload: AdminSessionWritePayload = {
         audio_format: audioFormat || undefined,
         end_time: combineLocalDateTime(endDate, endTime),
@@ -251,8 +257,8 @@ export function AdminSessionForm({ session }: AdminSessionFormProps) {
         room: roomId,
         session_type: sessionType || undefined,
         start_time: combineLocalDateTime(startDate, startTime),
-        ...(!isEditing && trimmedExtraDates.length > 0
-          ? { extra_dates: trimmedExtraDates }
+        ...(!isEditing && effectiveExtraDates.length > 0
+          ? { extra_dates: effectiveExtraDates }
           : {}),
       };
 
@@ -528,36 +534,48 @@ export function AdminSessionForm({ session }: AdminSessionFormProps) {
           <p className="text-xs text-white/40">
             {t("admin.session.extraDatesHint")}
           </p>
-          {extraDates.length > 0 ? (
-            <div className="grid gap-2">
-              {extraDates.map((entry) => (
-                <div className="flex items-center gap-2" key={entry.id}>
-                  <TextInput
-                    disabled={formDisabled}
-                    onChange={(e) => handleExtraDateChange(entry.id, e.target.value)}
-                    type="date"
-                    value={entry.value}
-                  />
-                  <button
-                    className="text-xs font-bold text-white/40 underline hover:text-error disabled:opacity-50"
-                    disabled={formDisabled}
-                    onClick={() => handleRemoveExtraDate(entry.id)}
-                    type="button"
-                  >
-                    {t("admin.session.removeDate")}
-                  </button>
-                </div>
-              ))}
-            </div>
-          ) : null}
-          <button
-            className="w-fit text-xs font-bold text-brand/80 underline hover:text-brand disabled:opacity-50"
+          <MultiDateCalendar
             disabled={formDisabled}
-            onClick={handleAddExtraDate}
-            type="button"
-          >
-            {t("admin.session.addDate")}
-          </button>
+            disabledDates={startDate ? [startDate] : []}
+            initialMonth={startDate || undefined}
+            minDate={todayIsoDate()}
+            onToggleDate={handleToggleExtraDate}
+            selectedDates={extraDates}
+          />
+          {extraDates.length > 0 ? (
+            <>
+              <span className="pt-1 text-xs font-bold text-white/40">
+                {t("admin.session.selectedDates")}
+              </span>
+              <div className="flex flex-wrap items-center gap-2">
+                {extraDates.map((isoDate) => (
+                  <span
+                    className="inline-flex items-center gap-1.5 rounded-full border border-brand/50 bg-brand/20 py-1 pl-3 pr-1.5 text-xs font-extrabold text-white"
+                    key={isoDate}
+                  >
+                    {formatExtraDateChip(isoDate, locale)}
+                    <button
+                      aria-label={`${t("admin.session.removeDate")} ${formatExtraDateChip(isoDate, locale)}`}
+                      className="inline-flex h-5 w-5 items-center justify-center rounded-full text-white/70 transition hover:bg-white/15 hover:text-white disabled:opacity-50"
+                      disabled={formDisabled}
+                      onClick={() => handleToggleExtraDate(isoDate)}
+                      type="button"
+                    >
+                      ×
+                    </button>
+                  </span>
+                ))}
+                <button
+                  className="text-xs font-bold text-white/40 underline hover:text-error disabled:opacity-50"
+                  disabled={formDisabled}
+                  onClick={() => setExtraDates([])}
+                  type="button"
+                >
+                  {t("admin.session.clearDates")}
+                </button>
+              </div>
+            </>
+          ) : null}
           {fieldErrors.extra_dates ? (
             <p className="text-sm font-bold text-error" role="alert">
               {fieldErrors.extra_dates}

@@ -273,11 +273,12 @@ export function AdminGenreList() {
     {
       key: "actions",
       label: t("admin.actions"),
+      className: "w-px whitespace-nowrap text-right",
       render: (row) => {
         const genre = row as unknown as AdminGenre;
         if (editingId === genre.id) {
           return (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center justify-end gap-2">
               <Button
                 disabled={isSaving || !editName.trim()}
                 isLoading={isSaving}
@@ -301,7 +302,7 @@ export function AdminGenreList() {
           );
         }
         return (
-          <div className="flex items-center gap-2">
+          <div className="flex items-center justify-end gap-2">
             <Button
               onClick={() => startEdit(genre)}
               size="sm"
