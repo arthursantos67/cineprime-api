@@ -131,6 +131,26 @@ test("tabs fall back when default value is invalid or disabled", () => {
   assert.match(disabledDefaultHtml, /hidden=""[^>]*>Hoje/);
 });
 
+test("selected tab never carries both text-muted and its own text color class", () => {
+  // Regression: cn() does not dedupe conflicting Tailwind classes, so if the
+  // selected tab's button keeps the base "text-muted" class alongside its own
+  // color class, the two same-specificity rules fight over which one wins in
+  // the compiled stylesheet instead of the selected color reliably applying.
+  const html = renderToStaticMarkup(
+    createElement(Tabs, {
+      ariaLabel: "Periodos",
+      items: [
+        { content: "Hoje", label: "Hoje", value: "today" },
+        { content: "Amanha", label: "Amanha", value: "tomorrow" },
+      ],
+    })
+  );
+
+  const selectedButtonMatch = /<button[^>]*aria-selected="true"[^>]*>/.exec(html);
+  assert.ok(selectedButtonMatch);
+  assert.doesNotMatch(selectedButtonMatch[0], /\btext-muted\b/);
+});
+
 test("input renders a themed, accessible text field with label and error", () => {
   const html = renderToStaticMarkup(
     createElement(Input, {

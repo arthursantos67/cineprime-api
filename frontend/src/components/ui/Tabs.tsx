@@ -70,10 +70,10 @@ export function Tabs({
               aria-controls={panelId}
               aria-selected={isSelected}
               className={cn(
-                "min-h-9 whitespace-nowrap rounded-control px-3 py-2 text-sm font-extrabold text-muted transition-colors duration-150 focus-visible:outline-none focus-visible:shadow-focus disabled:cursor-not-allowed disabled:opacity-[0.68]",
+                "min-h-9 whitespace-nowrap rounded-control px-3 py-2 text-sm font-extrabold transition-colors duration-150 focus-visible:outline-none focus-visible:shadow-focus disabled:cursor-not-allowed disabled:opacity-[0.68]",
                 isSelected
                   ? "bg-surface text-black shadow-soft"
-                  : "hover:bg-surface hover:text-black"
+                  : "text-muted hover:bg-surface hover:text-black"
               )}
               disabled={item.disabled}
               id={tabId}
