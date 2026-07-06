@@ -1,7 +1,16 @@
 "use client";
 
 import Link from "next/link";
-import { CalendarDays, ChevronLeft, ChevronRight, Heart, HelpCircle, LogIn } from "lucide-react";
+import {
+  CalendarDays,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  ChevronUp,
+  Heart,
+  HelpCircle,
+  LogIn,
+} from "lucide-react";
 import {
   type ChangeEvent,
   useCallback,
@@ -326,6 +335,10 @@ function MovieDetailSuccess({
           <p>{movie.synopsis || t("movie.synopsisUnavailable")}</p>
         </section>
 
+        {movie.trailer_url && isTrustedTrailerUrl(movie.trailer_url) ? (
+          <MovieTrailerSection trailerUrl={movie.trailer_url} />
+        ) : null}
+
         {movie.status === "em_breve" ? (
           <MovieComingSoonSection
             interestState={interestState}
@@ -338,6 +351,57 @@ function MovieDetailSuccess({
         )}
       </article>
     </div>
+  );
+}
+
+// trailer_url is admin-editable persisted data; only embed hosts we trust,
+// so an arbitrary URL can never be framed with the site's chrome around it.
+const TRUSTED_EMBED_HOSTS =
+  /^https:\/\/(www\.)?(youtube\.com|youtube-nocookie\.com|player\.vimeo\.com)\//;
+
+export function isTrustedTrailerUrl(trailerUrl: string): boolean {
+  return TRUSTED_EMBED_HOSTS.test(trailerUrl);
+}
+
+export function MovieTrailerSection({ trailerUrl }: { trailerUrl: string }) {
+  const { t } = useI18n();
+  const [isTrailerOpen, setIsTrailerOpen] = useState(false);
+  const trailerLabel = t("session.previewPanel.trailer");
+
+  return (
+    <section aria-labelledby="movie-trailer" className="grid gap-2">
+      <h2 className="sr-only" id="movie-trailer">
+        {trailerLabel}
+      </h2>
+      <button
+        aria-expanded={isTrailerOpen}
+        className="flex w-full items-center justify-between gap-2 rounded-[6px] border border-white/[0.10] bg-white/[0.04] px-3 py-2 text-sm font-extrabold text-white/80 transition hover:bg-white/[0.08]"
+        onClick={() => setIsTrailerOpen((open) => !open)}
+        type="button"
+      >
+        {trailerLabel}
+        {isTrailerOpen ? (
+          <ChevronUp aria-hidden="true" className="h-4 w-4 shrink-0" />
+        ) : (
+          <ChevronDown aria-hidden="true" className="h-4 w-4 shrink-0" />
+        )}
+      </button>
+      {isTrailerOpen ? (
+        <div
+          className="overflow-hidden rounded-[6px] border border-white/[0.07]"
+          style={{ aspectRatio: "16/9" }}
+        >
+          <iframe
+            allow="accelerometer; autoplay; encrypted-media; picture-in-picture"
+            allowFullScreen
+            className="h-full w-full"
+            sandbox="allow-scripts allow-same-origin allow-presentation allow-fullscreen"
+            src={trailerUrl}
+            title={trailerLabel}
+          />
+        </div>
+      ) : null}
+    </section>
   );
 }
 
