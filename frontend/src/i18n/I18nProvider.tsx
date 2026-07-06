@@ -37,6 +37,38 @@ type I18nContextValue = {
 
 const I18nContext = createContext<I18nContextValue | null>(null);
 
+const DATE_COMPONENT_OPTION_KEYS = [
+  "weekday",
+  "era",
+  "year",
+  "month",
+  "day",
+  "hour",
+  "minute",
+  "second",
+  "fractionalSecondDigits",
+  "dayPeriod",
+  "timeZoneName",
+] as const satisfies readonly (keyof Intl.DateTimeFormatOptions)[];
+
+// Intl.DateTimeFormat throws when dateStyle/timeStyle are combined with
+// component options (year, month, day, ...), so drop the style defaults
+// whenever the caller provides component options.
+function mergeDateTimeOptions(
+  defaults: Intl.DateTimeFormatOptions,
+  options: Intl.DateTimeFormatOptions
+): Intl.DateTimeFormatOptions {
+  const hasComponentOptions = DATE_COMPONENT_OPTION_KEYS.some(
+    (key) => options[key] !== undefined
+  );
+  if (!hasComponentOptions) {
+    return { ...defaults, ...options };
+  }
+
+  const { dateStyle: _dateStyle, timeStyle: _timeStyle, ...rest } = defaults;
+  return { ...rest, ...options };
+}
+
 export function I18nProvider({
   children,
   initialLocale = DEFAULT_LOCALE,
@@ -85,19 +117,26 @@ export function I18nProvider({
         }).format(valueToFormat);
       },
       formatDate(valueToFormat, options = {}) {
-        return new Intl.DateTimeFormat(locale, {
-          dateStyle: "short",
-          timeZone: "America/Fortaleza",
-          ...options,
-        }).format(new Date(valueToFormat));
+        return new Intl.DateTimeFormat(
+          locale,
+          mergeDateTimeOptions(
+            { dateStyle: "short", timeZone: "America/Fortaleza" },
+            options
+          )
+        ).format(new Date(valueToFormat));
       },
       formatDateTime(valueToFormat, options = {}) {
-        return new Intl.DateTimeFormat(locale, {
-          dateStyle: "short",
-          timeStyle: "short",
-          timeZone: "America/Fortaleza",
-          ...options,
-        }).format(new Date(valueToFormat));
+        return new Intl.DateTimeFormat(
+          locale,
+          mergeDateTimeOptions(
+            {
+              dateStyle: "short",
+              timeStyle: "short",
+              timeZone: "America/Fortaleza",
+            },
+            options
+          )
+        ).format(new Date(valueToFormat));
       },
       formatNumber(valueToFormat, options = {}) {
         return new Intl.NumberFormat(locale, options).format(valueToFormat);
@@ -131,19 +170,26 @@ function createFallbackI18nContext(): I18nContextValue {
       }).format(value);
     },
     formatDate(value, options = {}) {
-      return new Intl.DateTimeFormat(DEFAULT_LOCALE, {
-        dateStyle: "short",
-        timeZone: "America/Fortaleza",
-        ...options,
-      }).format(new Date(value));
+      return new Intl.DateTimeFormat(
+        DEFAULT_LOCALE,
+        mergeDateTimeOptions(
+          { dateStyle: "short", timeZone: "America/Fortaleza" },
+          options
+        )
+      ).format(new Date(value));
     },
     formatDateTime(value, options = {}) {
-      return new Intl.DateTimeFormat(DEFAULT_LOCALE, {
-        dateStyle: "short",
-        timeStyle: "short",
-        timeZone: "America/Fortaleza",
-        ...options,
-      }).format(new Date(value));
+      return new Intl.DateTimeFormat(
+        DEFAULT_LOCALE,
+        mergeDateTimeOptions(
+          {
+            dateStyle: "short",
+            timeStyle: "short",
+            timeZone: "America/Fortaleza",
+          },
+          options
+        )
+      ).format(new Date(value));
     },
     formatNumber(value, options = {}) {
       return new Intl.NumberFormat(DEFAULT_LOCALE, options).format(value);
