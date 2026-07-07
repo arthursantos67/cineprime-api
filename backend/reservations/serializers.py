@@ -126,6 +126,22 @@ class TicketSerializer(serializers.ModelSerializer):
         read_only_fields = ["id", "ticket_code", "created_at"]
 
     def get_movie(self, obj):
+        if obj.session_seat_id is None:
+            snapshot = (obj.session_snapshot or {}).get("movie")
+            if not snapshot:
+                return None
+            locale = get_context_locale(self.context)
+            return {
+                "id": snapshot["id"],
+                "title": get_translation_value(
+                    fallback_value=snapshot["title"],
+                    field="title",
+                    locale=locale,
+                    translations=snapshot.get("translations"),
+                ),
+                "poster_url": snapshot["poster_url"],
+            }
+
         movie = obj.session_seat.session.movie
         locale = get_context_locale(self.context)
         return {
@@ -140,6 +156,9 @@ class TicketSerializer(serializers.ModelSerializer):
         }
 
     def get_session(self, obj):
+        if obj.session_seat_id is None:
+            return (obj.session_snapshot or {}).get("session")
+
         session = obj.session_seat.session
         return {
             "id": str(session.id),
@@ -148,6 +167,21 @@ class TicketSerializer(serializers.ModelSerializer):
         }
 
     def get_room(self, obj):
+        if obj.session_seat_id is None:
+            snapshot = (obj.session_snapshot or {}).get("room")
+            if not snapshot:
+                return None
+            locale = get_context_locale(self.context)
+            return {
+                "id": snapshot["id"],
+                "name": get_translation_value(
+                    fallback_value=snapshot["name"],
+                    field="display_name",
+                    locale=locale,
+                    translations=snapshot.get("translations"),
+                ),
+            }
+
         room = obj.session_seat.session.room
         locale = get_context_locale(self.context)
         return {
@@ -161,6 +195,9 @@ class TicketSerializer(serializers.ModelSerializer):
         }
 
     def get_seat(self, obj):
+        if obj.session_seat_id is None:
+            return (obj.session_snapshot or {}).get("seat")
+
         seat = obj.session_seat.seat
         return {
             "id": str(seat.id),

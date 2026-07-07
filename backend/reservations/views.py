@@ -17,6 +17,7 @@ from rest_framework.response import Response
 from cineprime_api.localization import get_request_locale
 from cineprime_api.throttling import GlobalAnonRateThrottle, ReservationRateThrottle
 
+from catalog.exceptions import SessionsHaveValidTickets
 from catalog.models import Room, Session
 from reservations.exceptions import (
     InvalidSeatSelectionError,
@@ -48,6 +49,7 @@ from reservations.serializers import (
 from reservations.services import (
     TemporaryReservationReleaseService,
     TemporaryReservationService,
+    detach_tickets,
 )
 from reservations.services.checkout_service import (
     ExpiredReservationError,
@@ -92,7 +94,9 @@ class SeatRowDetailView(RetrieveUpdateDestroyAPIView):
 
     def perform_destroy(self, instance):
         validate_room_layout_changes_are_allowed({instance.room_id})
-        instance.delete()
+        with transaction.atomic():
+            detach_tickets(Ticket.objects.filter(session_seat__seat__row=instance))
+            instance.delete()
 
 
 @extend_schema(tags=["Reservations"], summary="List or create seats")
@@ -118,7 +122,9 @@ class SeatDetailView(RetrieveUpdateDestroyAPIView):
 
     def perform_destroy(self, instance):
         validate_room_layout_changes_are_allowed({instance.row.room_id})
-        instance.delete()
+        with transaction.atomic():
+            detach_tickets(Ticket.objects.filter(session_seat__seat=instance))
+            instance.delete()
 
 
 @extend_schema(tags=["Reservations"], summary="List or create session seats")
@@ -137,6 +143,27 @@ class SessionSeatDetailView(RetrieveDestroyAPIView):
     ).all()
     serializer_class = SessionSeatSerializer
     permission_classes = [IsAdminUser]
+
+    def perform_destroy(self, instance):
+        with transaction.atomic():
+            # Lock the same row CheckoutService.execute() locks so a
+            # concurrent checkout can't turn this seat into a ticket between
+            # the check below and the delete.
+            locked_instance = SessionSeat.objects.select_for_update(
+                of=("self",)
+            ).get(pk=instance.pk)
+
+            if Ticket.objects.filter(session_seat=locked_instance).exists():
+                raise SessionsHaveValidTickets(
+                    session_count=1,
+                    ticket_count=1,
+                    detail=(
+                        "Session seat has a linked ticket and cannot be "
+                        "deleted directly."
+                    ),
+                )
+
+            instance.delete()
 
 
 @extend_schema(tags=["Reservations"], summary="List tickets")

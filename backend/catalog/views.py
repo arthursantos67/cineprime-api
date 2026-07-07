@@ -22,7 +22,9 @@ from cineprime_api.permissions import IsAdminUserOrReadOnly
 from rest_framework.generics import ListAPIView, RetrieveUpdateAPIView
 
 from cineprime_api.localization import DEFAULT_LOCALE, get_request_locale
-from reservations.models import SessionSeatStatus
+from reservations.models import SessionSeat, SessionSeatStatus, Ticket
+from reservations.services import detach_tickets
+from catalog.exceptions import SessionsHaveValidTickets
 from catalog.models import (
     AudioFormat,
     Genre,
@@ -211,6 +213,14 @@ class GenreDetailView(RetrieveUpdateDestroyAPIView):
         return response
 
 
+def _sessions_with_valid_tickets(sessions_qs):
+    """Sessions that haven't ended yet and still have at least one sold ticket."""
+    return sessions_qs.filter(
+        end_time__gte=timezone.now(),
+        session_seats__ticket__isnull=False,
+    ).distinct()
+
+
 def _movie_queryset_with_aggregates():
     return (
         Movie.objects.prefetch_related("genres", "cast")
@@ -337,6 +347,44 @@ class MovieDetailView(RetrieveUpdateDestroyAPIView):
     def perform_update(self, serializer):
         serializer.save()
         invalidate_movie_and_session_list_cache()
+
+    def perform_destroy(self, instance):
+        sessions = instance.sessions.select_related("movie", "room").all()
+        session_ids = list(sessions.values_list("id", flat=True))
+
+        with transaction.atomic():
+            # Lock every SessionSeat of every session being deleted against the
+            # same rows CheckoutService.execute() locks, so a checkout that is
+            # concurrently turning one of these seats into a ticket is fully
+            # serialized against this check instead of racing it.
+            list(
+                SessionSeat.objects.select_for_update(of=("self",))
+                .filter(session_id__in=session_ids)
+                .order_by("id")
+                .values_list("id", flat=True)
+            )
+
+            blocking_session_ids = list(
+                _sessions_with_valid_tickets(sessions).values_list("id", flat=True)
+            )
+
+            if blocking_session_ids:
+                ticket_count = Ticket.objects.filter(
+                    session_seat__session_id__in=blocking_session_ids
+                ).count()
+                raise SessionsHaveValidTickets(
+                    session_count=len(blocking_session_ids),
+                    ticket_count=ticket_count,
+                    detail=(
+                        "Movie has sessions with valid tickets and cannot be deleted. "
+                        "Cancel those tickets before deleting the movie."
+                    ),
+                )
+
+            for session in sessions:
+                detach_tickets(Ticket.objects.filter(session_seat__session=session))
+            sessions.delete()
+            instance.delete()
 
     def destroy(self, request, *args, **kwargs):
         response = super().destroy(request, *args, **kwargs)
@@ -576,6 +624,32 @@ class SessionDetailView(RetrieveUpdateDestroyAPIView):
     def perform_update(self, serializer):
         serializer.save()
         invalidate_session_list_cache()
+
+    def perform_destroy(self, instance):
+        with transaction.atomic():
+            # Lock this session's SessionSeats against the same rows
+            # CheckoutService.execute() locks, closing the race where a
+            # checkout turns a seat into a ticket between the check below and
+            # the delete.
+            list(
+                SessionSeat.objects.select_for_update(of=("self",))
+                .filter(session_id=instance.id)
+                .order_by("id")
+                .values_list("id", flat=True)
+            )
+
+            ticket_count = Ticket.objects.filter(session_seat__session=instance).count()
+            has_valid_tickets = instance.end_time >= timezone.now() and ticket_count > 0
+
+            if has_valid_tickets:
+                raise SessionsHaveValidTickets(
+                    session_count=1,
+                    ticket_count=ticket_count,
+                    detail="Session has valid tickets and cannot be deleted.",
+                )
+
+            detach_tickets(Ticket.objects.filter(session_seat__session=instance))
+            instance.delete()
 
     def destroy(self, request, *args, **kwargs):
         response = super().destroy(request, *args, **kwargs)

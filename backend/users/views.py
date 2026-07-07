@@ -771,7 +771,10 @@ class MyTicketsView(ListAPIView):
         if ticket_type == "upcoming":
             queryset = queryset.filter(session_seat__session__start_time__gt=now)
         elif ticket_type == "past":
-            queryset = queryset.filter(session_seat__session__start_time__lte=now)
+            queryset = queryset.filter(
+                Q(session_seat__isnull=True)
+                | Q(session_seat__session__start_time__lte=now)
+            )
 
         return queryset
 

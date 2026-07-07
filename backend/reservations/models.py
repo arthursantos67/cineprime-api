@@ -242,9 +242,12 @@ class Ticket(models.Model):
     )
     session_seat = models.OneToOneField(
         "reservations.SessionSeat",
-        on_delete=models.PROTECT,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
         related_name="ticket",
     )
+    session_snapshot = models.JSONField(null=True, blank=True)
     ticket_code = models.CharField(max_length=64, unique=True, editable=False)
     ticket_type = models.CharField(
         max_length=20,
@@ -288,6 +291,11 @@ class Ticket(models.Model):
 
     def clean(self):
         errors = {}
+
+        if self.session_seat_id is None and not self.session_snapshot:
+            errors["session_snapshot"] = (
+                "Tickets without a session seat must keep a session snapshot."
+            )
 
         if self.session_seat_id and self.user_id:
             seat_errors = []
