@@ -150,6 +150,12 @@ def _build_details(error_code, normalized_data, exc):
     if error_code == "HAS_ACTIVE_TICKETS":
         return {"ticket_count": getattr(exc, "ticket_count", 0)}
 
+    if error_code == "SESSIONS_HAVE_VALID_TICKETS":
+        return {
+            "session_count": getattr(exc, "session_count", 0),
+            "ticket_count": getattr(exc, "ticket_count", 0),
+        }
+
     if isinstance(normalized_data, dict):
         return {key: value for key, value in normalized_data.items() if key != "detail"}
 

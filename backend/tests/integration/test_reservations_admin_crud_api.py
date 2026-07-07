@@ -248,6 +248,131 @@ def test_session_seat_create_retrieve_delete_endpoints(api_client, room, session
 
 
 @pytest.mark.django_db
+def test_session_seat_delete_blocked_when_it_has_a_linked_ticket(api_client, room, session):
+    user = User.objects.create_user(
+        email="session-seat-ticket@example.com",
+        username="sessionseatticket",
+        password="StrongPass123",
+    )
+    seat_row = SeatRow.objects.create(room=room, name="A")
+    seat = Seat.objects.create(row=seat_row, number=1)
+    session_seat = SessionSeat.objects.create(
+        session=session,
+        seat=seat,
+        status=SessionSeatStatus.PURCHASED,
+    )
+    ticket = Ticket.objects.create(
+        user=user,
+        session_seat=session_seat,
+        ticket_type="inteira",
+        amount_paid="30.00",
+        payment_method="pix",
+    )
+
+    delete_response = api_client.delete(
+        f"/api/v1/reservation/session-seats/{session_seat.id}/"
+    )
+
+    assert delete_response.status_code == status.HTTP_409_CONFLICT
+    assert delete_response.data["error"]["code"] == "SESSIONS_HAVE_VALID_TICKETS"
+    assert SessionSeat.objects.filter(id=session_seat.id).exists()
+    ticket.refresh_from_db()
+    assert ticket.session_seat_id == session_seat.id
+
+
+@pytest.mark.django_db
+def test_seat_delete_detaches_linked_ticket_with_snapshot(api_client, room):
+    past_movie = Movie.objects.create(
+        title="Past Seat Movie",
+        synopsis="Synopsis",
+        duration_minutes=100,
+        release_date="2026-01-01",
+        poster_url="https://example.com/past-seat-movie.jpg",
+    )
+    past_session = Session.objects.create(
+        movie=past_movie,
+        room=room,
+        start_time=timezone.now() - timedelta(hours=3),
+        end_time=timezone.now() - timedelta(hours=1),
+        base_price="30.00",
+    )
+    user = User.objects.create_user(
+        email="seat-delete-ticket@example.com",
+        username="seatdeleteticket",
+        password="StrongPass123",
+    )
+    seat_row = SeatRow.objects.create(room=room, name="A")
+    seat = Seat.objects.create(row=seat_row, number=1)
+    session_seat = SessionSeat.objects.create(
+        session=past_session,
+        seat=seat,
+        status=SessionSeatStatus.PURCHASED,
+    )
+    ticket = Ticket.objects.create(
+        user=user,
+        session_seat=session_seat,
+        ticket_type="inteira",
+        amount_paid="30.00",
+        payment_method="pix",
+    )
+
+    delete_response = api_client.delete(f"/api/v1/reservation/seats/{seat.id}/")
+
+    assert delete_response.status_code == status.HTTP_204_NO_CONTENT
+    assert not Seat.objects.filter(id=seat.id).exists()
+    ticket.refresh_from_db()
+    assert ticket.session_seat_id is None
+    assert ticket.session_snapshot["seat"]["identifier"] == "A1"
+    assert ticket.session_snapshot["movie"]["title"] == "Past Seat Movie"
+
+
+@pytest.mark.django_db
+def test_seat_row_delete_detaches_linked_ticket_with_snapshot(api_client, room):
+    past_movie = Movie.objects.create(
+        title="Past Row Movie",
+        synopsis="Synopsis",
+        duration_minutes=100,
+        release_date="2026-01-01",
+        poster_url="https://example.com/past-row-movie.jpg",
+    )
+    past_session = Session.objects.create(
+        movie=past_movie,
+        room=room,
+        start_time=timezone.now() - timedelta(hours=3),
+        end_time=timezone.now() - timedelta(hours=1),
+        base_price="30.00",
+    )
+    user = User.objects.create_user(
+        email="seat-row-delete-ticket@example.com",
+        username="seatrowdeleteticket",
+        password="StrongPass123",
+    )
+    seat_row = SeatRow.objects.create(room=room, name="A")
+    seat = Seat.objects.create(row=seat_row, number=1)
+    session_seat = SessionSeat.objects.create(
+        session=past_session,
+        seat=seat,
+        status=SessionSeatStatus.PURCHASED,
+    )
+    ticket = Ticket.objects.create(
+        user=user,
+        session_seat=session_seat,
+        ticket_type="inteira",
+        amount_paid="30.00",
+        payment_method="pix",
+    )
+
+    delete_response = api_client.delete(f"/api/v1/reservation/seat-rows/{seat_row.id}/")
+
+    assert delete_response.status_code == status.HTTP_204_NO_CONTENT
+    assert not SeatRow.objects.filter(id=seat_row.id).exists()
+    ticket.refresh_from_db()
+    assert ticket.session_seat_id is None
+    assert ticket.session_snapshot["seat"]["identifier"] == "A1"
+    assert ticket.session_snapshot["movie"]["title"] == "Past Row Movie"
+
+
+@pytest.mark.django_db
 def test_ticket_list_retrieve_delete_endpoints(api_client, room, session):
     user = User.objects.create_user(
         email="ticket-crud@example.com",

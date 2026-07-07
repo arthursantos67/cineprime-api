@@ -24,7 +24,7 @@ from catalog.models import (
     SessionType,
 )
 from catalog.serializers import compute_session_price
-from reservations.models import Seat, SeatRow, SessionSeat, SessionSeatStatus
+from reservations.models import Seat, SeatRow, SessionSeat, SessionSeatStatus, Ticket
 from users.models import User
 
 
@@ -1645,6 +1645,187 @@ class TestCatalogApi:
         second_response = api_client.get("/api/v1/catalog/movies/")
         assert second_response.status_code == status.HTTP_200_OK
         assert second_response.data["count"] == initial_count - 1
+
+    def test_delete_movie_cascades_sessions_without_tickets(
+        self,
+        api_client,
+        movie,
+        session,
+    ):
+        session_id = session.id
+
+        delete_response = api_client.delete(f"/api/v1/catalog/movies/{movie.id}/")
+
+        assert delete_response.status_code == status.HTTP_204_NO_CONTENT
+        assert not Movie.objects.filter(id=movie.id).exists()
+        assert not Session.objects.filter(id=session_id).exists()
+
+    def test_delete_movie_blocked_when_session_has_valid_ticket(
+        self,
+        api_client,
+        movie,
+        room,
+        session,
+    ):
+        user = User.objects.create_user(
+            email="movie-delete-ticket@example.com",
+            username="moviedeleteticket",
+            password="StrongPass123",
+        )
+        seat_row = SeatRow.objects.create(room=room, name="A")
+        seat = Seat.objects.create(row=seat_row, number=1)
+        session_seat = SessionSeat.objects.create(
+            session=session,
+            seat=seat,
+            status=SessionSeatStatus.PURCHASED,
+        )
+        Ticket.objects.create(
+            user=user,
+            session_seat=session_seat,
+            ticket_type="inteira",
+            amount_paid="30.00",
+            payment_method="pix",
+        )
+
+        delete_response = api_client.delete(f"/api/v1/catalog/movies/{movie.id}/")
+
+        assert delete_response.status_code == status.HTTP_409_CONFLICT
+        assert delete_response.data["error"]["code"] == "SESSIONS_HAVE_VALID_TICKETS"
+        assert delete_response.data["error"]["details"]["session_count"] == 1
+        assert delete_response.data["error"]["details"]["ticket_count"] == 1
+        assert Movie.objects.filter(id=movie.id).exists()
+        assert Session.objects.filter(id=session.id).exists()
+
+    def test_delete_session_blocked_when_it_has_valid_ticket(
+        self,
+        api_client,
+        room,
+        session,
+    ):
+        user = User.objects.create_user(
+            email="session-delete-ticket@example.com",
+            username="sessiondeleteticket",
+            password="StrongPass123",
+        )
+        seat_row = SeatRow.objects.create(room=room, name="A")
+        seat = Seat.objects.create(row=seat_row, number=1)
+        session_seat = SessionSeat.objects.create(
+            session=session,
+            seat=seat,
+            status=SessionSeatStatus.PURCHASED,
+        )
+        Ticket.objects.create(
+            user=user,
+            session_seat=session_seat,
+            ticket_type="inteira",
+            amount_paid="30.00",
+            payment_method="pix",
+        )
+
+        delete_response = api_client.delete(f"/api/v1/catalog/sessions/{session.id}/")
+
+        assert delete_response.status_code == status.HTTP_409_CONFLICT
+        assert delete_response.data["error"]["code"] == "SESSIONS_HAVE_VALID_TICKETS"
+        assert delete_response.data["error"]["details"]["session_count"] == 1
+        assert delete_response.data["error"]["details"]["ticket_count"] == 1
+        assert Session.objects.filter(id=session.id).exists()
+
+    def test_delete_movie_detaches_tickets_from_past_sessions_and_succeeds(
+        self,
+        api_client,
+        movie,
+        room,
+    ):
+        past_session = Session.objects.create(
+            movie=movie,
+            room=room,
+            start_time=timezone.now() - timedelta(hours=3),
+            end_time=timezone.now() - timedelta(hours=1),
+            base_price="30.00",
+        )
+        user = User.objects.create_user(
+            email="past-session-ticket@example.com",
+            username="pastsessionticket",
+            password="StrongPass123",
+        )
+        seat_row = SeatRow.objects.create(room=room, name="A")
+        seat = Seat.objects.create(row=seat_row, number=1)
+        session_seat = SessionSeat.objects.create(
+            session=past_session,
+            seat=seat,
+            status=SessionSeatStatus.PURCHASED,
+        )
+        ticket = Ticket.objects.create(
+            user=user,
+            session_seat=session_seat,
+            ticket_type="inteira",
+            amount_paid="30.00",
+            payment_method="pix",
+        )
+
+        delete_response = api_client.delete(f"/api/v1/catalog/movies/{movie.id}/")
+
+        assert delete_response.status_code == status.HTTP_204_NO_CONTENT
+        assert not Movie.objects.filter(id=movie.id).exists()
+        assert not Session.objects.filter(id=past_session.id).exists()
+
+        ticket.refresh_from_db()
+        assert ticket.session_seat_id is None
+        assert ticket.session_snapshot["movie"]["title"] == "The Godfather"
+        assert ticket.session_snapshot["seat"]["identifier"] == "A1"
+
+        ticket_holder_client = APIClient()
+        ticket_holder_client.force_authenticate(user=user)
+        tickets_response = ticket_holder_client.get("/api/v1/users/me/tickets/")
+        assert tickets_response.status_code == status.HTTP_200_OK
+        assert any(
+            item["ticket_id"] == str(ticket.id)
+            for item in tickets_response.data["results"]
+        )
+
+    def test_delete_session_detaches_ticket_from_past_session_and_succeeds(
+        self,
+        api_client,
+        movie,
+        room,
+    ):
+        past_session = Session.objects.create(
+            movie=movie,
+            room=room,
+            start_time=timezone.now() - timedelta(hours=3),
+            end_time=timezone.now() - timedelta(hours=1),
+            base_price="30.00",
+        )
+        user = User.objects.create_user(
+            email="past-session-direct-ticket@example.com",
+            username="pastsessiondirectticket",
+            password="StrongPass123",
+        )
+        seat_row = SeatRow.objects.create(room=room, name="A")
+        seat = Seat.objects.create(row=seat_row, number=1)
+        session_seat = SessionSeat.objects.create(
+            session=past_session,
+            seat=seat,
+            status=SessionSeatStatus.PURCHASED,
+        )
+        ticket = Ticket.objects.create(
+            user=user,
+            session_seat=session_seat,
+            ticket_type="inteira",
+            amount_paid="30.00",
+            payment_method="pix",
+        )
+
+        delete_response = api_client.delete(
+            f"/api/v1/catalog/sessions/{past_session.id}/"
+        )
+
+        assert delete_response.status_code == status.HTTP_204_NO_CONTENT
+        assert not Session.objects.filter(id=past_session.id).exists()
+
+        ticket.refresh_from_db()
+        assert ticket.session_seat_id is None
+        assert ticket.session_snapshot["session"]["id"] == str(past_session.id)
 
     def test_genre_update_should_invalidate_movie_and_session_list_caches(
         self,

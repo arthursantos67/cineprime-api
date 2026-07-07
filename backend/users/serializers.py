@@ -234,6 +234,9 @@ class UserTicketSerializer(serializers.ModelSerializer):
 
     @extend_schema_field(UserTicketSessionSerializer)
     def get_session(self, obj):
+        if obj.session_seat_id is None:
+            return (obj.session_snapshot or {}).get("session")
+
         session = obj.session_seat.session
         return {
             "id": str(session.id),
@@ -243,14 +246,33 @@ class UserTicketSerializer(serializers.ModelSerializer):
 
     @extend_schema_field(UserTicketRoomSerializer)
     def get_room(self, obj):
+        if obj.session_seat_id is None:
+            snapshot = (obj.session_snapshot or {}).get("room")
+            if not snapshot:
+                return None
+            return {
+                "id": snapshot["id"],
+                "name": snapshot["name"],
+            }
+
         room = obj.session_seat.session.room
         return {
             "id": str(room.id),
-            "name": room.name,
+            "name": room.display_name or room.name,
         }
 
     @extend_schema_field(UserTicketMovieSerializer)
     def get_movie(self, obj):
+        if obj.session_seat_id is None:
+            snapshot = (obj.session_snapshot or {}).get("movie")
+            if not snapshot:
+                return None
+            return {
+                "id": snapshot["id"],
+                "title": snapshot["title"],
+                "poster_url": snapshot["poster_url"],
+            }
+
         movie = obj.session_seat.session.movie
         return {
             "id": str(movie.id),
@@ -260,6 +282,9 @@ class UserTicketSerializer(serializers.ModelSerializer):
 
     @extend_schema_field(UserTicketSeatSerializer)
     def get_seat(self, obj):
+        if obj.session_seat_id is None:
+            return (obj.session_snapshot or {}).get("seat")
+
         seat = obj.session_seat.seat
         return {
             "id": str(seat.id),
