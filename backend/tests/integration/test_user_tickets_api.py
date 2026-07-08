@@ -39,6 +39,8 @@ def test_should_return_only_authenticated_user_tickets():
         duration_minutes=120,
         release_date="2026-01-01",
         poster_url="http://test.com",
+        ticket_image_url="https://cdn.example.com/ticket-bg.jpg",
+        translations={"en-US": {"title": "Localized Movie"}},
     )
 
     session = Session.objects.create(
@@ -47,6 +49,8 @@ def test_should_return_only_authenticated_user_tickets():
         start_time=timezone.now() + timedelta(hours=1),
         end_time=timezone.now() + timedelta(hours=2),
         base_price="30.00",
+        projection_format="3d",
+        audio_format="legendado",
     )
 
     session_seat = SessionSeat.objects.create(
@@ -91,6 +95,8 @@ def test_should_return_only_authenticated_user_tickets():
     assert ticket_payload["session"]["id"] == str(session.id)
     assert ticket_payload["session"]["start_time"] is not None
     assert ticket_payload["session"]["end_time"] is not None
+    assert ticket_payload["session"]["projection_format"] == "3d"
+    assert ticket_payload["session"]["audio_format"] == "legendado"
     assert ticket_payload["room"] == {
         "id": str(room.id),
         "name": room.name,
@@ -99,7 +105,16 @@ def test_should_return_only_authenticated_user_tickets():
         "id": str(movie.id),
         "title": movie.title,
         "poster_url": movie.poster_url,
+        "ticket_image_url": movie.ticket_image_url,
     }
+
+    # The movie title is localized from the request locale (Accept-Language).
+    localized_response = client.get(
+        "/api/v1/users/me/tickets/", HTTP_ACCEPT_LANGUAGE="en-US"
+    )
+    assert (
+        localized_response.data["results"][0]["movie"]["title"] == "Localized Movie"
+    )
     assert ticket_payload["seat"] == {
         "id": str(seat.id),
         "row": row.name,

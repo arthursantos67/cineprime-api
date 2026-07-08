@@ -35,8 +35,10 @@ const ticket: UserTicket = {
     row: "A",
   },
   session: {
+    audio_format: "legendado",
     end_time: "2026-05-22T20:30:00-03:00",
     id: "session-1",
+    projection_format: "3d",
     start_time: "2026-05-22T18:30:00-03:00",
   },
   ticket_code: "ABC123",
@@ -123,15 +125,23 @@ test("my tickets error state renders retry button", () => {
   assert.match(html, /servidor/);
 });
 
-test("ticket card renders ticket details with Brazilian formatting", () => {
+test("ticket card renders a flip card with details, badges, and a real QR code", () => {
   const html = renderToStaticMarkup(createElement(TicketCard, { ticket }));
 
   assert.match(html, /A Jornada/);
   assert.match(html, /22\/05\/2026, 18:30/);
   assert.match(html, /Sala 1/);
   assert.match(html, /A1/);
-  assert.match(html, /Meia-entrada/);
-  assert.match(html, /R\$\s?21,25/);
-  assert.match(html, /PIX/);
   assert.match(html, /ABC123/);
+  // Format badges surfaced from the session projection/audio formats.
+  assert.match(html, /3D/);
+  assert.match(html, /Legendado/);
+  // Flip affordance is a dedicated, labelled toggle button — not a giant
+  // role="button" wrapping the heading and code.
+  assert.doesNotMatch(html, /role="button"/);
+  assert.match(html, /aria-pressed="false"/);
+  assert.match(html, /Ver detalhes do ingresso/);
+  // A real (SVG) QR code replaces the old deterministic bars.
+  assert.match(html, /<svg/);
+  assert.match(html, /Acessar código e QR code do ingresso/);
 });

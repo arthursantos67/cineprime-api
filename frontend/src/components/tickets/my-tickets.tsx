@@ -126,7 +126,7 @@ export function MyTicketsContent({
 }
 
 export function TicketCard({ ticket }: { ticket: UserTicket }) {
-  return <SharedTicketCard showVisualCode={false} ticket={ticket} />;
+  return <SharedTicketCard ticket={ticket} />;
 }
 
 export function getTicketFilterFromSearchParams(

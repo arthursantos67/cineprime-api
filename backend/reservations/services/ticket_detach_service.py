@@ -1,33 +1,5 @@
 from reservations.models import Ticket
-
-
-def _build_session_snapshot(session, seat):
-    movie = session.movie
-    room = session.room
-    return {
-        "movie": {
-            "id": str(session.movie_id),
-            "title": movie.title,
-            "poster_url": movie.poster_url,
-            "translations": movie.translations,
-        },
-        "session": {
-            "id": str(session.id),
-            "start_time": session.start_time.isoformat(),
-            "end_time": session.end_time.isoformat(),
-        },
-        "room": {
-            "id": str(session.room_id),
-            "name": room.display_name or room.name,
-            "translations": room.translations,
-        },
-        "seat": {
-            "id": str(seat.id),
-            "row": seat.row.name,
-            "number": seat.number,
-            "identifier": f"{seat.row.name}{seat.number}",
-        },
-    }
+from reservations.ticket_payloads import build_ticket_snapshot
 
 
 def detach_tickets(tickets_queryset):
@@ -48,7 +20,7 @@ def detach_tickets(tickets_queryset):
     )
     for ticket in tickets:
         session_seat = ticket.session_seat
-        ticket.session_snapshot = _build_session_snapshot(
+        ticket.session_snapshot = build_ticket_snapshot(
             session_seat.session, session_seat.seat
         )
         ticket.session_seat = None

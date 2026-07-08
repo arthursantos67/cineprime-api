@@ -288,6 +288,7 @@ def test_seat_delete_detaches_linked_ticket_with_snapshot(api_client, room):
         duration_minutes=100,
         release_date="2026-01-01",
         poster_url="https://example.com/past-seat-movie.jpg",
+        ticket_image_url="https://example.com/past-seat-ticket-bg.jpg",
     )
     past_session = Session.objects.create(
         movie=past_movie,
@@ -295,6 +296,8 @@ def test_seat_delete_detaches_linked_ticket_with_snapshot(api_client, room):
         start_time=timezone.now() - timedelta(hours=3),
         end_time=timezone.now() - timedelta(hours=1),
         base_price="30.00",
+        projection_format="3d",
+        audio_format="dublado",
     )
     user = User.objects.create_user(
         email="seat-delete-ticket@example.com",
@@ -324,6 +327,12 @@ def test_seat_delete_detaches_linked_ticket_with_snapshot(api_client, room):
     assert ticket.session_seat_id is None
     assert ticket.session_snapshot["seat"]["identifier"] == "A1"
     assert ticket.session_snapshot["movie"]["title"] == "Past Seat Movie"
+    assert (
+        ticket.session_snapshot["movie"]["ticket_image_url"]
+        == "https://example.com/past-seat-ticket-bg.jpg"
+    )
+    assert ticket.session_snapshot["session"]["projection_format"] == "3d"
+    assert ticket.session_snapshot["session"]["audio_format"] == "dublado"
 
 
 @pytest.mark.django_db

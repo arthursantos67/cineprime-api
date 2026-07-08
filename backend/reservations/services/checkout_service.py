@@ -4,12 +4,18 @@ from decimal import Decimal
 from django.db import transaction
 from django.utils import timezone
 
-from cineprime_api.localization import DEFAULT_LOCALE, get_translation_value, normalize_locale
+from cineprime_api.localization import DEFAULT_LOCALE, normalize_locale
 from cineprime_api.logging_context import get_correlation_id
 from reservations.constants import SESSION_PRESALE_CUTOFF_MINUTES
 from reservations.exceptions import SessionExpiredError
 from reservations.locks import SeatLockManager
 from reservations.models import Seat, SessionSeat, SessionSeatStatus, Ticket
+from reservations.ticket_payloads import (
+    build_movie_payload,
+    build_room_payload,
+    build_seat_payload,
+    build_session_payload,
+)
 
 
 class CheckoutError(Exception):
@@ -178,41 +184,16 @@ class CheckoutService:
                     "ticket_type": ticket.ticket_type,
                     "amount_paid": ticket.amount_paid,
                     "payment_method": ticket.payment_method,
-                    "movie": {
-                        "id": str(ticket.session_seat.session.movie_id),
-                        "title": get_translation_value(
-                            fallback_value=ticket.session_seat.session.movie.title,
-                            field="title",
-                            locale=locale,
-                            translations=ticket.session_seat.session.movie.translations,
-                        ),
-                    },
-                    "session": {
-                        "id": str(ticket.session_seat.session_id),
-                        "start_time": ticket.session_seat.session.start_time,
-                        "end_time": ticket.session_seat.session.end_time,
-                    },
-                    "room": {
-                        "id": str(ticket.session_seat.session.room_id),
-                        "name": get_translation_value(
-                            fallback_value=(
-                                ticket.session_seat.session.room.display_name
-                                or ticket.session_seat.session.room.name
-                            ),
-                            field="display_name",
-                            locale=locale,
-                            translations=ticket.session_seat.session.room.translations,
-                        ),
-                    },
-                    "seat": {
-                        "id": str(ticket.session_seat.seat_id),
-                        "row": ticket.session_seat.seat.row.name,
-                        "number": ticket.session_seat.seat.number,
-                        "identifier": (
-                            f"{ticket.session_seat.seat.row.name}"
-                            f"{ticket.session_seat.seat.number}"
-                        ),
-                    },
+                    "movie": build_movie_payload(
+                        ticket.session_seat.session.movie, locale=locale
+                    ),
+                    "session": build_session_payload(
+                        ticket.session_seat.session
+                    ),
+                    "room": build_room_payload(
+                        ticket.session_seat.session.room, locale=locale
+                    ),
+                    "seat": build_seat_payload(ticket.session_seat.seat),
                 }
                 for ticket in tickets
             ],

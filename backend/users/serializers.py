@@ -5,9 +5,20 @@ from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 from rest_framework.exceptions import AuthenticationFailed
 
+from cineprime_api.localization import get_context_locale
 from users.exceptions import WrongPassword
 from users.models import AdminPermissionLog, User, WalletTransaction
 from reservations.models import Ticket
+from reservations.ticket_payloads import (
+    build_movie_payload,
+    build_room_payload,
+    build_seat_payload,
+    build_session_payload,
+    movie_from_snapshot,
+    room_from_snapshot,
+    seat_from_snapshot,
+    session_from_snapshot,
+)
 
 
 class TmdbTokenResponseSerializer(serializers.Serializer):
@@ -187,6 +198,8 @@ class UserTicketSessionSerializer(serializers.Serializer):
     id = serializers.UUIDField()
     start_time = serializers.DateTimeField()
     end_time = serializers.DateTimeField()
+    projection_format = serializers.CharField(allow_blank=True, required=False)
+    audio_format = serializers.CharField(allow_blank=True, required=False)
 
 
 class UserTicketRoomSerializer(serializers.Serializer):
@@ -198,6 +211,7 @@ class UserTicketMovieSerializer(serializers.Serializer):
     id = serializers.UUIDField()
     title = serializers.CharField()
     poster_url = serializers.URLField(allow_null=True)
+    ticket_image_url = serializers.URLField(allow_null=True)
 
 
 class UserTicketSeatSerializer(serializers.Serializer):
@@ -235,63 +249,32 @@ class UserTicketSerializer(serializers.ModelSerializer):
     @extend_schema_field(UserTicketSessionSerializer)
     def get_session(self, obj):
         if obj.session_seat_id is None:
-            return (obj.session_snapshot or {}).get("session")
+            return session_from_snapshot(obj.session_snapshot)
 
-        session = obj.session_seat.session
-        return {
-            "id": str(session.id),
-            "start_time": session.start_time,
-            "end_time": session.end_time,
-        }
+        return build_session_payload(obj.session_seat.session)
 
     @extend_schema_field(UserTicketRoomSerializer)
     def get_room(self, obj):
+        locale = get_context_locale(self.context)
         if obj.session_seat_id is None:
-            snapshot = (obj.session_snapshot or {}).get("room")
-            if not snapshot:
-                return None
-            return {
-                "id": snapshot["id"],
-                "name": snapshot["name"],
-            }
+            return room_from_snapshot(obj.session_snapshot, locale=locale)
 
-        room = obj.session_seat.session.room
-        return {
-            "id": str(room.id),
-            "name": room.display_name or room.name,
-        }
+        return build_room_payload(obj.session_seat.session.room, locale=locale)
 
     @extend_schema_field(UserTicketMovieSerializer)
     def get_movie(self, obj):
+        locale = get_context_locale(self.context)
         if obj.session_seat_id is None:
-            snapshot = (obj.session_snapshot or {}).get("movie")
-            if not snapshot:
-                return None
-            return {
-                "id": snapshot["id"],
-                "title": snapshot["title"],
-                "poster_url": snapshot["poster_url"],
-            }
+            return movie_from_snapshot(obj.session_snapshot, locale=locale)
 
-        movie = obj.session_seat.session.movie
-        return {
-            "id": str(movie.id),
-            "title": movie.title,
-            "poster_url": movie.poster_url,
-        }
+        return build_movie_payload(obj.session_seat.session.movie, locale=locale)
 
     @extend_schema_field(UserTicketSeatSerializer)
     def get_seat(self, obj):
         if obj.session_seat_id is None:
-            return (obj.session_snapshot or {}).get("seat")
+            return seat_from_snapshot(obj.session_snapshot)
 
-        seat = obj.session_seat.seat
-        return {
-            "id": str(seat.id),
-            "row": seat.row.name,
-            "number": seat.number,
-            "identifier": f"{seat.row.name}{seat.number}",
-        }
+        return build_seat_payload(obj.session_seat.seat)
 
 
 class UserListSerializer(serializers.ModelSerializer):

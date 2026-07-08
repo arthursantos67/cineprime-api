@@ -1,7 +1,7 @@
 from django.utils import timezone
 from rest_framework import serializers
 
-from cineprime_api.localization import get_context_locale, get_translation_value
+from cineprime_api.localization import get_context_locale
 from catalog.models import Session
 from reservations.exceptions import (
     InvalidPaymentMethodApiException,
@@ -15,6 +15,16 @@ from reservations.models import (
     SessionSeatStatus,
     Ticket,
     TicketType,
+)
+from reservations.ticket_payloads import (
+    build_movie_payload,
+    build_room_payload,
+    build_seat_payload,
+    build_session_payload,
+    movie_from_snapshot,
+    room_from_snapshot,
+    seat_from_snapshot,
+    session_from_snapshot,
 )
 
 
@@ -126,85 +136,30 @@ class TicketSerializer(serializers.ModelSerializer):
         read_only_fields = ["id", "ticket_code", "created_at"]
 
     def get_movie(self, obj):
-        if obj.session_seat_id is None:
-            snapshot = (obj.session_snapshot or {}).get("movie")
-            if not snapshot:
-                return None
-            locale = get_context_locale(self.context)
-            return {
-                "id": snapshot["id"],
-                "title": get_translation_value(
-                    fallback_value=snapshot["title"],
-                    field="title",
-                    locale=locale,
-                    translations=snapshot.get("translations"),
-                ),
-                "poster_url": snapshot["poster_url"],
-            }
-
-        movie = obj.session_seat.session.movie
         locale = get_context_locale(self.context)
-        return {
-            "id": str(movie.id),
-            "title": get_translation_value(
-                fallback_value=movie.title,
-                field="title",
-                locale=locale,
-                translations=movie.translations,
-            ),
-            "poster_url": movie.poster_url,
-        }
+        if obj.session_seat_id is None:
+            return movie_from_snapshot(obj.session_snapshot, locale=locale)
+
+        return build_movie_payload(obj.session_seat.session.movie, locale=locale)
 
     def get_session(self, obj):
         if obj.session_seat_id is None:
-            return (obj.session_snapshot or {}).get("session")
+            return session_from_snapshot(obj.session_snapshot)
 
-        session = obj.session_seat.session
-        return {
-            "id": str(session.id),
-            "start_time": session.start_time,
-            "end_time": session.end_time,
-        }
+        return build_session_payload(obj.session_seat.session)
 
     def get_room(self, obj):
-        if obj.session_seat_id is None:
-            snapshot = (obj.session_snapshot or {}).get("room")
-            if not snapshot:
-                return None
-            locale = get_context_locale(self.context)
-            return {
-                "id": snapshot["id"],
-                "name": get_translation_value(
-                    fallback_value=snapshot["name"],
-                    field="display_name",
-                    locale=locale,
-                    translations=snapshot.get("translations"),
-                ),
-            }
-
-        room = obj.session_seat.session.room
         locale = get_context_locale(self.context)
-        return {
-            "id": str(room.id),
-            "name": get_translation_value(
-                fallback_value=room.display_name or room.name,
-                field="display_name",
-                locale=locale,
-                translations=room.translations,
-            ),
-        }
+        if obj.session_seat_id is None:
+            return room_from_snapshot(obj.session_snapshot, locale=locale)
+
+        return build_room_payload(obj.session_seat.session.room, locale=locale)
 
     def get_seat(self, obj):
         if obj.session_seat_id is None:
-            return (obj.session_snapshot or {}).get("seat")
+            return seat_from_snapshot(obj.session_snapshot)
 
-        seat = obj.session_seat.seat
-        return {
-            "id": str(seat.id),
-            "row": seat.row.name,
-            "number": seat.number,
-            "identifier": f"{seat.row.name}{seat.number}",
-        }
+        return build_seat_payload(obj.session_seat.seat)
 
 
 class SessionSeatMapItemSerializer(serializers.ModelSerializer):

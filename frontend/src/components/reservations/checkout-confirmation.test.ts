@@ -5,7 +5,7 @@ import { createElement } from "react";
 import * as React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 
-import { TicketCard, buildDisplayOnlyBars } from "@/components/tickets/TicketCard";
+import { TicketCard } from "@/components/tickets/TicketCard";
 import type { CheckoutResponse } from "@/types/reservation";
 
 import { CheckoutConfirmationContent } from "./CheckoutConfirmation";
@@ -40,8 +40,10 @@ const checkoutResult: CheckoutResponse = {
       },
       seat_id: "seat-1",
       session: {
+        audio_format: "dublado",
         end_time: "2026-05-22T23:00:00-03:00",
         id: "session-1",
+        projection_format: "imax",
         start_time: "2026-05-22T21:00:00-03:00",
       },
       session_seat_id: "session-seat-1",
@@ -53,7 +55,7 @@ const checkoutResult: CheckoutResponse = {
   total_amount: "42.50",
 };
 
-test("ticket card renders generated ticket details and a display-only visual code", () => {
+test("ticket card renders generated ticket details, badges, and a real QR code", () => {
   const html = renderToStaticMarkup(
     createElement(TicketCard, { ticket: checkoutResult.tickets[0] })
   );
@@ -62,17 +64,14 @@ test("ticket card renders generated ticket details and a display-only visual cod
   assert.match(html, /22\/05\/2026, 21:00/);
   assert.match(html, /Sala 1/);
   assert.match(html, /B7/);
-  assert.match(html, /Inteira/);
-  assert.match(html, /R\$\s?42,50/);
-  assert.match(html, /PIX/);
   assert.match(html, /ABC123/);
-  assert.match(html, /Representação visual do ingresso ABC123/);
-  assert.match(html, /ticket-card__barcode-bar/);
-});
-
-test("display-only bars are deterministic and do not encode fake ticket data", () => {
-  assert.deepEqual(buildDisplayOnlyBars("ABC123"), buildDisplayOnlyBars("ABC123"));
-  assert.notDeepEqual(buildDisplayOnlyBars("ABC123"), buildDisplayOnlyBars("XYZ987"));
+  // Session projection/audio formats are surfaced as badges.
+  assert.match(html, /IMAX/);
+  assert.match(html, /Dublado/);
+  // The flip card exposes a real (SVG) QR code, not the old deterministic bars.
+  assert.match(html, /<svg/);
+  assert.doesNotMatch(html, /ticket-card__barcode-bar/);
+  assert.match(html, /Acessar código e QR code do ingresso/);
 });
 
 test("checkout confirmation renders the success state and generated tickets", () => {
