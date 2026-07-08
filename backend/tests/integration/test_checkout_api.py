@@ -135,10 +135,20 @@ def test_checkout_should_purchase_single_reserved_seat_with_ticket_type(
     assert response.data["tickets"][0]["movie"] == {
         "id": str(context["session"].movie_id),
         "title": context["session"].movie.title,
+        "poster_url": context["session"].movie.poster_url,
+        "ticket_image_url": context["session"].movie.ticket_image_url,
     }
     assert response.data["tickets"][0]["session"]["id"] == str(context["session"].id)
     assert response.data["tickets"][0]["session"]["start_time"] is not None
     assert response.data["tickets"][0]["session"]["end_time"] is not None
+    assert (
+        response.data["tickets"][0]["session"]["projection_format"]
+        == context["session"].projection_format
+    )
+    assert (
+        response.data["tickets"][0]["session"]["audio_format"]
+        == context["session"].audio_format
+    )
     assert response.data["tickets"][0]["room"] == {
         "id": str(context["session"].room_id),
         "name": context["session"].room.name,

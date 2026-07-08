@@ -64,6 +64,13 @@ class Movie(models.Model):
     release_date = models.DateField()
     poster_url = models.URLField(max_length=500)
     spotlight_url = models.URLField(max_length=500, null=True, blank=True)
+    ticket_image_url = models.URLField(
+        max_length=500,
+        null=True,
+        blank=True,
+        verbose_name="Imagem de fundo do ingresso",
+        help_text="Imagem horizontal (paisagem), proporção ideal 16:9 (ex.: 1280×720).",
+    )
     trailer_url = models.URLField(max_length=500, null=True, blank=True)
     status = models.CharField(
         max_length=20,

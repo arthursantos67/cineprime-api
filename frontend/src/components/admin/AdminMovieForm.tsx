@@ -184,15 +184,18 @@ function TmdbTokenModal({
 function FormField({
   children,
   error,
+  hint,
   label,
   labelFor,
 }: {
   children: React.ReactNode;
   error?: string;
+  hint?: string;
   label: string;
   labelFor: string;
 }) {
   const errorId = error ? `${labelFor}-error` : undefined;
+  const hintId = hint ? `${labelFor}-hint` : undefined;
 
   return (
     <div className="grid gap-1.5">
@@ -200,6 +203,11 @@ function FormField({
         {label}
       </label>
       {children}
+      {hint ? (
+        <p className="text-xs text-white/45" id={hintId}>
+          {hint}
+        </p>
+      ) : null}
       {error ? (
         <p className="text-sm font-bold text-error" id={errorId} role="alert">
           {error}
@@ -280,6 +288,12 @@ export function AdminMovieForm({ movie }: AdminMovieFormProps) {
   const [releaseDate, setReleaseDate] = useState(movie?.release_date ?? "");
   const [posterUrl, setPosterUrl] = useState(movie?.poster_url ?? "");
   const [spotlightUrl, setSpotlightUrl] = useState(movie?.spotlight_url ?? "");
+  const [ticketImageUrl, setTicketImageUrl] = useState(
+    movie?.ticket_image_url ?? ""
+  );
+  // Tracks a broken ticket-image URL so the preview shows the placeholder
+  // instead of a browser's broken-image glyph.
+  const [ticketImageError, setTicketImageError] = useState(false);
   const [trailerUrl, setTrailerUrl] = useState(movie?.trailer_url ?? "");
   const [status, setStatus] = useState<MovieStatus>(movie?.status ?? "em_cartaz");
   const [isFeatured, setIsFeatured] = useState(movie?.is_featured ?? false);
@@ -327,6 +341,7 @@ export function AdminMovieForm({ movie }: AdminMovieFormProps) {
   const releaseDateId = useId();
   const posterUrlId = useId();
   const spotlightUrlId = useId();
+  const ticketImageUrlId = useId();
   const trailerUrlId = useId();
   const classificationDescriptionId = useId();
   const directorId = useId();
@@ -537,6 +552,11 @@ export function AdminMovieForm({ movie }: AdminMovieFormProps) {
       is_featured: isFeatured,
       poster_url: posterUrl,
       spotlight_url: spotlightUrl ? spotlightUrl : isEditing ? null : undefined,
+      ticket_image_url: ticketImageUrl
+        ? ticketImageUrl
+        : isEditing
+          ? null
+          : undefined,
       trailer_url: trailerUrl ? trailerUrl : isEditing ? null : undefined,
       release_date: releaseDate,
       status,
@@ -959,6 +979,44 @@ export function AdminMovieForm({ movie }: AdminMovieFormProps) {
           ) : (
             <div className="flex h-40 items-center justify-center rounded-[8px] border border-dashed border-white/[0.12] text-sm text-white/30">
               {t("admin.movie.spotlightPreview")}
+            </div>
+          )}
+
+          <FormField
+            error={fieldErrors.ticket_image_url}
+            hint={t("admin.movie.ticketImageHint")}
+            label={t("admin.movie.ticketImageUrl")}
+            labelFor={ticketImageUrlId}
+          >
+            <TextInput
+              disabled={isSubmitting}
+              error={fieldErrors.ticket_image_url}
+              id={ticketImageUrlId}
+              onChange={(e) => {
+                setTicketImageUrl(e.target.value);
+                setTicketImageError(false);
+              }}
+              placeholder={t("admin.movie.ticketImageUrlPlaceholder")}
+              type="url"
+              value={ticketImageUrl}
+            />
+          </FormField>
+          {ticketImageUrl && !ticketImageError ? (
+            <div
+              className="overflow-hidden rounded-[8px] border border-white/[0.07]"
+              style={{ aspectRatio: "16/9" }}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                alt={t("admin.movie.ticketImagePreview")}
+                className="h-full w-full object-cover"
+                onError={() => setTicketImageError(true)}
+                src={ticketImageUrl}
+              />
+            </div>
+          ) : (
+            <div className="flex h-40 items-center justify-center rounded-[8px] border border-dashed border-white/[0.12] text-sm text-white/30">
+              {t("admin.movie.ticketImagePreview")}
             </div>
           )}
 

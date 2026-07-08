@@ -39,6 +39,7 @@ export type AdminMovieWritePayload = {
   is_featured?: boolean;
   poster_url: string;
   spotlight_url?: string | null;
+  ticket_image_url?: string | null;
   trailer_url?: string | null;
   release_date: string;
   status: MovieStatus;

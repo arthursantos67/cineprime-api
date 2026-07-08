@@ -35,11 +35,15 @@ export type CheckoutTicketResponse = {
   movie: {
     id: string;
     title: string;
+    poster_url?: string | null;
+    ticket_image_url?: string | null;
   };
   session: {
     id: string;
     start_time: string;
     end_time: string;
+    projection_format?: string;
+    audio_format?: string;
   };
   room: {
     id: string;
