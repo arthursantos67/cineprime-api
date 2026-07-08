@@ -53,8 +53,9 @@ export function AdminConfirmDialog({
   return (
     <dialog
       aria-labelledby="confirm-dialog-title"
+      // m-auto is required: Tailwind's Preflight resets margin, which the native <dialog> centering relies on.
       className={cn(
-        "w-full max-w-sm rounded-[10px] border border-white/[0.10]",
+        "fixed inset-0 m-auto w-full max-w-sm rounded-[10px] border border-white/[0.10]",
         "bg-[#1a2030] p-6 text-white shadow-xl backdrop:bg-black/60",
         "open:flex open:flex-col open:gap-4"
       )}
