@@ -222,11 +222,15 @@ def _sessions_with_valid_tickets(sessions_qs):
 
 
 def _movie_queryset_with_aggregates():
+    # Reviews attached to a movie that has moved back to "em_breve" are not
+    # surfaced anywhere (see MovieReviewListCreateView.get), so they must not
+    # count toward the rating either, or the two would disagree.
+    not_coming_soon = ~Q(status=MovieStatus.EM_BREVE)
     return (
         Movie.objects.prefetch_related("genres", "cast")
         .annotate(
-            average_rating=Avg("reviews__rating"),
-            review_count=Count("reviews"),
+            average_rating=Avg("reviews__rating", filter=not_coming_soon),
+            review_count=Count("reviews", filter=not_coming_soon),
         )
     )
 
@@ -758,7 +762,12 @@ class MovieReviewListCreateView(APIView):
         except (ValueError, TypeError):
             page = 1
 
-        qs = _review_queryset(movie, request)
+        # A movie that moved back to "em_breve" after being released keeps its
+        # historical reviews in the database, but they must stop being served
+        # (mirrors the average_rating/review_count filtering below).
+        movie_reviews_visible = movie.status != MovieStatus.EM_BREVE
+        base_qs = _review_queryset(movie, request) if movie_reviews_visible else _review_queryset(movie, request).none()
+        qs = base_qs
 
         rating_param = request.query_params.get("rating")
         if rating_param is not None:
@@ -790,7 +799,7 @@ class MovieReviewListCreateView(APIView):
         }
 
         if request.user.is_authenticated:
-            my_review_qs = _review_queryset(movie, request).filter(user=request.user).first()
+            my_review_qs = base_qs.filter(user=request.user).first()
             response_data["my_review"] = (
                 MovieReviewSerializer(my_review_qs).data if my_review_qs else None
             )
@@ -799,6 +808,20 @@ class MovieReviewListCreateView(APIView):
 
     def post(self, request, movie_pk):
         movie = get_object_or_404(Movie, pk=movie_pk)
+
+        if movie.status == MovieStatus.EM_BREVE:
+            return Response(
+                {
+                    "error": {
+                        "code": "MOVIE_NOT_RELEASED",
+                        "message": "Reviews can only be submitted for released movies.",
+                        "status": 400,
+                        "details": None,
+                    }
+                },
+                status=http_status.HTTP_400_BAD_REQUEST,
+            )
+
         serializer = MovieReviewSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
