@@ -193,6 +193,7 @@ LOCAL_APPS = [
     "users",
     "catalog",
     "reservations",
+    "chatbot",
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
@@ -462,6 +463,10 @@ SPECTACULAR_SETTINGS = {
             "name": "Users",
             "description": "Authenticated user profile and ticket endpoints.",
         },
+        {
+            "name": "Chatbot",
+            "description": "LangChain-powered conversational assistant endpoint.",
+        },
     ],
     "APPEND_COMPONENTS": {
         "securitySchemes": {
@@ -561,6 +566,10 @@ INTERNAL_API_KEY = os.getenv("INTERNAL_API_KEY") or None
 # Falls back to a SHA-256 derivation of SECRET_KEY if not set.
 SITE_CONFIG_ENCRYPTION_KEY = os.getenv("SITE_CONFIG_ENCRYPTION_KEY") or None
 HEALTH_DEEP_INTERNAL_KEY = os.getenv("HEALTH_DEEP_INTERNAL_KEY") or None
+
+# Groq API credentials for the LangChain-powered chatbot (free-tier LLM provider).
+GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
+GROQ_MODEL = os.getenv("GROQ_MODEL", "llama-3.1-8b-instant")
 
 # Fernet key for encrypting sensitive values stored in the site_config table.
 # Generate with: python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
