@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 
 import { AppHeader } from "@/components/layout/AppHeader";
+import { ChatWidget } from "@/components/chatbot/ChatWidget";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ReservationProvider } from "@/contexts/ReservationContext";
 import { I18nProvider } from "@/i18n";
@@ -40,6 +41,7 @@ export default async function RootLayout({
                 <main className="main-content" id="conteudo" tabIndex={-1}>
                   <div className="shell-container">{children}</div>
                 </main>
+                <ChatWidget />
               </div>
             </ReservationProvider>
           </AuthProvider>

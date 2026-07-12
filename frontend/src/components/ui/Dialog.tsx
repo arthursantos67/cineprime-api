@@ -107,7 +107,7 @@ export function Dialog({
           </svg>
         </button>
       </div>
-      <div>{children}</div>
+      <div className="flex min-h-0 flex-1 flex-col">{children}</div>
     </dialog>
   );
 }
