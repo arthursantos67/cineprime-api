@@ -42,6 +42,7 @@ from cineprime_api.throttling import (
     RegistrationRateThrottle,
 )
 from reservations.models import SessionSeat, SessionSeatStatus, Ticket
+from users.services.ticket_query_service import build_my_tickets_queryset
 from users.exceptions import (
     HasActiveTickets,
     InvalidEmailChangeToken,
@@ -755,28 +756,8 @@ class MyTicketsView(ListAPIView):
         )
 
     def get_queryset(self):
-        queryset = (
-            Ticket.objects.filter(user=self.request.user)
-            .select_related(
-                "session_seat__session__movie",
-                "session_seat__session__room",
-                "session_seat__seat__row",
-            )
-            .order_by("-created_at")
-        )
-
         ticket_type = self._get_validated_type_filter()
-        now = timezone.now()
-
-        if ticket_type == "upcoming":
-            queryset = queryset.filter(session_seat__session__start_time__gt=now)
-        elif ticket_type == "past":
-            queryset = queryset.filter(
-                Q(session_seat__isnull=True)
-                | Q(session_seat__session__start_time__lte=now)
-            )
-
-        return queryset
+        return build_my_tickets_queryset(self.request.user, ticket_type)
 
 
 class AdminGrantResponseSerializer(serializers.Serializer):
