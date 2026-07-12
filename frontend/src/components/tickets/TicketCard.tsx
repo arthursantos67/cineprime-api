@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import type { ReactNode } from "react";
+import type { KeyboardEvent, ReactNode } from "react";
 
 import QRCode from "react-qr-code";
 
@@ -63,9 +63,24 @@ export function TicketCard({ ticket }: TicketCardProps) {
     setIsFlipped((current) => !current);
   }
 
+  function handleFlipKeyDown(event: KeyboardEvent<HTMLDivElement>) {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      toggleFlip();
+    }
+  }
+
   return (
     <div className="ticket-card grid gap-2.5">
-      <div className="[perspective:1600px] rounded-card">
+      <div
+        aria-label={isFlipped ? t("tickets.flipToFront") : t("tickets.flipToBack")}
+        aria-pressed={isFlipped}
+        className="cursor-pointer rounded-card [perspective:1600px] focus-visible:outline-none focus-visible:shadow-focus"
+        onClick={toggleFlip}
+        onKeyDown={handleFlipKeyDown}
+        role="button"
+        tabIndex={0}
+      >
         <div
           className={cn(
             "relative h-[212px] w-full transition-transform duration-500 [transform-style:preserve-3d] [-webkit-transform-style:preserve-3d] motion-reduce:transition-none",
@@ -208,17 +223,11 @@ export function TicketCard({ ticket }: TicketCardProps) {
 
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
         <button
-          aria-pressed={isFlipped}
-          className="inline-flex items-center gap-1.5 rounded-control text-sm font-extrabold text-white/65 underline-offset-4 transition hover:text-white hover:underline focus-visible:outline-none focus-visible:shadow-focus"
-          onClick={toggleFlip}
-          type="button"
-        >
-          <FlipIcon className="h-4 w-4" />
-          {isFlipped ? t("tickets.flipToFront") : t("tickets.flipToBack")}
-        </button>
-        <button
           className="rounded-control text-sm font-extrabold text-accent underline-offset-4 transition hover:underline focus-visible:outline-none focus-visible:shadow-focus"
-          onClick={() => setIsCodeDialogOpen(true)}
+          onClick={(event) => {
+            event.stopPropagation();
+            setIsCodeDialogOpen(true);
+          }}
           type="button"
         >
           {t("tickets.qrLinkLabel")}
@@ -261,26 +270,6 @@ function FilmStrip() {
       aria-hidden="true"
       className="h-3 w-24 rounded-[2px] border border-white/15 bg-[repeating-linear-gradient(90deg,transparent_0_5px,rgb(255_255_255_/_22%)_5px_9px)]"
     />
-  );
-}
-
-function FlipIcon({ className }: { className?: string }) {
-  return (
-    <svg
-      aria-hidden="true"
-      className={className}
-      fill="none"
-      stroke="currentColor"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      strokeWidth="1.6"
-      viewBox="0 0 24 24"
-    >
-      <path d="M21 8a9 9 0 0 0-15-3.5L3 7" />
-      <path d="M3 3v4h4" />
-      <path d="M3 16a9 9 0 0 0 15 3.5L21 17" />
-      <path d="M21 21v-4h-4" />
-    </svg>
   );
 }
 

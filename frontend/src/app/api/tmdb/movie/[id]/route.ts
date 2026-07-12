@@ -27,29 +27,39 @@ export async function GET(
     fetch(`${base}/movie/${id}?language=pt-BR`, opts),
     ...TRANSLATION_LOCALES.map((l) => fetch(`${base}/movie/${id}?language=${l}`, opts)),
     fetch(`${base}/movie/${id}/credits?language=en-US`, opts),
+    fetch(`${base}/movie/${id}/videos?language=pt-BR`, opts),
+    fetch(`${base}/movie/${id}/videos?language=en-US`, opts),
   ]);
 
   if (!ptRes.ok) {
     return NextResponse.json({ error: "Movie not found" }, { status: ptRes.status });
   }
 
-  const creditsRes = rest[rest.length - 1];
-  const localeReses = rest.slice(0, -1);
+  const videosEnRes = rest[rest.length - 1];
+  const videosPtRes = rest[rest.length - 2];
+  const creditsRes = rest[rest.length - 3];
+  const localeReses = rest.slice(0, -3);
 
-  const [pt, ...localeAndCreditsData] = await Promise.all([
+  const [pt, ...localeAndRestData] = await Promise.all([
     ptRes.json(),
     ...localeReses.map((r) => (r.ok ? r.json() : Promise.resolve(null))),
     creditsRes.ok ? creditsRes.json() : Promise.resolve({ crew: [], cast: [] }),
+    videosPtRes.ok ? videosPtRes.json() : Promise.resolve({ results: [] }),
+    videosEnRes.ok ? videosEnRes.json() : Promise.resolve({ results: [] }),
   ]);
 
-  const creditsData = localeAndCreditsData[localeAndCreditsData.length - 1];
-  const localeData = localeAndCreditsData.slice(0, -1);
+  const videosEnData = localeAndRestData[localeAndRestData.length - 1];
+  const videosPtData = localeAndRestData[localeAndRestData.length - 2];
+  const creditsData = localeAndRestData[localeAndRestData.length - 3];
+  const localeData = localeAndRestData.slice(0, -3);
 
   const director: string =
     creditsData.crew?.find((c: { job: string; name: string }) => c.job === "Director")?.name ?? "";
 
   const cast: string[] =
     (creditsData.cast ?? []).slice(0, 10).map((c: { name: string }) => c.name);
+
+  const trailerUrl = pickTrailerUrl(videosPtData.results, videosEnData.results);
 
   const translations: Record<string, { title: string; synopsis: string }> = {};
   for (let i = 0; i < TRANSLATION_LOCALES.length; i++) {
@@ -71,5 +81,31 @@ export async function GET(
     release_date: pt.release_date ?? "",
     director,
     cast,
+    trailer_url: trailerUrl,
   });
+}
+
+type TmdbVideo = {
+  key: string;
+  site: string;
+  type: string;
+  official: boolean;
+  published_at: string;
+};
+
+function pickTrailerUrl(...videoLists: TmdbVideo[][]): string | null {
+  for (const videos of videoLists) {
+    const youtubeTrailers = (videos ?? []).filter(
+      (v) => v.site === "YouTube" && v.type === "Trailer"
+    );
+    if (youtubeTrailers.length === 0) continue;
+
+    const best = [...youtubeTrailers].sort((a, b) => {
+      if (a.official !== b.official) return a.official ? -1 : 1;
+      return (b.published_at ?? "").localeCompare(a.published_at ?? "");
+    })[0];
+
+    return `https://www.youtube.com/watch?v=${best.key}`;
+  }
+  return null;
 }

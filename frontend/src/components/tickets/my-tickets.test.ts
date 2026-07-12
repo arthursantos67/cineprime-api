@@ -136,9 +136,9 @@ test("ticket card renders a flip card with details, badges, and a real QR code",
   // Format badges surfaced from the session projection/audio formats.
   assert.match(html, /3D/);
   assert.match(html, /Legendado/);
-  // Flip affordance is a dedicated, labelled toggle button — not a giant
-  // role="button" wrapping the heading and code.
-  assert.doesNotMatch(html, /role="button"/);
+  // The whole card is the flip affordance (click/tap/keyboard), labelled via
+  // aria-label so screen readers announce the toggle, not the nested heading/code.
+  assert.match(html, /role="button"/);
   assert.match(html, /aria-pressed="false"/);
   assert.match(html, /Ver detalhes do ingresso/);
   // A real (SVG) QR code replaces the old deterministic bars.
