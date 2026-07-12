@@ -498,6 +498,9 @@ export function AdminMovieForm({ movie }: AdminMovieFormProps) {
       if (data.cast?.length > 0) {
         setCastMembers(data.cast);
       }
+      if (data.trailer_url) {
+        setTrailerUrl(data.trailer_url);
+      }
 
       setTmdbFilled(true);
     } catch {
