@@ -87,6 +87,12 @@ export function ChatPanel({
     return () => {
       document.removeEventListener("keydown", handleKeyDown);
       document.removeEventListener("pointerdown", handlePointerDown);
+      // The launcher unmounts while the panel is open (see ChatWidget) and
+      // remounts in the same commit that triggers this cleanup, so reading
+      // `.current` here (not a value captured at effect-setup time, when it
+      // was still null) is intentional: it's the freshly remounted button.
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+      launcherRef.current?.focus();
     };
   }, [isOpen, launcherRef, onClose]);
 

@@ -152,7 +152,7 @@ def _compose_reply(tool_name, result):
         items = result.get("items", result)
         if not items:
             return "No momento não há filmes em cartaz ou em pré-venda.", None
-        titles = "\n".join(f"- {movie['title']}" for movie in items)
+        titles = "\n".join(f"• {movie['title']}" for movie in items)
         return f"Claro! Aqui estão os filmes em cartaz agora:\n{titles}", None
 
     if tool_name == "list_sessions_for_movie":
@@ -163,7 +163,7 @@ def _compose_reply(tool_name, result):
                 None,
             )
         lines = "\n".join(
-            f"- {s['room']}: {s['start_time']} (id: {s['id']})" for s in sessions
+            f"• {s['room']}: {s['start_time']} (id: {s['id']})" for s in sessions
         )
         return (
             f'Encontrei estas sessões de "{result["movie_title"]}" para {result["date"]}:\n{lines}',
@@ -191,7 +191,7 @@ def _compose_reply(tool_name, result):
         if not items:
             return "Você ainda não possui ingressos.", None
         lines = "\n".join(
-            f"- {t['movie']['title']}, {t['session']['start_time']} (assento {t['seat']['identifier']})"
+            f"• {t['movie']['title']}, {t['session']['start_time']} (assento {t['seat']['identifier']})"
             for t in items
         )
         return f"Aqui estão seus ingressos:\n{lines}", None

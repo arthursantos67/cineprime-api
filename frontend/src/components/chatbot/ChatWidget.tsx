@@ -3,7 +3,7 @@
 import { useRef, useState } from "react";
 
 import { useRouter } from "next/navigation";
-import { MessageCircle, RotateCcw, X } from "lucide-react";
+import { MessageCircle, RotateCcw } from "lucide-react";
 
 import { getSessionSeatsHref } from "@/components/movies/session-selection";
 import { useAuth } from "@/contexts/AuthContext";
@@ -35,21 +35,19 @@ export function ChatWidget() {
 
   return (
     <>
-      <button
-        aria-expanded={isOpen}
-        aria-haspopup="dialog"
-        aria-label={isOpen ? t("chatbot.closeLauncher") : t("chatbot.openLauncher")}
-        className="fixed bottom-6 right-6 z-20 grid size-14 place-items-center rounded-full bg-brand text-white shadow-2xl ring-4 ring-brand/20 transition duration-150 hover:bg-brand-strong hover:ring-brand/30 focus-visible:outline-none focus-visible:shadow-focus active:scale-[0.97]"
-        onClick={() => setIsOpen((current) => !current)}
-        ref={launcherRef}
-        type="button"
-      >
-        {isOpen ? (
-          <X aria-hidden="true" size={24} />
-        ) : (
+      {isOpen ? null : (
+        <button
+          aria-expanded={isOpen}
+          aria-haspopup="dialog"
+          aria-label={t("chatbot.openLauncher")}
+          className="fixed bottom-6 right-6 z-20 grid size-14 place-items-center rounded-full bg-brand text-white shadow-2xl ring-4 ring-brand/20 transition duration-150 hover:bg-brand-strong hover:ring-brand/30 focus-visible:outline-none focus-visible:shadow-focus active:scale-[0.97]"
+          onClick={() => setIsOpen(true)}
+          ref={launcherRef}
+          type="button"
+        >
           <MessageCircle aria-hidden="true" size={24} />
-        )}
-      </button>
+        </button>
+      )}
       <ChatPanel
         closeLabel={t("chatbot.close")}
         isOpen={isOpen}
