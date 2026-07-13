@@ -17,12 +17,20 @@ type ChatMessageListProps = {
   isSending: boolean;
   messages: ChatMessage[];
   onNavigateToSeatmap: (sessionId: string) => void;
+  onSuggestionSelect: (text: string) => void;
 };
+
+const SUGGESTION_KEYS = [
+  "chatbot.suggestion.nowShowing",
+  "chatbot.suggestion.nextSession",
+  "chatbot.suggestion.myTickets",
+] as const;
 
 export function ChatMessageList({
   isSending,
   messages,
   onNavigateToSeatmap,
+  onSuggestionSelect,
 }: ChatMessageListProps) {
   const { t } = useI18n();
   const endOfListRef = useRef<HTMLDivElement>(null);
@@ -39,7 +47,7 @@ export function ChatMessageList({
       role="log"
     >
       {messages.length === 0 ? (
-        <p className="m-0 text-sm text-white/60">{t("chatbot.emptyState")}</p>
+        <ChatGreeting onSuggestionSelect={onSuggestionSelect} />
       ) : (
         messages.map((message) => (
           <ChatMessageBubble
@@ -51,6 +59,42 @@ export function ChatMessageList({
       )}
       {isSending ? <ChatTypingIndicator /> : null}
       <div ref={endOfListRef} />
+    </div>
+  );
+}
+
+export function ChatGreeting({
+  onSuggestionSelect,
+}: {
+  onSuggestionSelect: (text: string) => void;
+}) {
+  const { t } = useI18n();
+
+  return (
+    <div className="flex flex-col gap-3">
+      <div className="flex items-start gap-2">
+        <span
+          aria-hidden="true"
+          className="grid size-7 shrink-0 place-items-center rounded-full bg-brand/20 text-brand"
+        >
+          <MessageCircle size={14} />
+        </span>
+        <div className="max-w-[85%] rounded-2xl rounded-bl-md bg-white/[0.06] px-3.5 py-2.5 text-sm leading-6 text-white/90 shadow-sm">
+          <p className="m-0 whitespace-pre-wrap">{t("chatbot.greeting")}</p>
+        </div>
+      </div>
+      <div className="flex flex-col gap-1.5 pl-9">
+        {SUGGESTION_KEYS.map((key) => (
+          <button
+            className="w-fit rounded-pill border border-white/[0.14] px-3 py-1.5 text-left text-xs font-bold text-white/75 transition-colors duration-150 hover:border-brand/50 hover:bg-brand/10 hover:text-white focus-visible:outline-none focus-visible:shadow-focus"
+            key={key}
+            onClick={() => onSuggestionSelect(t(key))}
+            type="button"
+          >
+            {t(key)}
+          </button>
+        ))}
+      </div>
     </div>
   );
 }

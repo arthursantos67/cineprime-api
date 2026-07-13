@@ -24,6 +24,7 @@ test("renders the user message and the bot reply once it resolves", () => {
       isSending: false,
       messages,
       onNavigateToSeatmap: noop,
+      onSuggestionSelect: noop,
     })
   );
 
@@ -38,22 +39,27 @@ test("shows a typing indicator while waiting for the bot reply", () => {
       isSending: true,
       messages: [{ id: "1", role: "user", content: "Oi" }],
       onNavigateToSeatmap: noop,
+      onSuggestionSelect: noop,
     })
   );
 
   assert.match(html, /role="status"/);
 });
 
-test("shows an empty-state prompt when the conversation has no messages yet", () => {
+test("shows a greeting and quick-reply suggestions when the conversation has no messages yet", () => {
   const html = renderToStaticMarkup(
     createElement(ChatMessageList, {
       isSending: false,
       messages: [],
       onNavigateToSeatmap: noop,
+      onSuggestionSelect: noop,
     })
   );
 
-  assert.match(html, /Pergunte sobre filmes, sessões ou seus ingressos\./);
+  assert.match(html, /assistente virtual do Cine Prime/);
+  assert.match(html, /Quais filmes estão em cartaz\?/);
+  assert.match(html, /Qual é a minha próxima sessão\?/);
+  assert.match(html, /Quais são os meus ingressos\?/);
 });
 
 test("multi-turn slot-filling renders every turn of the same conversation in order", () => {
@@ -69,6 +75,7 @@ test("multi-turn slot-filling renders every turn of the same conversation in ord
       isSending: false,
       messages,
       onNavigateToSeatmap: noop,
+      onSuggestionSelect: noop,
     })
   );
 
