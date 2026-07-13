@@ -2,6 +2,8 @@
 
 import { useEffect, useRef } from "react";
 
+import { MessageCircle } from "lucide-react";
+
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/components/ui/classNames";
 import { useI18n } from "@/i18n";
@@ -65,15 +67,23 @@ export function ChatMessageBubble({
   const seatmapSessionId = getSeatmapRedirectSessionId(message.action);
 
   return (
-    <div className={cn("flex", isUser ? "justify-end" : "justify-start")}>
+    <div className={cn("flex items-start gap-2", isUser ? "justify-end" : "justify-start")}>
+      {isUser ? null : (
+        <span
+          aria-hidden="true"
+          className="grid size-7 shrink-0 place-items-center rounded-full bg-brand/20 text-brand"
+        >
+          <MessageCircle size={14} />
+        </span>
+      )}
       <div
         className={cn(
-          "max-w-[85%] rounded-[14px] px-3.5 py-2.5 text-sm leading-6",
+          "max-w-[80%] px-3.5 py-2.5 text-sm leading-6 shadow-sm",
           isUser
-            ? "bg-brand text-white"
+            ? "rounded-2xl rounded-br-md bg-brand text-white"
             : message.isError
-              ? "border border-error/40 bg-error/15 text-white"
-              : "bg-white/[0.06] text-white/90"
+              ? "rounded-2xl rounded-bl-md border border-error/40 bg-error/15 text-white"
+              : "rounded-2xl rounded-bl-md bg-white/[0.06] text-white/90"
         )}
       >
         <p className="m-0 whitespace-pre-wrap">{message.content}</p>
@@ -100,10 +110,16 @@ function ChatTypingIndicator() {
   const { t } = useI18n();
 
   return (
-    <div className="flex justify-start">
+    <div className="flex items-start justify-start gap-2">
+      <span
+        aria-hidden="true"
+        className="grid size-7 shrink-0 place-items-center rounded-full bg-brand/20 text-brand"
+      >
+        <MessageCircle size={14} />
+      </span>
       <div
         aria-label={t("chatbot.typing")}
-        className="flex items-center gap-1 rounded-[14px] bg-white/[0.06] px-3.5 py-3"
+        className="flex items-center gap-1 rounded-2xl rounded-bl-md bg-white/[0.06] px-3.5 py-3 shadow-sm"
         role="status"
       >
         <span className="size-1.5 animate-bounce rounded-pill bg-white/60 motion-reduce:animate-none [animation-delay:-0.3s]" />

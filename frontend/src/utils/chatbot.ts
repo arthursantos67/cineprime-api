@@ -57,6 +57,36 @@ export function getSeatmapRedirectSessionId(
   return action.session_id ?? null;
 }
 
+// pt-BR and en-US are this app's actively supported locales (see the
+// frontend PRD's NFR-06); the other 6 locale dictionaries in messages.ts
+// exist but aren't a target for this heuristic yet.
+const NEW_CONVERSATION_TRIGGERS = [
+  "nova conversa",
+  "iniciar uma nova conversa",
+  "iniciar nova conversa",
+  "começar uma nova conversa",
+  "reiniciar a conversa",
+  "reiniciar conversa",
+  "limpar a conversa",
+  "limpar conversa",
+  "apagar a conversa",
+  "new conversation",
+  "start a new conversation",
+  "start over",
+  "reset the conversation",
+  "reset conversation",
+  "clear the conversation",
+  "clear conversation",
+];
+
+// A lightweight, deterministic escape hatch: if the LLM agent (backend
+// #261) doesn't recognize a "start fresh" intent, the widget can still
+// honor it locally without a round trip to the backend.
+export function isNewConversationCommand(text: string): boolean {
+  const normalized = text.trim().toLowerCase();
+  return NEW_CONVERSATION_TRIGGERS.some((trigger) => normalized.includes(trigger));
+}
+
 // The seatmap CTA button's onClick is built from this so the exact wiring
 // (does clicking navigate with the message's own session id?) is directly
 // unit-testable without simulating a real DOM click.

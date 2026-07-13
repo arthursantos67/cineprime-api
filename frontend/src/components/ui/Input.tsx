@@ -8,6 +8,7 @@ type InputProps = Omit<InputHTMLAttributes<HTMLInputElement>, "className"> & {
   containerClassName?: string;
   description?: string;
   error?: string;
+  hideLabel?: boolean;
   label: string;
   trailing?: ReactNode;
 };
@@ -19,6 +20,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
       containerClassName,
       description,
       error,
+      hideLabel,
       id,
       label,
       trailing,
@@ -34,7 +36,10 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
 
     return (
       <div className={cn("grid gap-1.5", containerClassName)}>
-        <label className="text-sm font-extrabold text-white" htmlFor={inputId}>
+        <label
+          className={hideLabel ? "sr-only" : "text-sm font-extrabold text-white"}
+          htmlFor={inputId}
+        >
           {label}
         </label>
         {description ? (

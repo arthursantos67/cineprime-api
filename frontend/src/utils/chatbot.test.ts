@@ -9,6 +9,7 @@ import {
   appendUserMessage,
   createSeatmapNavigationHandler,
   getSeatmapRedirectSessionId,
+  isNewConversationCommand,
 } from "./chatbot";
 
 test("appendUserMessage adds a user message preserving prior history", () => {
@@ -130,4 +131,18 @@ test("createSeatmapNavigationHandler never mixes up session ids across messages"
   createSeatmapNavigationHandler("session-B", onNavigate)();
 
   assert.deepEqual(seen, ["session-A", "session-B"]);
+});
+
+test("isNewConversationCommand recognizes pt-BR and en-US phrasings", () => {
+  assert.equal(isNewConversationCommand("nova conversa"), true);
+  assert.equal(isNewConversationCommand("Quero iniciar uma nova conversa"), true);
+  assert.equal(isNewConversationCommand("pode limpar a conversa?"), true);
+  assert.equal(isNewConversationCommand("Start a new conversation, please"), true);
+  assert.equal(isNewConversationCommand("RESET CONVERSATION"), true);
+});
+
+test("isNewConversationCommand ignores ordinary questions", () => {
+  assert.equal(isNewConversationCommand("Quais sessões tem hoje?"), false);
+  assert.equal(isNewConversationCommand("hoje"), false);
+  assert.equal(isNewConversationCommand(""), false);
 });

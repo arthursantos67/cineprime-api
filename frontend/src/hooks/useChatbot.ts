@@ -12,13 +12,17 @@ import {
   appendErrorMessage,
   appendUserMessage,
   createConversationId,
+  isNewConversationCommand,
 } from "@/utils/chatbot";
 
 export type UseChatbotResult = {
   isSending: boolean;
   messages: ChatMessage[];
+  resetConversation: () => void;
   sendMessage: (text: string) => Promise<void>;
 };
+
+const IDLE_RESET_MS = 10 * 60 * 1000;
 
 // Conversation id + history live only in component state: they intentionally
 // do not survive a full page reload (see issue #263 scope).
@@ -28,12 +32,43 @@ export function useChatbot(): UseChatbotResult {
   const [isSending, setIsSending] = useState(false);
   const conversationIdRef = useRef<string | null>(null);
   const isSendingRef = useRef(false);
+  const idleTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const resetConversation = useCallback(() => {
+    conversationIdRef.current = null;
+    isSendingRef.current = false;
+    setIsSending(false);
+    setMessages([]);
+
+    if (idleTimeoutRef.current !== null) {
+      clearTimeout(idleTimeoutRef.current);
+      idleTimeoutRef.current = null;
+    }
+  }, []);
+
+  // A conversation left idle for 10 minutes is cleared automatically so the
+  // next message the user sends starts a fresh conversation_id instead of
+  // resuming a long-stale one.
+  const scheduleIdleReset = useCallback(() => {
+    if (idleTimeoutRef.current !== null) {
+      clearTimeout(idleTimeoutRef.current);
+    }
+
+    idleTimeoutRef.current = setTimeout(resetConversation, IDLE_RESET_MS);
+  }, [resetConversation]);
 
   const sendMessage = useCallback(
     async (rawText: string) => {
       const text = rawText.trim();
 
       if (!text || isSendingRef.current) {
+        return;
+      }
+
+      scheduleIdleReset();
+
+      if (isNewConversationCommand(text)) {
+        resetConversation();
         return;
       }
 
@@ -60,7 +95,7 @@ export function useChatbot(): UseChatbotResult {
         setIsSending(false);
       }
     },
-    [locale]
+    [locale, resetConversation, scheduleIdleReset]
   );
 
   // A logout (including a forced one from a failed token refresh) must wipe
@@ -68,19 +103,16 @@ export function useChatbot(): UseChatbotResult {
   // a persistent, layout-mounted widget, so the next user to log in on the
   // same tab would silently inherit the previous user's chat history.
   useEffect(() => {
-    function reset() {
-      conversationIdRef.current = null;
-      isSendingRef.current = false;
-      setIsSending(false);
-      setMessages([]);
-    }
-
-    window.addEventListener(AUTH_PROTECTED_STATE_RESET_EVENT, reset);
+    window.addEventListener(AUTH_PROTECTED_STATE_RESET_EVENT, resetConversation);
 
     return () => {
-      window.removeEventListener(AUTH_PROTECTED_STATE_RESET_EVENT, reset);
-    };
-  }, []);
+      window.removeEventListener(AUTH_PROTECTED_STATE_RESET_EVENT, resetConversation);
 
-  return { isSending, messages, sendMessage };
+      if (idleTimeoutRef.current !== null) {
+        clearTimeout(idleTimeoutRef.current);
+      }
+    };
+  }, [resetConversation]);
+
+  return { isSending, messages, resetConversation, sendMessage };
 }

@@ -31,24 +31,29 @@ export function ChatInput({ isSending, onSend }: ChatInputProps) {
   }
 
   return (
-    <form className="flex items-end gap-2 border-t border-white/[0.08] pt-3" onSubmit={handleSubmit}>
+    <form
+      className="flex items-center gap-2 border-t border-white/[0.08] pt-3"
+      onSubmit={handleSubmit}
+    >
       <Input
-        containerClassName="flex-1 gap-1"
+        className="rounded-full bg-white/[0.06] px-4"
+        containerClassName="flex-1 gap-0"
         disabled={isSending}
+        hideLabel
         label={t("chatbot.inputLabel")}
         onChange={(event) => setDraft(event.target.value)}
         placeholder={t("chatbot.inputPlaceholder")}
         value={draft}
       />
       <Button
+        aria-label={t("chatbot.send")}
+        className="aspect-square shrink-0 rounded-full !px-0"
         disabled={!canSend}
         icon={<Send aria-hidden="true" size={16} />}
         isLoading={isSending}
         type="submit"
         variant="primary"
-      >
-        {t("chatbot.send")}
-      </Button>
+      />
     </form>
   );
 }

@@ -932,6 +932,7 @@ export const messages: Record<Locale, Record<string, string>> = {
     "chatbot.inputPlaceholder": "Digite sua mensagem",
     "chatbot.send": "Enviar",
     "chatbot.goToSeatmap": "Ir para o mapa de assentos",
+    "chatbot.newConversation": "Nova conversa",
   },
   "en-US": {
     "admin.actions": "Actions",
@@ -1837,6 +1838,7 @@ export const messages: Record<Locale, Record<string, string>> = {
     "chatbot.inputPlaceholder": "Type your message",
     "chatbot.send": "Send",
     "chatbot.goToSeatmap": "Go to seat map",
+    "chatbot.newConversation": "New conversation",
   },
   "es-ES": {
     "admin.actions": "Acciones",
@@ -2729,6 +2731,7 @@ export const messages: Record<Locale, Record<string, string>> = {
     "chatbot.inputPlaceholder": "Escribe tu mensaje",
     "chatbot.send": "Enviar",
     "chatbot.goToSeatmap": "Ir al mapa de asientos",
+    "chatbot.newConversation": "Nueva conversación",
   },
   "fr-FR": {
     "admin.actions": "Actions",
@@ -3621,6 +3624,7 @@ export const messages: Record<Locale, Record<string, string>> = {
     "chatbot.inputPlaceholder": "Écrivez votre message",
     "chatbot.send": "Envoyer",
     "chatbot.goToSeatmap": "Aller au plan de salle",
+    "chatbot.newConversation": "Nouvelle conversation",
   },
   "de-DE": {
     "admin.actions": "Aktionen",
@@ -4513,6 +4517,7 @@ export const messages: Record<Locale, Record<string, string>> = {
     "chatbot.inputPlaceholder": "Nachricht eingeben",
     "chatbot.send": "Senden",
     "chatbot.goToSeatmap": "Zum Sitzplan gehen",
+    "chatbot.newConversation": "Neue Unterhaltung",
   },
   "it-IT": {
     "admin.actions": "Azioni",
@@ -5405,6 +5410,7 @@ export const messages: Record<Locale, Record<string, string>> = {
     "chatbot.inputPlaceholder": "Scrivi il tuo messaggio",
     "chatbot.send": "Invia",
     "chatbot.goToSeatmap": "Vai alla mappa dei posti",
+    "chatbot.newConversation": "Nuova conversazione",
   },
   "zh-CN": {
     "admin.actions": "操作",
@@ -6296,6 +6302,7 @@ export const messages: Record<Locale, Record<string, string>> = {
     "chatbot.inputPlaceholder": "输入您的消息",
     "chatbot.send": "发送",
     "chatbot.goToSeatmap": "前往座位图",
+    "chatbot.newConversation": "新对话",
   },
   "ja-JP": {
     "admin.actions": "アクション",
@@ -7188,5 +7195,6 @@ export const messages: Record<Locale, Record<string, string>> = {
     "chatbot.inputPlaceholder": "メッセージを入力",
     "chatbot.send": "送信",
     "chatbot.goToSeatmap": "座席マップへ移動",
+    "chatbot.newConversation": "新しい会話",
   },
 };
