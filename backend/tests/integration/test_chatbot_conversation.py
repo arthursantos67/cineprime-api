@@ -122,7 +122,14 @@ def test_multi_turn_slot_filling_resolves_pending_date(monkeypatch):
     )
 
     assert movie.title in second_result["reply"]
-    assert str(session.id) in second_result["reply"]
+    # The raw session id must not leak into what the human sees...
+    assert str(session.id) not in second_result["reply"]
+
+    # ...but it must still be in the persisted history, since that's what lets the model
+    # resolve a same-conversation follow-up like "ainda tem assento?" against the right
+    # session on a later turn.
+    conversation.refresh_from_db()
+    assert str(session.id) in conversation.messages[-1]["content"]
 
     # The second LLM call must have received the persisted history from the first turn —
     # this is what lets a bare date answer resolve the pending "which date?" question
@@ -192,3 +199,59 @@ def test_check_session_availability_includes_redirect_action_when_available(
         "target": "seatmap",
         "session_id": str(session.id),
     }
+
+
+@pytest.mark.django_db
+def test_textual_function_call_fallback_is_executed_like_a_real_tool_call(monkeypatch):
+    """Some Groq-hosted Llama models occasionally emit their native pseudo-XML
+    tool-call syntax as plain text instead of using the structured tool_calls
+    channel. The reply must still resolve to a real answer, not leak that raw
+    syntax to the user (see live report against issue #261/#263)."""
+    user = _make_user()
+    movie, room, session = _make_movie_with_session()
+
+    fake_llm = _FakeLLM(
+        [
+            AIMessage(
+                content=(
+                    "Vou verificar novamente.\n"
+                    '<function=list_sessions_for_movie>{"movie_title": "'
+                    + movie.title
+                    + '", "date": "'
+                    + session.start_time.date().isoformat()
+                    + '"}</function>'
+                ),
+                tool_calls=[],
+            )
+        ]
+    )
+    monkeypatch.setattr("chatbot.service.get_llm", lambda: fake_llm)
+
+    result = handle_message(
+        user=user, conversation_id="conv-fallback", message="Quais sessões tem?"
+    )
+
+    assert "<function=" not in result["reply"]
+    assert movie.title in result["reply"]
+
+
+@pytest.mark.django_db
+def test_unparseable_textual_function_call_falls_back_to_a_generic_reply(monkeypatch):
+    user = _make_user()
+
+    fake_llm = _FakeLLM(
+        [
+            AIMessage(
+                content="Vou verificar.\n<function=list_sessions_for_movie>{not valid json</function>",
+                tool_calls=[],
+            )
+        ]
+    )
+    monkeypatch.setattr("chatbot.service.get_llm", lambda: fake_llm)
+
+    result = handle_message(
+        user=user, conversation_id="conv-fallback-bad", message="Quais sessões tem?"
+    )
+
+    assert "<function=" not in result["reply"]
+    assert result["reply"] == "Desculpe, não consegui processar sua solicitação. Pode tentar novamente?"
