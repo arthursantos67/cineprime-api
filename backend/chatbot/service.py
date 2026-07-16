@@ -76,6 +76,10 @@ def _format_date_for_user(match):
     return _relative_day_label(date.fromisoformat(match.group()))
 
 
+def _format_brl(amount):
+    return str(amount).replace(".", ",")
+
+
 def _humanize_reply_for_user(text):
     """Reformat a deterministic reply for display: natural pt-BR dates/times, no raw
     technical identifiers.
@@ -132,7 +136,13 @@ def _compose_reply(tool_name, result):
         result = {"items": result}
 
     error = result.get("error")
-    if error == "movie_not_found":
+    # get_movie_details/register_movie_interest search across every movie status
+    # (not just bookable ones), so they compose their own "not found" wording below
+    # instead of the "em cartaz"-specific one used by the bookable-only tools.
+    if error == "movie_not_found" and tool_name not in (
+        "get_movie_details",
+        "register_movie_interest",
+    ):
         return (
             f'Não encontrei nenhum filme em cartaz chamado "{result["movie_title"]}".',
             None,
@@ -141,6 +151,13 @@ def _compose_reply(tool_name, result):
         return "Não encontrei essa sessão.", None
     if error == "invalid_date":
         return "Não entendi a data informada. Pode enviar no formato AAAA-MM-DD?", None
+    if error == "genre_not_found":
+        return f'Não encontrei nenhum gênero correspondente a "{result["genre_name"]}".', None
+    if error == "movie_not_coming_soon":
+        return (
+            f'"{result["movie_title"]}" já está disponível — não é preciso avisar quando estrear.',
+            None,
+        )
 
     if result.get("needs_slot") == "date":
         return (
@@ -163,7 +180,8 @@ def _compose_reply(tool_name, result):
                 None,
             )
         lines = "\n".join(
-            f"• {s['room']}: {s['start_time']} (id: {s['id']})" for s in sessions
+            f"• {s['room']}: {s['start_time']} - R$ {_format_brl(s['price'])} (id: {s['id']})"
+            for s in sessions
         )
         return (
             f'Encontrei estas sessões de "{result["movie_title"]}" para {result["date"]}:\n{lines}',
@@ -181,7 +199,8 @@ def _compose_reply(tool_name, result):
             }
             reply = (
                 f"Sim! Ainda há {result['available_seats']} assento(s) disponível(is) para essa "
-                "sessão. Quer que eu te leve para o mapa de assentos para continuar a compra?"
+                f"sessão, a R$ {_format_brl(result['price'])} cada. Quer que eu te leve para o "
+                "mapa de assentos para continuar a compra?"
             )
             return reply, action
         return "Infelizmente essa sessão está esgotada.", None
@@ -201,6 +220,61 @@ def _compose_reply(tool_name, result):
             return "Você não tem nenhuma sessão futura agendada.", None
         return (
             f'Sua próxima sessão é "{result["movie"]["title"]}", {result["session"]["start_time"]}.',
+            None,
+        )
+
+    if tool_name == "get_movie_details":
+        if error == "movie_not_found":
+            return f'Não encontrei nenhum filme chamado "{result["movie_title"]}".', None
+
+        lines = [result["synopsis"]]
+        if result.get("director"):
+            lines.append(f"Direção: {result['director']}")
+        if result.get("cast"):
+            lines.append(f"Elenco: {', '.join(result['cast'][:5])}")
+        if result.get("genres"):
+            lines.append(f"Gênero: {', '.join(result['genres'])}")
+        if result.get("age_rating"):
+            label = "Livre" if result["age_rating"] == "L" else f"{result['age_rating']} anos"
+            lines.append(f"Classificação: {label}")
+        lines.append(f"Duração: {result['duration_minutes']} min")
+        if result.get("average_rating") is not None:
+            lines.append(f"Nota média: {result['average_rating']}/5")
+        body = "\n".join(lines)
+        return f'"{result["title"]}"\n{body}', None
+
+    if tool_name == "list_upcoming_movies":
+        items = result.get("items", result)
+        if not items:
+            return "No momento não há filmes anunciados para breve estreia.", None
+        titles = "\n".join(
+            f"• {movie['title']} (estreia em {movie['release_date']})" for movie in items
+        )
+        return f"Em breve no CinePrime:\n{titles}", None
+
+    if tool_name == "list_movies_by_genre":
+        items = result.get("items", [])
+        if not items:
+            return (
+                f'Não encontrei filmes em cartaz do gênero "{result["genre_name"]}" no momento.',
+                None,
+            )
+        titles = "\n".join(f"• {movie['title']}" for movie in items)
+        return f'Filmes em cartaz do gênero "{result["genre_name"]}":\n{titles}', None
+
+    if tool_name == "get_wallet_balance":
+        return f"Seu saldo de crédito CinePrime é de R$ {_format_brl(result['balance'])}.", None
+
+    if tool_name == "register_movie_interest":
+        if error == "movie_not_found":
+            return f'Não encontrei nenhum filme chamado "{result["movie_title"]}".', None
+        if result.get("created"):
+            return (
+                f'Combinado! Vou te lembrar quando "{result["movie_title"]}" estrear.',
+                None,
+            )
+        return (
+            f'Você já estava registrado para ser avisado sobre "{result["movie_title"]}".',
             None,
         )
 

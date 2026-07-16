@@ -4,9 +4,19 @@ import pytest
 from django.contrib.auth import get_user_model
 from django.utils import timezone
 
-from catalog.models import Movie, MovieStatus, Room, Session
+from catalog.models import (
+    CastMember,
+    Genre,
+    Movie,
+    MovieInterest,
+    MovieReview,
+    MovieStatus,
+    Room,
+    Session,
+)
 from chatbot import tools as chatbot_tools
 from reservations.models import Seat, SeatRow, SessionSeat, SessionSeatStatus, Ticket
+from users.models import WalletTransaction
 
 User = get_user_model()
 
@@ -283,3 +293,145 @@ class TestNextSessionForUser:
         result = chatbot_tools.next_session_for_user(user_a)
 
         assert result is None
+
+
+@pytest.mark.django_db
+class TestGetMovieDetails:
+    def test_returns_full_details_including_average_rating(self):
+        movie = _make_movie("Duna Parte Dois", director="Denis Villeneuve")
+        genre = Genre.objects.create(name="Ficção Científica")
+        movie.genres.add(genre)
+        CastMember.objects.create(movie=movie, name="Timothée Chalamet", order=0)
+        reviewer = User.objects.create_user(
+            email="h@test.com", username="user_h", password="12345678"
+        )
+        MovieReview.objects.create(movie=movie, user=reviewer, rating="4.5")
+
+        result = chatbot_tools.get_movie_details("Duna")
+
+        assert result["title"] == movie.title
+        assert result["director"] == "Denis Villeneuve"
+        assert result["genres"] == ["Ficção Científica"]
+        assert result["cast"] == ["Timothée Chalamet"]
+        assert result["average_rating"] == 4.5
+
+    def test_finds_movies_regardless_of_status(self):
+        _make_movie("Filme Anunciado", status=MovieStatus.EM_BREVE)
+
+        result = chatbot_tools.get_movie_details("Filme Anunciado")
+
+        assert "error" not in result
+
+    def test_returns_movie_not_found_error(self):
+        result = chatbot_tools.get_movie_details("Filme Inexistente")
+
+        assert result["error"] == "movie_not_found"
+
+
+@pytest.mark.django_db
+class TestListUpcomingMovies:
+    def test_lists_only_em_breve_movies(self):
+        upcoming = _make_movie("Filme Anunciado", status=MovieStatus.EM_BREVE)
+        _make_movie("Filme Em Cartaz", status=MovieStatus.EM_CARTAZ)
+
+        result = chatbot_tools.list_upcoming_movies()
+
+        assert len(result) == 1
+        assert result[0]["title"] == upcoming.title
+
+
+@pytest.mark.django_db
+class TestListMoviesByGenre:
+    def test_lists_bookable_movies_matching_genre(self):
+        genre = Genre.objects.create(name="Terror")
+        movie = _make_movie("Filme de Terror", status=MovieStatus.EM_CARTAZ)
+        movie.genres.add(genre)
+        other = _make_movie("Filme de Comédia", status=MovieStatus.EM_CARTAZ)
+        other.genres.add(Genre.objects.create(name="Comédia"))
+
+        result = chatbot_tools.list_movies_by_genre("terror")
+
+        titles = {m["title"] for m in result["items"]}
+        assert titles == {movie.title}
+
+    def test_excludes_em_breve_movies_even_if_genre_matches(self):
+        genre = Genre.objects.create(name="Terror")
+        movie = _make_movie("Filme Anunciado", status=MovieStatus.EM_BREVE)
+        movie.genres.add(genre)
+
+        result = chatbot_tools.list_movies_by_genre("terror")
+
+        assert result["items"] == []
+
+    def test_returns_genre_not_found_error(self):
+        result = chatbot_tools.list_movies_by_genre("Genero Inexistente")
+
+        assert result["error"] == "genre_not_found"
+
+
+@pytest.mark.django_db
+class TestGetWalletBalance:
+    def test_sums_transactions_for_the_requesting_user(self):
+        user = User.objects.create_user(
+            email="i@test.com", username="user_i", password="12345678"
+        )
+        WalletTransaction.objects.create(user=user, amount="30.00", reason="refund")
+        WalletTransaction.objects.create(user=user, amount="-10.00", reason="purchase")
+
+        result = chatbot_tools.get_wallet_balance(user)
+
+        assert result["balance"] == "20.00"
+
+    def test_returns_zero_balance_with_no_transactions(self):
+        user = User.objects.create_user(
+            email="j@test.com", username="user_j", password="12345678"
+        )
+
+        result = chatbot_tools.get_wallet_balance(user)
+
+        assert result["balance"] == "0.00"
+
+
+@pytest.mark.django_db
+class TestRegisterMovieInterest:
+    def test_registers_interest_for_an_em_breve_movie(self):
+        user = User.objects.create_user(
+            email="k@test.com", username="user_k", password="12345678"
+        )
+        movie = _make_movie("Filme Anunciado", status=MovieStatus.EM_BREVE)
+
+        result = chatbot_tools.register_movie_interest(user, "Filme Anunciado")
+
+        assert result["created"] is True
+        assert MovieInterest.objects.filter(movie=movie, user=user).exists()
+
+    def test_is_idempotent_on_repeated_calls(self):
+        user = User.objects.create_user(
+            email="l@test.com", username="user_l", password="12345678"
+        )
+        _make_movie("Filme Anunciado", status=MovieStatus.EM_BREVE)
+
+        first = chatbot_tools.register_movie_interest(user, "Filme Anunciado")
+        second = chatbot_tools.register_movie_interest(user, "Filme Anunciado")
+
+        assert first["created"] is True
+        assert second["created"] is False
+
+    def test_rejects_a_movie_that_is_already_bookable(self):
+        user = User.objects.create_user(
+            email="m@test.com", username="user_m", password="12345678"
+        )
+        _make_movie("Filme Em Cartaz", status=MovieStatus.EM_CARTAZ)
+
+        result = chatbot_tools.register_movie_interest(user, "Filme Em Cartaz")
+
+        assert result["error"] == "movie_not_coming_soon"
+
+    def test_returns_movie_not_found_error(self):
+        user = User.objects.create_user(
+            email="n@test.com", username="user_n", password="12345678"
+        )
+
+        result = chatbot_tools.register_movie_interest(user, "Filme Inexistente")
+
+        assert result["error"] == "movie_not_found"
