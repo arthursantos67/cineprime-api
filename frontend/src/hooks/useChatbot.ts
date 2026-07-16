@@ -88,7 +88,7 @@ export function useChatbot(): UseChatbotResult {
         setMessages((current) => appendAssistantMessage(current, response));
       } catch (error) {
         setMessages((current) =>
-          appendErrorMessage(current, getApiErrorUserMessage(error, locale))
+          appendErrorMessage(current, getApiErrorUserMessage(error, locale), text)
         );
       } finally {
         isSendingRef.current = false;

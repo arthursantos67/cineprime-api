@@ -70,6 +70,7 @@ export function ChatWidget() {
           isSending={isSending}
           messages={messages}
           onNavigateToSeatmap={handleNavigateToSeatmap}
+          onRetry={sendMessage}
           onSuggestionSelect={sendMessage}
         />
         <ChatInput isSending={isSending} onSend={sendMessage} />

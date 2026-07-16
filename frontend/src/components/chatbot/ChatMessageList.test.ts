@@ -24,6 +24,7 @@ test("renders the user message and the bot reply once it resolves", () => {
       isSending: false,
       messages,
       onNavigateToSeatmap: noop,
+      onRetry: noop,
       onSuggestionSelect: noop,
     })
   );
@@ -39,6 +40,7 @@ test("shows a typing indicator while waiting for the bot reply", () => {
       isSending: true,
       messages: [{ id: "1", role: "user", content: "Oi" }],
       onNavigateToSeatmap: noop,
+      onRetry: noop,
       onSuggestionSelect: noop,
     })
   );
@@ -52,6 +54,7 @@ test("shows a greeting and quick-reply suggestions when the conversation has no 
       isSending: false,
       messages: [],
       onNavigateToSeatmap: noop,
+      onRetry: noop,
       onSuggestionSelect: noop,
     })
   );
@@ -75,6 +78,7 @@ test("multi-turn slot-filling renders every turn of the same conversation in ord
       isSending: false,
       messages,
       onNavigateToSeatmap: noop,
+      onRetry: noop,
       onSuggestionSelect: noop,
     })
   );
@@ -96,7 +100,7 @@ test("renders a seat map CTA carrying the redirect action's session id", () => {
   };
 
   const html = renderToStaticMarkup(
-    createElement(ChatMessageBubble, { message, onNavigateToSeatmap: noop })
+    createElement(ChatMessageBubble, { message, onNavigateToSeatmap: noop, onRetry: noop })
   );
 
   assert.match(html, /Ir para o mapa de assentos/);
@@ -111,9 +115,43 @@ test("does not render a CTA for replies without an actionable redirect", () => {
   };
 
   const html = renderToStaticMarkup(
-    createElement(ChatMessageBubble, { message, onNavigateToSeatmap: noop })
+    createElement(ChatMessageBubble, { message, onNavigateToSeatmap: noop, onRetry: noop })
   );
 
   assert.doesNotMatch(html, /Ir para o mapa de assentos/);
+});
+
+test("renders a retry affordance for a failed message but not for an ordinary one", () => {
+  const failedMessage: ChatMessage = {
+    id: "1",
+    role: "assistant",
+    content: "Não foi possível enviar sua mensagem.",
+    isError: true,
+    retryText: "Quais sessões tem hoje?",
+  };
+
+  const failedHtml = renderToStaticMarkup(
+    createElement(ChatMessageBubble, {
+      message: failedMessage,
+      onNavigateToSeatmap: noop,
+      onRetry: noop,
+    })
+  );
+  assert.match(failedHtml, /Tentar novamente/);
+
+  const okMessage: ChatMessage = {
+    id: "2",
+    role: "assistant",
+    content: "Temos 3 sessões hoje.",
+  };
+
+  const okHtml = renderToStaticMarkup(
+    createElement(ChatMessageBubble, {
+      message: okMessage,
+      onNavigateToSeatmap: noop,
+      onRetry: noop,
+    })
+  );
+  assert.doesNotMatch(okHtml, /Tentar novamente/);
 });
 

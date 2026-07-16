@@ -17,6 +17,7 @@ type ChatMessageListProps = {
   isSending: boolean;
   messages: ChatMessage[];
   onNavigateToSeatmap: (sessionId: string) => void;
+  onRetry: (text: string) => void;
   onSuggestionSelect: (text: string) => void;
 };
 
@@ -30,6 +31,7 @@ export function ChatMessageList({
   isSending,
   messages,
   onNavigateToSeatmap,
+  onRetry,
   onSuggestionSelect,
 }: ChatMessageListProps) {
   const { t } = useI18n();
@@ -54,6 +56,7 @@ export function ChatMessageList({
             key={message.id}
             message={message}
             onNavigateToSeatmap={onNavigateToSeatmap}
+            onRetry={onRetry}
           />
         ))
       )}
@@ -102,9 +105,11 @@ export function ChatGreeting({
 export function ChatMessageBubble({
   message,
   onNavigateToSeatmap,
+  onRetry,
 }: {
   message: ChatMessage;
   onNavigateToSeatmap: (sessionId: string) => void;
+  onRetry: (text: string) => void;
 }) {
   const { t } = useI18n();
   const isUser = message.role === "user";
@@ -143,6 +148,16 @@ export function ChatMessageBubble({
             variant="secondary"
           >
             {t("chatbot.goToSeatmap")}
+          </Button>
+        ) : null}
+        {message.isError && message.retryText ? (
+          <Button
+            className="mt-2"
+            onClick={() => onRetry(message.retryText as string)}
+            size="sm"
+            variant="secondary"
+          >
+            {t("chatbot.retry")}
           </Button>
         ) : null}
       </div>

@@ -17,5 +17,6 @@ export type ChatMessage = {
   content: string;
   id: string;
   isError?: boolean;
+  retryText?: string;
   role: ChatRole;
 };

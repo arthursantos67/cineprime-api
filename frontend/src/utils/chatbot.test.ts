@@ -70,11 +70,16 @@ test("multi-turn slot-filling keeps every reply in the same conversation history
   assert.equal(messages[3].content, "Encontrei 3 sessões para essa data.");
 });
 
-test("appendErrorMessage records a visible, error-flagged assistant message", () => {
-  const messages = appendErrorMessage([], "Sua sessão expirou. Faça login novamente.");
+test("appendErrorMessage records a visible, error-flagged assistant message carrying the failed text to retry", () => {
+  const messages = appendErrorMessage(
+    [],
+    "Sua sessão expirou. Faça login novamente.",
+    "Quais sessões tem hoje?"
+  );
   assert.equal(messages[0].role, "assistant");
   assert.equal(messages[0].isError, true);
   assert.equal(messages[0].content, "Sua sessão expirou. Faça login novamente.");
+  assert.equal(messages[0].retryText, "Quais sessões tem hoje?");
 });
 
 test("getSeatmapRedirectSessionId extracts the session id from a redirect action", () => {
@@ -145,4 +150,24 @@ test("isNewConversationCommand ignores ordinary questions", () => {
   assert.equal(isNewConversationCommand("Quais sessões tem hoje?"), false);
   assert.equal(isNewConversationCommand("hoje"), false);
   assert.equal(isNewConversationCommand(""), false);
+});
+
+test("isNewConversationCommand ignores real questions that merely contain a trigger phrase", () => {
+  assert.equal(
+    isNewConversationCommand(
+      "Quero começar uma nova conversa sobre o filme Duna com meus amigos"
+    ),
+    false
+  );
+  assert.equal(
+    isNewConversationCommand("I keep wanting to start overthinking this movie choice"),
+    false
+  );
+  assert.equal(
+    isNewConversationCommand(
+      "Can you clear conversation history from another app? Anyway, quais sessões tem hoje?"
+    ),
+    false
+  );
+  assert.equal(isNewConversationCommand("reset conversationalists are weird"), false);
 });
