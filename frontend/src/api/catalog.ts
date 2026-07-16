@@ -56,19 +56,19 @@ export const catalogApi = {
   },
 
   listFeaturedMovies() {
-    return listMovies({ is_featured: true });
+    return listAllMovies({ is_featured: true });
   },
 
   listNowShowingMovies() {
-    return listMovies({ status: "em_cartaz" });
+    return listAllMovies({ status: "em_cartaz" });
   },
 
   listPreSaleMovies() {
-    return listMovies({ status: "pre_venda" });
+    return listAllMovies({ status: "pre_venda" });
   },
 
   listUpcomingMovies() {
-    return listMovies({ status: "em_breve" });
+    return listAllMovies({ status: "em_breve" });
   },
 };
 
@@ -113,6 +113,25 @@ async function listMovies(params: ListMoviesParams) {
   }
 
   return response satisfies PaginatedResponse<CatalogMovie>;
+}
+
+// Home catalog sections need every movie matching a filter, not just one
+// page — the API paginates at PAGE_SIZE=10, which used to silently drop
+// movies past the first page (e.g. "em cartaz" with more than 10 titles).
+async function listAllMovies(
+  params: ListMoviesParams
+): Promise<PaginatedResponse<CatalogMovie>> {
+  let response = await listMovies(params);
+  const results = [...response.results];
+  let page = 2;
+
+  while (response.next) {
+    response = await listMovies({ ...params, page });
+    results.push(...response.results);
+    page += 1;
+  }
+
+  return { ...response, next: null, results };
 }
 
 async function getSessions(params: GetSessionsParams) {

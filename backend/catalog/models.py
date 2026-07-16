@@ -1,5 +1,6 @@
 import uuid
 from decimal import Decimal
+from functools import partial
 
 from django.conf import settings
 from django.contrib.postgres.constraints import ExclusionConstraint
@@ -7,8 +8,14 @@ from django.contrib.postgres.fields import DateTimeRangeField, RangeOperators
 from django.apps import apps
 from django.core.exceptions import ObjectDoesNotExist, ValidationError
 from django.core.validators import MinValueValidator
-from django.db import models
+from django.db import models, transaction
 from django.db.models import F, Func
+
+
+def _schedule_session_deletion(session_id, end_time):
+    from catalog.tasks import delete_ended_session
+
+    delete_ended_session.apply_async(args=[str(session_id)], eta=end_time)
 
 
 class MovieStatus(models.TextChoices):
@@ -333,7 +340,16 @@ class Session(models.Model):
 
     def save(self, *args, **kwargs):
         self.full_clean()
+        end_time_changed = self._state.adding or (
+            Session.objects.filter(pk=self.pk)
+            .exclude(end_time=self.end_time)
+            .exists()
+        )
         super().save(*args, **kwargs)
+        if end_time_changed:
+            transaction.on_commit(
+                partial(_schedule_session_deletion, self.pk, self.end_time)
+            )
 
 
 class CastMember(models.Model):
